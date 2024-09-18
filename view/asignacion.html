@@ -1,0 +1,2029 @@
+{% extends "components/layout.html" %}
+
+{% block title %}Asignación{% endblock %}
+
+{% block head %}
+<!-- ARCHIVO DE ESTILOS CON .CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+{% endblock %}
+
+<!-- INICIO DEL BLOQUE DE TODA LA PANTALLA DE ASIGNACIÓN -->
+{% block content %}
+<!-- SECCIÓN PROGRESO DE CARGA Y BLOQUEO DE PANTALLA -->
+    <div id="loading-overlay" style="display: none; justify-content: center;">
+    <div class="loading-content" style="display: flex; align-items: center;">
+        <img id="loading-gif" src="/static/images/cargando.gif" alt="Cargando..." width="70" height="70" />
+        <p style="margin-left: 10px;">Cargando, por favor espere...</p>
+    </div>
+</div>
+
+<!-- Titulo y Botones Iniciales -->
+<div class="container-fluid mt-auto mb-auto"> <!-- margenes de toda la pagina -->
+    <div class="row justify-content-between align-items-center">
+        <h1 class="col-auto" style="font-size: 24px; font-family: 'Century Gothic', sans-serif;">Asignación de Técnicos a Controles - Consorcio Express</h1>
+        <h1 class="col-auto" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!</h1>
+        <!-- Botón para abrir ventana flotante -->
+        <div class="col-auto">
+            <a href="{{ url_for('descargar_plantilla') }}" class="btn btn-dark">Plantilla de Cargue</a>
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click();">Cargue Planta y Controles</button>
+            <input type="file" id="fileInput" style="display: none;" onchange="cargarArchivo(this.files[0])">
+        </div>
+    </div>
+    
+<!-- Ventana flotante de previsualización del cargue masivo (Planta + Supervisores + Turnos + Controles) -->
+<div id="ventanaFlotante" class="ventana-flotante" style="display: none;">
+    <div class="card shadow">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Previsualización de Cargue</h5>
+        </div>
+        <div class="card-body">
+            <!-- Aquí se añaden los checkboxes para seleccionar qué hojas cargar -->
+            <div class="container mt-1">
+                <h5>Seleccione qué hojas desea cargar del archivo:</h5>
+                <form id="formSeleccionHojas" class="d-flex flex-wrap justify-content-center mt-2">
+                    <div class="form-check d-inline-block me-3">
+                        <input class="form-check-input" type="checkbox" value="tcz" id="checkTcz">
+                        <label class="form-check-label" for="checkTcz">Cargar Técnicos</label>
+                    </div>
+                    <div class="form-check d-inline-block me-3">
+                        <input class="form-check-input" type="checkbox" value="supervisores" id="checkSupervisores">
+                        <label class="form-check-label" for="checkSupervisores">Cargar Supervisores</label>
+                    </div>
+                    <div class="form-check d-inline-block me-3">
+                        <input class="form-check-input" type="checkbox" value="turnos" id="checkTurnos">
+                        <label class="form-check-label" for="checkTurnos">Cargar Turnos</label>
+                    </div>
+                    <div class="form-check d-inline-block me-3">
+                        <input class="form-check-input" type="checkbox" value="controles" id="checkControles">
+                        <label class="form-check-label" for="checkControles">Cargar Controles</label>
+                    </div>
+                </form>
+            </div>
+            {% if session and session.error_message %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Error:</strong> {{ session.error_message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endif %}
+            <!-- Pestañas para visualizar diferentes datos -->
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tabPlanta-tab" data-bs-toggle="tab" data-bs-target="#tabPlanta" type="button" role="tab" aria-controls="tabPlanta" aria-selected="true">Técnicos</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tabSupervisores-tab" data-bs-toggle="tab" data-bs-target="#tabSupervisores" type="button" role="tab" aria-controls="tabSupervisores" aria-selected="false">Supervisores</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tabTurnos-tab" data-bs-toggle="tab" data-bs-target="#tabTurnos" type="button" role="tab" aria-controls="tabTurnos" aria-selected="false">Turnos</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tabControles-tab" data-bs-toggle="tab" data-bs-target="#tabControles" type="button" role="tab" aria-controls="tabControles" aria-selected="false">Controles</button>
+                </li>
+            </ul>
+            <!-- Pestaña Tabla de datos de planta -->
+            <div class="tab-content mt-4" id="myTabContent">
+                <div class="tab-pane fade show active" id="tabPlanta" role="tabpanel" aria-labelledby="tabPlanta-tab">
+                    <!-- <h4 class="text-center">Planta Activa de Técnicos Centro de Control</h4> -->
+                    <div class="table-responsive" style="max-height: 40vh; overflow-y: auto;">
+                        <table id="tablaPlantaData" class="table table-bordered table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th style="width: 10%;">Cédula</th>
+                                    <th style="width: 80%;">Nombre</th>
+                                </tr>
+                            </thead>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pestaña Tabla de datos de Supervisores -->
+                <div class="tab-pane fade" id="tabSupervisores" role="tabpanel" aria-labelledby="tabSupervisores-tab">
+                    <!-- <h4 class="text-center">Planta Activa de Superviosres Centro de Control</h4> -->
+                    <div class="table-responsive" style="max-height: 40vh; overflow-y: auto;">
+                        <table id="tablaSupervisoresData" class="table table-bordered table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th style="width: 10%;">Cédula</th>
+                                    <th style="width: 80%;">Nombre</th>
+                                </tr>
+                            </thead>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pestaña Tabla de datos de Turnos -->
+                <div class="tab-pane fade" id="tabTurnos" role="tabpanel" aria-labelledby="tabTurnos-tab">
+                    <!-- <h4 class="text-center">Turnos Centro de Control</h4> -->
+                    <div class="table-responsive" style="max-height: 40vh; overflow-y: auto;">
+                        <table id="tablaTurnosData" class="table table-bordered table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th style="width: auto;">Turnos</th>
+                                    <th style="width: auto;">Hora Inicio</th>
+                                    <th style="width: auto;">Hora Fin</th>
+                                    <th style="width: 40%;">Detalles</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Aquí se insertarán los datos de Turnos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Pestaña Tabla de datos de controles -->
+                <div class="tab-pane fade" id="tabControles" role="tabpanel" aria-labelledby="tabControles-tab">
+                    <!-- <h4 class="text-center">Parametrización de Controles</h4> -->
+                    <div class="table-responsive" style="max-height: 40vh; overflow-y: auto;">
+                        <table id="tablaControlesData" class="table table-bordered table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Concesión</th>
+                                    <th>Puestos</th>
+                                    <th>Control</th>
+                                    <th>Ruta</th>
+                                    <th>Linea</th>
+                                    <th>Admin</th>
+                                    <th>COP</th>
+                                    <th>Tablas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Aquí se insertarán los datos de Controles -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- Botones de acción de la ventana flotante -->
+            <div class="text-center mt-4">
+                <button id="btnGuardar" class="btn btn-primary" type="button" onclick="guardarCargue()">Subir Cargue</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('ventanaFlotante').style.display='none'; location.reload();">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ############################################################################## -->
+<!-- SECCIÓN DE PARAMETRIZACIÓN DE ASIGNACIÓN DE CONTROLES -->
+<!-- Listas Desplegables de Parametrización Inicial (Fecha, Puestos, Adicionales, Supervisor Enlace, Buscador) -->
+<div class="border mt-2 p-2">
+    <div class="row">
+        <div class="col" style="margin-right: 1px;"> <!-- Ajustar el margen derecho -->
+            <label for="fechaAsignacion">Fecha</label>
+            <input type="date" id="fechaAsignacion" class="form-control filter-select" 
+                    style="height: 30px; padding: 5px; font-size: 12px; font-family: 'Century Gothic', sans-serif;">   
+        </div>
+        <!-- Grupo de checkbox y lista desplegable para SC -->
+        <div class="col checkbox-group">
+            <label for="checkSC">Puestos SC</label>
+            <input type="checkbox" id="checkSC" class="form-check-input" onclick="togglePuestosSC()">
+            <select id="puestosSC" class="form-control" disabled></select>
+        </div>
+        <!-- Grupo de checkbox y lista desplegable para UQ -->
+        <div class="col checkbox-group">
+            <label for="checkUQ">Puestos UQ</label>
+            <input type="checkbox" id="checkUQ" class="form-check-input" onclick="togglePuestosUQ()">
+            <select id="puestosUQ" class="form-control" disabled></select>
+        </div>
+        <!-- Campo para ingresar adicionales -->
+        <div class="col" style="margin-right: 1px;"> <!-- Ajustar el margen derecho -->
+            <label for="adicionales">Adicionales</label>
+            <input type="text" id="adicionales" class="form-control" placeholder="0" oninput="this.value = this.value.replace(/[^0-9]/g, '');" style="width: auto;"  />
+        </div>
+        <!-- Campo para ingresar Supervisor Enlace -->
+        <div class="col" style="margin-right: 1px;"> <!-- Ajustar el margen derecho -->
+            <label for="supervisores">Supervisor Enlace</label>
+            <select id="supervisor" class="form-control" style="width: 210px;"></select>
+        </div>
+        <!-- Caja de texto para buscar en la grilla -->
+        <div class="col">
+            <label for="searchInput">Buscar</label>
+            <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Buscar en Tabla..." oninput="filterTable()" style="display: inline-block; width: auto; margin-left: auto;">
+        </div>
+        <!-- Botón de Consultar Asignaciones -->
+        <div class="col"> 
+            <label for="searchInput">Asignaciones</label>
+            <button id="btnAyuda" class="btn btn-info form-control" type="button" onclick="mostrarAyudaModal()" style="margin-top: 3px; display: flex; gap: 3px; justify-content: center; width: 70%; color: rgb(0, 0, 0); font-weight: bold;">Consultar</button>
+        </div>
+        <!-- Modal para solicitar la fecha y concesión -->
+        <div class="modal fade" id="modalAyuda" tabindex="-1" aria-labelledby="modalAyudaLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalAyudaLabel">Obtener Asignación</h5>
+                        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="fechaAyuda">Seleccione la fecha:</label>
+                        <input type="date" id="fechaAyuda" class="form-control" required>
+
+                        <label for="concesionAyuda" class="mt-3">Seleccione la concesión:</label>
+                        <select id="concesionAyuda" class="form-control" required>
+                            <option value="" disabled selected>Seleccionar Concesión...</option>
+                            <!-- Las concesiones serán cargadas dinámicamente desde la base de datos -->
+                        </select>
+                        <label for="fechaHoraAyuda" class="mt-3">Seleccione la última modificación</label>
+                        <select id="fechaHoraAyuda" class="form-control" required>
+                            <option value="" disabled selected>Seleccionar Fecha y Hora...</option>
+                            <!-- Las fechas y horas serán cargadas dinámicamente desde la base de datos -->
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" onclick="obtenerAsignacionesAyuda()">Obtener Asignaciones</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<!-- ############################################################################## -->
+<!-- SECCIÓN DE GRILLA DE ASIGNACIÓN DE CONTROLES -->
+<!-- Grilla de asignación -->
+<div class="container-fluid mt-auto mb-2" style="padding-left: 1px; padding-right: 1px;">
+    <div class="row">
+        <!-- Columna izquierda para la tabla de personal -->
+        <div class="col-lg-2 col-md-4 col-sm-12" style="padding-right: 0.5px;">
+            <h5 class="text-center" style="font-size: 16px;">Planta de Técnicos</h5>
+            <div class="table-responsive" style="max-height: 80vh; overflow-y: auto; border: 1px solid #a8a8a8; font-size: 12px;">
+                <table id="tablaPlantaData" class="table table-bordered table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">Cédula</th>
+                            <th style="width: 50%;">Nombre</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Aquí se insertarán los datos de los técnicos -->
+                          <!-- Aquí se insertarán los datos de personal -->
+                        {% for persona in personal %}
+                        <tr>
+                            <td>{{ persona.cedula }}</td>
+                            <td>{{ persona.nombre }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sección Derecha: Asignación -->
+        <div class="col-lg-10 col-md-8 col-sm-12" style="padding-left: 2px;">
+            <h5 class="text-center" style="font-size: 16px;">Asignaciones de Técnicos de Control</h5>
+            <div class="table-responsive" style="max-height: 80vh; overflow-y: auto; border: 1px solid #a8a8a8; ">
+                <table id="tablaAsignacion" class="table table-bordered table-striped table-sm">
+                    <style>
+                        /* Estilos adicionales para la Grilla de asignación */
+                        #tablaAsignacion {
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 12px; /* tamaño fuente dentro de la grilla */
+                            font-family: 'Arial', sans-serif; /* Fuente para la grilla */
+                            table-layout: fixed; /* Fijar el tamaño de las columnas */
+                        }
+
+                        #tablaAsignacion th, #tablaAsignacion td {
+                            padding: 8px;
+                            text-align: left;
+                            border: 1px solid #d3d3d3;
+                            vertical-align: middle; /* Alinear el texto en el medio verticalmente */
+                            word-wrap: break-word; /* Ajuste automático del texto */
+                        }
+
+                        #tablaAsignacion th { /* Encabezados */
+                            background-color: #041053;
+                            color: white;
+                            font-weight: bold;
+                            position: sticky;
+                            top: 0; /* Mantiene el encabezado fijo en la parte superior */
+                            z-index: 1;
+                        }
+
+                        #tablaAsignacion tbody tr {
+                            height: 10px; /* Ajusta el alto de las filas */
+                        }
+
+                        #tablaAsignacion tbody tr:nth-child(even) {
+                            background-color: #fdfdff;
+                        }
+
+                        #tablaAsignacion tbody tr:hover {
+                            background-color: #d3d8f1;
+                        }
+
+                        /* Estilos adicionales para las listas desplegables */
+                        .form-control {
+                            font-size: 12px; /* tamaño fuente para las listas desplegables */
+                            font-family: 'Arial', sans-serif; /* Fuente para las listas desplegables */
+                        }
+
+                        /* Aplicar estilo específico a select dentro de la tabla */
+                        #tablaAsignacion select.form-control {
+                            font-size: 11px;
+                            font-family: 'Arial', sans-serif;
+                        }
+
+                       
+                        /* Reducir el tamaño del texto dentro de los inputs */
+                        .cedula-input, .nombre-input {
+                            font-size: 11px; /* Ajusta el tamaño de la fuente */
+                            height: 28px; /* Ajuste de la altura para inputs más compactos */
+                            padding: 4px; /* Ajuste del padding interno */
+                        }
+
+                        /* Reducir el tamaño del texto dentro de las listas desplegables */
+                        select.form-control {
+                            font-size: 12px; /* Ajusta el tamaño de la fuente */
+                            height: 28px; /* Ajuste de la altura para selects más compactos */
+                            padding: 4px; /* Ajuste del padding interno */
+                        }
+
+                    </style>
+                    <thead>
+                        <tr>
+                            <th style="width: 2.8%;">ID</th>
+                            <th style="width: 7.5%;">Cédula</th>
+                            <th style="width: 15%;">Nombre</th>
+                            <th style="width: 5%;">Turno</th>
+                            <th style="width: 5.5%;">H.Inicio</th>
+                            <th style="width: 5.3%;">H.Fin</th>
+                            <th style="width: 10%;">Concesión</th>
+                            <th style="width: 10%;">Control</th>
+                            <th style="width: 12%;">Rutas Asociadas</th>
+                            <th style="width: 14%;">Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Aquí se insertarán los datos de asignación -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- Botón para guardar y nueva asignación -->
+            <div class="text-center mt-2">
+                <button id="btnGuardarAsignacion" class="btn btn-primary" type="button" onclick="guardarAsignacion()">Guardar Asignación</button>
+                <button id="btnNuevaAsignacion" class="btn btn-dark" type="button" onclick="nuevaAsignacion()">Nueva Asignación</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estilos adicionales Ventana Flotante y Colorimetria de Grilla-->
+<style>
+    /* Estilo para encabezado fijo en la tabla */
+    #tablaPlantaData thead th,
+    #tablaSupervisoresData thead th,
+    #tablaTurnosData thead th,
+    #tablaControlesData thead th {
+        background-color: #041053; /* Color de fondo del encabezado */
+        color: white; /* Color de la fuente del encabezado */
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    /* Estilos para colorimetría de filas */
+    .ausencia {
+        background-color: #CAAFE0 !important; /* Rosa */
+    }
+    
+    .descanso, .vacaciones {
+        background-color: #b7e9ca !important; /* Naranja claro */
+    }
+    
+    .otras-tareas {
+        background-color: #ADD8E6 !important; /* Azul claro */
+    }
+   
+</style>
+
+<!-- Estilos necesarios para la grilla de gestión de asignaciones -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.17.4/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<!-- FUNCIONES DEL CARGUE MASIVO DE PARAMETRIZACIÓN (Planta + Supervisores + Turnos + Controles) -->
+<script>
+    let session_id = null;
+
+    function cargarArchivo(file) {
+        var formData = new FormData();
+        formData.append('file', file);
+
+        fetch('/cargar_archivo/', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.session_id) {
+                session_id = data.session_id;
+                mostrarPreliminar(data.preliminar);
+                document.getElementById('ventanaFlotante').style.display = 'block';  // Mostrar la ventana flotante
+            } else {
+                mostrarError(data.detail);  // Mostrar detalle de error
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar el archivo:', error);
+            mostrarError('Error al cargar el archivo. Por favor, inténtelo de nuevo más tarde.');  // Manejar errores de red u otros
+        });
+    }
+
+    function mostrarPreliminar(data) {
+        console.log(data); // Esto mostrará toda la estructura de 'data' en la consola
+        var plantaData = data.planta;
+        var supervisoresData = data.supervisores;
+        var turnosData = data.turnos;
+        var controlesData = data.controles;
+
+        //TÉCNICOS
+        // Ordenar plantaData alfabéticamente por nombre
+        plantaData.sort(function(a, b) {
+            return a.nombre.localeCompare(b.nombre);
+        });
+
+        var tablaPlanta = document.getElementById('tablaPlantaData');
+        tablaPlanta.innerHTML = '';  // Limpiar tabla antes de insertar nuevos datos
+
+        // Insertar encabezados de la tabla
+        var theadPlanta = document.createElement('thead');
+        theadPlanta.innerHTML = '<tr><th>Cédula</th><th>Nombre</th></tr>';
+        tablaPlanta.appendChild(theadPlanta);
+
+        plantaData.forEach(row => {
+            var tr = document.createElement('tr');
+            tr.innerHTML = `<td>${row.cedula}</td><td>${row.nombre}</td>`;
+            tablaPlanta.appendChild(tr);
+        });
+
+        //SUPERVISORES
+        // Ordenar supervisoresData alfabéticamente por nombre
+        supervisoresData.sort(function(a, b) {
+            return a.nombre.localeCompare(b.nombre);
+        });
+
+        var tablaSupervisores = document.getElementById('tablaSupervisoresData');
+        tablaSupervisores.innerHTML = '';  // Limpiar tabla antes de insertar nuevos datos
+
+        // Insertar encabezados de la tabla
+        var theadSupervisores = document.createElement('thead');
+        theadSupervisores.innerHTML = '<tr><th>Cédula</th><th>Nombre</th></tr>';
+        tablaSupervisores.appendChild(theadSupervisores);
+
+        supervisoresData.forEach(row => {
+            var tr = document.createElement('tr');
+            tr.innerHTML = `<td>${row.cedula}</td><td>${row.nombre}</td>`;
+            tablaSupervisores.appendChild(tr);
+        });
+
+        //TURNOS
+        var tablaTurnos = document.getElementById('tablaTurnosData');
+        tablaTurnos.innerHTML = '';  // Limpiar tabla antes de insertar nuevos datos
+
+        // Insertar encabezados de la tabla
+        var theadTurnos = document.createElement('thead');
+        theadTurnos.innerHTML = '<tr><th>Turnos</th><th>Hora Inicio</th><th>Hora Fin</th><th>Detalles</th></tr>';
+        tablaTurnos.appendChild(theadTurnos);
+
+        turnosData.forEach(row => {
+            var tr = document.createElement('tr');
+            tr.innerHTML = `<td>${row.turno}</td><td>${row.hora_inicio}</td><td>${row.hora_fin}</td><td>${row.detalles}</td>`;
+            tablaTurnos.appendChild(tr);
+        });       
+        
+        //CONTROLES
+        var tablaControles = document.getElementById('tablaControlesData');
+        tablaControles.innerHTML = '';  // Limpiar tabla antes de insertar nuevos datos
+
+        // Insertar encabezados de la tabla
+        var theadControles = document.createElement('thead');
+        theadControles.innerHTML = '<tr><th>Concesión</th><th>Puestos</th><th>Control</th><th>Ruta</th><th>Linea</th><th>Admin</th><th>COP</th><th>Tablas</th></tr>';
+        tablaControles.appendChild(theadControles);
+
+        controlesData.forEach(row => {
+            var tr = document.createElement('tr');
+            tr.innerHTML = `<td>${row.concesion}</td><td>${row.puestos}</td><td>${row.control}</td><td>${row.ruta}</td><td>${row.linea}</td><td>${row.admin}</td><td>${row.cop}</td><td>${row.tablas}</td>`;
+            tablaControles.appendChild(tr);
+        });
+    }
+
+    function mostrarError(message) {
+        document.getElementById('ventanaFlotante').style.display = 'none';
+        var alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `<strong>Error:</strong> ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+        document.body.appendChild(alertDiv);
+    }
+
+    function guardarCargue() {
+        if (!session_id) {
+            mostrarError('No hay sesión activa para confirmar el cargue.');
+            return;
+        }
+    
+        // Validar que al menos un checkbox esté seleccionado
+        const checkTcz = document.getElementById('checkTcz').checked;
+        const checkSupervisores = document.getElementById('checkSupervisores').checked;
+        const checkTurnos = document.getElementById('checkTurnos').checked;
+        const checkControles = document.getElementById('checkControles').checked;
+    
+        if (!checkTcz && !checkSupervisores && !checkTurnos && !checkControles) {
+            alert('Debe seleccionar al menos una hoja para cargar.');
+            return;
+        }
+    
+        if (confirm('¿Está seguro de cargar los datos?')) {
+            // Mostrar el overlay de cargando antes de iniciar el proceso de carga
+            document.getElementById('loading-overlay').style.display = 'flex';
+    
+            // Preparar el payload con las hojas seleccionadas
+            const hojasSeleccionadas = {
+                session_id: session_id,
+                tcz: checkTcz, 
+                supervisores: checkSupervisores,
+                turnos: checkTurnos,
+                controles: checkControles
+            };
+    
+            fetch('/confirmar_cargue/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(hojasSeleccionadas), // Enviar solo las hojas seleccionadas
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error en la solicitud. Por favor, inténtelo de nuevo más tarde.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message);
+                document.getElementById('ventanaFlotante').style.display = 'none';
+                location.reload(); // Recargar la página después de guardar exitosamente
+            })
+            .catch(error => {
+                console.error('Error al cargar los datos:', error);
+                mostrarError('Error al cargar los datos. Por favor, inténtelo de nuevo más tarde.');
+            })
+            .finally(() => {
+                // Ocultar el overlay de cargando después de que termine el proceso (exitoso o con error)
+                document.getElementById('loading-overlay').style.display = 'none';
+            });
+        }
+    }    
+
+    function cancelarCargue() {
+        document.getElementById('ventanaFlotante').style.display = 'none';
+        location.reload();
+    }
+
+</script>
+
+<!-- GIF BLOQUEO PARA EL CARGUE MASIVO DE PARAMETRIZACIÓN (Planta + Supervisores + Turnos + Controles) -->
+<script>
+    document.querySelector('#form-cargar-archivo').addEventListener('submit', function(e) {
+      // Evitar el comportamiento predeterminado del formulario
+      e.preventDefault();
+      
+      // Mostrar el overlay de cargando
+      document.getElementById('loading-overlay').style.display = 'flex';
+      
+      // Simular el envío del formulario para que se complete el proceso
+      this.submit();  // Luego de mostrar el gif, el formulario se envía
+    });
+  </script> 
+
+<!-- FUNCIONES PARA MANEJAR LA HABILITACIÓN Y DESHABILITACIÓN DE LOS PUESTOS SC Y/O UQ" -->
+<script>
+    
+    function togglePuestosSC(cargarDinamicamente = true, valorAsignado = null) {
+        const checkSC = document.getElementById('checkSC');
+        const puestosSC = document.getElementById('puestosSC');
+    
+        if (checkSC.checked) {
+            puestosSC.disabled = false;
+    
+            // Cargar siempre los datos dinámicamente
+            $.get("/api/puestos_SC", function(data) {
+                puestosSC.innerHTML = ''; // Limpiar opciones anteriores
+                puestosSC.append(new Option("Seleccionar...", "", true, true));
+    
+                // Ordenar los datos numéricamente de forma ascendente
+                if (Array.isArray(data) && typeof data[0] === 'number') {
+                    data.sort((a, b) => a - b); // Ordenar numéricamente
+                }
+    
+                data.forEach(function(puesto) {
+                    puestosSC.append(new Option(puesto, puesto));
+                });
+    
+                // Si hay un valor asignado, seleccionarlo después de cargar las opciones
+                if (valorAsignado) {
+                    puestosSC.value = valorAsignado;
+                }
+            });
+        } else {
+            puestosSC.disabled = true;
+            puestosSC.innerHTML = '<option value="">Seleccionar...</option>';
+            eliminarFilasAsignacionPorConcesion("SAN CRISTÓBAL");
+        }
+    
+        recalcularYActualizarFilas();
+    }
+    
+    function togglePuestosUQ(cargarDinamicamente = true, valorAsignado = null) {
+        const checkUQ = document.getElementById('checkUQ');
+        const puestosUQ = document.getElementById('puestosUQ');
+    
+        if (checkUQ.checked) {
+            puestosUQ.disabled = false;
+    
+            // Cargar siempre los datos dinámicamente
+            $.get("/api/puestos_UQ", function(data) {
+                puestosUQ.innerHTML = ''; // Limpiar opciones anteriores
+                puestosUQ.append(new Option("Seleccionar...", "", true, true));
+    
+                // Ordenar los datos numéricamente de forma ascendente
+                if (Array.isArray(data) && typeof data[0] === 'number') {
+                    data.sort((a, b) => a - b); // Ordenar numéricamente
+                }
+    
+                data.forEach(function(puesto) {
+                    puestosUQ.append(new Option(puesto, puesto));
+                });
+    
+                // Si hay un valor asignado, seleccionarlo después de cargar las opciones
+                if (valorAsignado) {
+                    puestosUQ.value = valorAsignado;
+                }
+            });
+        } else {
+            puestosUQ.disabled = true;
+            puestosUQ.innerHTML = '<option value="">Seleccionar...</option>';
+            eliminarFilasAsignacionPorConcesion("USAQUÉN");
+        }
+    
+        recalcularYActualizarFilas();
+    }    
+
+    function eliminarFilasAsignacionPorConcesion(concesion) {
+        const tbody = $("#tablaAsignacion tbody");
+        tbody.find('tr').each(function() {
+            const rowConcesion = $(this).find('.concesion-select').val();
+            if (rowConcesion === concesion) {
+                $(this).remove(); // Eliminar la fila si coincide con la concesión
+            }
+        });
+        actualizarNumeracionFilas(); // Actualizar la numeración de las filas después de eliminar
+    }
+
+    function recalcularYActualizarFilas() {
+        const puestosSC = parseInt($("#puestosSC").val()) || 0;
+        const puestosUQ = parseInt($("#puestosUQ").val()) || 0;
+        const totalPuestos = puestosSC + puestosUQ;
+    
+        actualizarFilasAsignacion(totalPuestos);
+        recalcularRutasAsociadas(); // Recalcular rutas asociadas dinámicamente
+    }
+
+</script> 
+
+<!-- FUNCIONES PARA RESTABLECER LA PANTALLA DE ASIGNACIÓN Y AJUSTES" -->
+<script>
+    // Función para Limpiar grilla y crear nueva asignación -->
+    function nuevaAsignacion() {
+        document.getElementById('btnNuevaAsignacion').disabled = true; // Deshabilitar el botón mientras se actualiza la grilla
+        location.reload(); // Recargar la página para reinicializar todo
+    }
+
+    // Función para realizar el filtro de busqueda en la grilla -->
+    function filterTable() {
+        const input = document.getElementById('searchInput');
+        const filter = input.value.toUpperCase();
+        const table = document.getElementById('tablaAsignacion');
+        const tr = table.getElementsByTagName('tr');
+    
+        for (let i = 1; i < tr.length; i++) {
+            let match = false;
+            const td = tr[i].getElementsByTagName('td');
+            for (let j = 0; j < td.length; j++) {
+                if (td[j]) {
+                    let txtValue = td[j].textContent || td[j].innerText;
+    
+                    // Verificar si la celda contiene un select o input
+                    const select = td[j].getElementsByTagName('select')[0];
+                    const inputElement = td[j].getElementsByTagName('input')[0];
+    
+                    if (select) {
+                        // Si es un select, obtén el texto de la opción seleccionada
+                        txtValue = select.options[select.selectedIndex].text;
+                    } else if (inputElement) {
+                        // Si es un input, obtén su valor
+                        txtValue = inputElement.value;
+                    }
+    
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        match = true;
+                        break;
+                    }
+                }
+            }
+            tr[i].style.display = match ? '' : 'none';
+        }
+    }    
+
+    // Función para aplicar colorimetría a las filas basadas en el turno seleccionado
+    function aplicarColorimetria() {
+        $('#tablaAsignacion').on('change', '.turno-select', function() {
+            var turno = $(this).val();
+            var row = $(this).closest('tr');
+            row.removeClass('ausencia descanso vacaciones otras-tareas'); // Eliminar clases previas
+
+            if (turno === 'AUSENCIA') {
+                row.addClass('ausencia');
+            } else if (turno === 'DESCANSO' || turno === 'VACACIONES') {
+                row.addClass('descanso vacaciones');
+            } else if (turno === 'OTRAS TAREAS') {
+                row.addClass('otras-tareas');
+            }
+        });
+    }
+
+    // Función para bloquear listas desplegables de control y concesión si no controla alguna ruta en CCZ
+    function bloquearDesplegables(tr, bloquear) {
+        var concesionSelect = tr.find(".concesion-select");
+        var controlSelect = tr.find(".control-select");
+        var rutasAsociadasCell = tr.find(".rutas-asociadas");
+    
+        if (bloquear) {
+            concesionSelect.prop('disabled', true).val('');
+            controlSelect.prop('disabled', true).val('');
+            rutasAsociadasCell.text('Por asignar'); // Restablecer "Rutas Asociadas"
+        } else {
+            concesionSelect.prop('disabled', false);
+            controlSelect.prop('disabled', false);
+        }
+    }
+
+</script>
+
+<script>   
+    // Función para cargar los supervisores al cargar la página
+    $.get("/api/supervisores", function(data) {
+        data.sort(function(a, b) {
+            return a.nombre.localeCompare(b.nombre);
+        });
+
+        var select = $("#supervisor");
+        select.empty();
+        select.append(new Option("Seleccionar...", "", true, true));
+        data.forEach(function(supervisor) {
+            select.append(new Option(supervisor.nombre, supervisor.cedula));
+        });
+
+        select.one('change', function() {
+            select.find('option[value=""]').remove();
+        });
+
+        // Guardar cedula y nombre del supervisor seleccionado en data-attributes
+        select.change(function() {
+            var selectedOption = $(this).find('option:selected');
+            var nombreSupervisor = selectedOption.text();
+            var cedulaSupervisor = selectedOption.val();
+
+            $(this).data('cedula', cedulaSupervisor);
+            $(this).data('nombre', nombreSupervisor);
+        });
+    });
+
+    // Función para obtener turnos
+    function cargarTurnos(selectElement) {
+        $.get("/api/turnos", function(data) {
+            // Ordenar alfabéticamente los turnos
+            data.sort(function(a, b) {
+                return a.localeCompare(b);  // Comparación alfabética
+            });
+
+            selectElement.empty();
+            selectElement.append(new Option("...", "", true, true));
+            data.forEach(function(turno) {
+                selectElement.append(new Option(turno, turno));
+            });
+        });
+
+        // Añadir el evento de cambio para bloquear las listas desplegables según el valor seleccionado
+        selectElement.change(function() {
+            var tr = $(this).closest('tr');
+            var turnoSeleccionado = $(this).val();
+            var bloquear = ["AUSENCIA", "DESCANSO", "VACACIONES", "OTRAS TAREAS"].includes(turnoSeleccionado);
+            bloquearDesplegables(tr, bloquear);
+            validarEnTiempoReal(); // Llamar a la validación en tiempo real después del cambio
+        });
+    } 
+
+    // Función para obtener horas de inicio y fin
+    function cargarHoras(selectElement, turno, type) {
+        var endpoint = type === 'inicio' ? '/api/hora_inicio' : '/api/hora_fin';
+        $.get(endpoint, { turno: turno }, function(data) {
+            var formattedTime = data[type].substring(0, 5); // Formato HH:MM
+            selectElement.text(formattedTime);
+            validarEnTiempoReal(); // Llamar a la validación en tiempo real después del cambio
+        });
+    }
+
+    // Función para validar el formato de hora HH:MM
+    function isValidTime(time) {
+        const regex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+        return regex.test(time);
+    }
+
+    // Hacer campos de hora editable al hacer doble clic
+    $('#tablaAsignacion').on('dblclick', '.hora-inicio, .hora-fin', function() {
+        var currentText = $(this).text();
+        var input = $('<input>', {
+            type: 'text',
+            value: currentText,
+            class: 'form-control',
+            css: {
+                width: '100%',
+                padding: '2px',
+                fontSize: 'inherit'
+            }
+        });
+
+        $(this).html(input);
+        input.focus();
+
+        input.on('blur', function() {
+            var newText = $(this).val();
+            if (isValidTime(newText)) {
+                $(this).parent().text(newText);
+            } else {
+                alert('Formato de hora no válido. Utilice HH:MM');
+                $(this).parent().text(currentText);
+            }
+            validarEnTiempoReal(); // Llamar a la validación en tiempo real después de la edición
+        });
+        
+        input.on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                input.blur();
+            } else if (e.key === 'Escape') {
+                $(this).parent().text(currentText);
+            }
+        });
+    });
+    
+    // Cargar puestos_SC al cargar la página
+    $.get("/api/puestos_SC", function(data) {   
+        var select = $("#puestosSC");
+        select.empty();
+        // Añadir opción predeterminada vacía solo como etiqueta
+        select.append(new Option("Seleccionar...", "", true, true));
+        data.forEach(function(puesto) {
+            select.append(new Option(puesto, puesto));
+        });
+        // Evento para eliminar la opción "Seleccionar..." después de la primera selección
+        select.one('change', function() {
+            select.find('option[value=""]').remove();
+        });
+    });     
+
+    // Cargar puestos_UQ al cargar la página
+    $.get("/api/puestos_UQ", function(data) {
+        var select = $("#puestosUQ");
+        select.empty();
+        // Añadir opción predeterminada vacía solo como etiqueta
+        select.append(new Option("Seleccionar...", "", true, true));
+        data.forEach(function(puesto) {
+            select.append(new Option(puesto, puesto));
+        });
+
+        // Evento para eliminar la opción "Seleccionar..." después de la primera selección
+        select.one('change', function() {
+            select.find('option[value=""]').remove();
+        });
+    });
+
+    // Cargar datos de planta en la tabla izquierda
+    $.get("/api/planta", function(plantaData) {
+
+        // Ordenar plantaData alfabéticamente por nombre
+        plantaData.sort(function(a, b) {
+            return a.nombre.localeCompare(b.nombre);
+        });
+
+        var tbodyPlanta = $("#tablaPlantaData tbody");
+        tbodyPlanta.empty(); // Limpiar tabla antes de insertar nuevos datos
+        plantaData.forEach(function(persona) {
+            var tr = $('<tr>');
+            tr.append('<td>' + persona.cedula + '</td>');
+            tr.append('<td>' + persona.nombre + '</td>');
+            tbodyPlanta.append(tr);
+        });
+    });
+
+    // Cargar datos en la grilla de asignación - La tabla inicialmente estará vacía y se llenará según los puestos seleccionados
+    $("#puestosSC, #puestosUQ").change(function() {
+        var puestosSC = parseInt($("#puestosSC").val()) || 0;
+        var puestosUQ = parseInt($("#puestosUQ").val()) || 0;
+        var totalPuestos = puestosSC + puestosUQ;
+
+        actualizarFilasAsignacion(totalPuestos); // Ajustar las filas según los puestos seleccionados
+    });
+
+    // Función para actualizar la colorimetría en la tabla de planta
+    function actualizarColorimetriaPlanta() {
+        // Limpiar cualquier colorimetría previa
+        $("#tablaPlantaData tbody tr").each(function() {
+            $(this).css("background-color", "");  // Quitar color de fondo previo
+        });
+
+        // Obtener todas las cédulas y nombres asignados en la tabla de asignaciones
+        let asignacionesValidas = [];
+        $("#tablaAsignacion tbody tr").each(function() {
+            let cedula = $(this).find(".cedula-input").val();
+            let nombre = $(this).find(".nombre-input").val();
+            if (cedula && nombre) {
+                asignacionesValidas.push(cedula);
+            }
+        });
+
+        // Aplicar colorimetría en la tabla de planta para las cédulas que tienen nombre asignado
+        $("#tablaPlantaData tbody tr").each(function() {
+            let cedulaPlanta = $(this).find("td:eq(0)").text();
+            if (asignacionesValidas.includes(cedulaPlanta)) {
+                $(this).css("background-color", "#b7e9ca");  // Azul celeste
+            }
+        });
+    }            
+
+    function agregarFilaAsignacion(index) {
+        var tbody = $("#tablaAsignacion tbody");
+        var tr = $('<tr>');
+        tr.append('<td>' + index + '</td>');  
+        tr.append('<td><input type="text" class="cedula-input form-control" /></td>');  // Cedula con clase 'cedula-input'
+        tr.append('<td><input type="text" class="nombre-input form-control" /></td>');  // Nombre con clase 'nombre-input'       
+        tr.append('<td><select class="form-control turno-select"><option value="">Seleccionar...</option></select></td>');
+        tr.append('<td class="hora-inicio">Por asignar</td>');
+        tr.append('<td class="hora-fin">Por asignar</td>');
+        tr.append('<td><select class="form-control concesion-select"></select></td>');
+        tr.append('<td><select class="form-control control-select"><option value="">Seleccionar...</option></select></td>');
+        tr.append('<td class="rutas-asociadas">Por asignar</td>');
+        tr.append('<td><textarea class="observaciones-input form-control" rows="1.8" placeholder="Ingrese observaciones..."></textarea></td>');
+        tbody.append(tr);
+        
+        // Cargar turnos en la lista desplegable
+        cargarTurnos(tr.find('.turno-select'));
+        // Cargar concesiones en la lista desplegable
+        cargarConcesiones(tr.find('.concesion-select'));
+        aplicarColorimetria(); // Aplicar la colorimetría a las filas para novedades de no cotrol de rutas  
+        actualizarColorimetriaPlanta();
+        initAutocomplete();
+        initDragAndDrop();
+        
+        // lógica  para actualización de horas y concesiones
+        tr.find('.turno-select').change(function() {
+            var turno = $(this).val();
+            var row = $(this).closest('tr');
+            var horaInicioCell = row.find(".hora-inicio");
+            var horaFinCell = row.find(".hora-fin");
+
+            if (turno) {
+                cargarHoras(horaInicioCell, turno, 'inicio');
+                cargarHoras(horaFinCell, turno, 'fin');
+            } else {
+                horaInicioCell.text('Por asignar');
+                horaFinCell.text('Por asignar');
+            }
+            validarEnTiempoReal(); // Asegurarse de que se llame al final del evento
+        });
+        // Actualización de controles basada en la concesión y los puestos seleccionados
+        tr.find('.concesion-select').change(function() {
+            var concesion = $(this).val();
+            var row = $(this).closest('tr');
+            var controlSelect = row.find(".control-select");
+            var rutasAsociadasCell = row.find(".rutas-asociadas");
+
+            var puestosSC = $("#puestosSC").val();
+            var puestosUQ = $("#puestosUQ").val();
+            var puestos = (concesion === "SAN CRISTÓBAL") ? puestosSC : (concesion === "USAQUÉN") ? puestosUQ : "";
+
+            if (puestos) {
+                $.get("/api/control", { concesion: concesion, puestos: puestos }, function(data) {
+                    // Ordenar alfabéticamente los controles
+                    data.sort(function(a, b) {
+                        return a.localeCompare(b);  // Comparación alfabética
+                    });
+
+                    controlSelect.empty();
+                    controlSelect.append('<option value="">Seleccionar...</option>'); // Añadir opción predeterminada vacía
+                    data.forEach(function(control) {
+                        controlSelect.append(new Option(control, control));
+                    });
+                });
+            } else {
+                controlSelect.empty();
+                controlSelect.append('<option value="">Seleccionar...</option>'); // Añadir opción predeterminada vacía
+            }
+            // Limpiar rutas asociadas cuando se cambia la concesión
+            rutasAsociadasCell.text('Por asignar');
+            validarEnTiempoReal(); // Llamar a la validación en tiempo real después del cambio
+        });
+
+            // Inicializar autocomplete y drag and drop en la nueva fila
+        initAutocomplete();
+        initDragAndDrop();
+
+        // Actualización de rutas basada en la concesión y el control seleccionados
+        tr.find('.control-select').change(function() {
+            var row = $(this).closest('tr');
+            var concesion = row.find(".concesion-select").val();
+            var control = $(this).val();
+            var rutasAsociadasCell = row.find(".rutas-asociadas");
+
+            var puestosSC = $("#puestosSC").val();
+            var puestosUQ = $("#puestosUQ").val();
+            var puestos = (concesion === "SAN CRISTÓBAL") ? puestosSC : (concesion === "USAQUÉN") ? puestosUQ : "";
+
+            if (concesion && puestos && control) {
+                $.get("/api/rutas", { concesion: concesion, puestos: puestos, control: control }, function(data) {
+                    console.log("Rutas obtenidas:", data.rutas); // Añadir este log para verificar las rutas obtenidas
+                    rutasAsociadasCell.text(data.rutas);
+                });
+            } else {
+                rutasAsociadasCell.text('Por asignar');
+            }
+            validarEnTiempoReal(); // Llamar a la validación en tiempo real después del cambio
+        });
+
+        validarEnTiempoReal(); // Asegúrate de validar en tiempo real después de agregar la nueva fila
+    }
+
+    // Actualizar filas de asignación basadas en el cambio de "Adicionales"
+    $("#puestosSC, #puestosUQ, #adicionales").change(function() {
+        var puestosSC = parseInt($("#puestosSC").val()) || 0;
+        var puestosUQ = parseInt($("#puestosUQ").val()) || 0;
+        var adicionales = parseInt($("#adicionales").val()) || 0;
+        var totalPuestos = puestosSC + puestosUQ + adicionales;
+
+        actualizarFilasAsignacion(totalPuestos); // Ajustar las filas según los puestos seleccionados
+        actualizarColorimetriaPlanta(); // Actualizar colorimetría después de insertar la fila
+    });
+
+    // Función para inicializar autocomplete en los campos Cédula y Nombre
+    function initAutocomplete() {
+        $(".cedula-input, .nombre-input").each(function() {
+            // Forzar la entrada en mayúsculas para el campo de "Nombre"
+            if ($(this).hasClass('nombre-input')) {
+                $(this).on('input', function() {
+                    this.value = this.value.toUpperCase();  // Forzar mayúsculas
+                });
+            }
+    
+            // Validación para permitir solo números en el campo "Cédula"
+            if ($(this).hasClass('cedula-input')) {
+                $(this).on('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');  // Permitir solo números
+                });
+            }
+            // Asegurarte que los mensajes de accesibilidad se oculten correctamente
+            setInterval(function() {
+                $(".ui-helper-hidden-accessible").hide();
+            }, 500);
+            
+    
+            $(this).autocomplete({
+                source: function(request, response) {
+                    let results = [];
+                    let searchTerm = request.term.toLowerCase();  // Normalizamos el término de búsqueda a minúsculas
+    
+                    $("#tablaPlantaData tbody tr").each(function() {
+                        let cedula = $(this).find('td:eq(0)').text().trim();
+                        let nombre = $(this).find('td:eq(1)').text().trim();
+    
+                        // Realizar la búsqueda ignorando mayúsculas y minúsculas
+                        if (cedula.includes(searchTerm) || nombre.toLowerCase().includes(searchTerm)) {
+                            if (!results.some(item => item.cedula === cedula && item.nombre === nombre)) {
+                                results.push({
+                                    label: cedula + " - " + nombre, // Mostrar "cedula - nombre" en la lista desplegable
+                                    value: $(this).hasClass('cedula-input') ? cedula : nombre, // Asegurar que solo el nombre o la cédula sea el valor predeterminado
+                                    cedula: cedula,
+                                    nombre: nombre  // Guardamos el nombre tal como está
+                                });
+                            }
+                        }
+                    });
+    
+                    // Si no hay resultados, devolver un array vacío para evitar mostrar "No search results."
+                    response(results.length > 0 ? results : []);
+                },
+                select: function(event, ui) {
+                    let row = $(this).closest('tr');
+    
+                    // Limpia los campos antes de asignar nuevos valores
+                    row.find('.cedula-input').val('');
+                    row.find('.nombre-input').val('');
+    
+                    // Asignar valores según el campo que ha activado el autocomplete
+                    if ($(this).hasClass('cedula-input')) {
+                        row.find('.cedula-input').val(ui.item.cedula);
+                        row.find('.nombre-input').val(ui.item.nombre);
+                    } else {
+                        row.find('.nombre-input').val(ui.item.nombre);
+                        row.find('.cedula-input').val(ui.item.cedula);
+                    }
+    
+                    // Verificar si ya existe una asignación con el mismo nombre o cédula
+                    validarAsignacionUnica(row);
+                    actualizarColorimetriaPlanta();  // Actualizar colorimetría después de asignar cédula y nombre
+
+                    // Ejecutar validación de solapamiento en tiempo real después de seleccionar una opción
+                    validarEnTiempoReal();
+                    return false;
+                },
+                change: function(event, ui) {
+                    if (!ui.item) {
+                        // Si no se selecciona un valor de la lista, limpiar el campo y mostrar alerta
+                        let row = $(this).closest('tr');
+                        if ($(this).val().trim() !== "") {
+                            alert('Valor no válido. Seleccione un valor de la lista.');
+                            row.find('.cedula-input, .nombre-input').val('');  // Limpiar ambos campos de la fila
+                        }
+                        actualizarColorimetriaPlanta();  // Actualizar colorimetría después de limpiar
+                    }
+                },
+                open: function() {
+                    $(".ui-autocomplete").css({
+                        "max-height": "auto",
+                        "overflow-y": "auto",
+                        "background-color": "#fff",  // Fondo blanco para mejorar la visibilidad
+                        "border": "1px solid #ccc",  // Borde gris para que sea más claro
+                        "font-size": "12px",  // Ajuste del tamaño de fuente
+                        "width": "250px"  // Ajustar el ancho a un valor más pequeño
+                    });
+    
+                    // Resaltar la opción seleccionada cuando navegas con las teclas
+                    $(".ui-autocomplete li").on("mouseover", function() {
+                        $(this).css("background-color", "#d3d3d3");  // Cambia el color de fondo al pasar el ratón
+                    }).on("mouseout", function() {
+                        $(this).css("background-color", "#fff");  // Revertir el color de fondo cuando se deja de seleccionar
+                    });
+                },
+                focus: function(event, ui) {
+                    // Cambiar el color de fondo cuando está enfocado, asegurando que la opción está resaltada
+                    $(".ui-autocomplete .ui-menu-item").css("background-color", "#fff");  // Resetear color
+                    $(".ui-autocomplete .ui-state-focus").css("background-color", "#d3d3d3");  // Color de fondo enfocado
+                }
+            });
+    
+            // Validación adicional en el evento blur para asegurarse de que el valor es válido
+            $(this).on('blur', function() {
+                let isValid = false;
+                let inputVal = $(this).val().toLowerCase().trim();
+                let row = $(this).closest('tr');  // Obtener la fila actual
+    
+                if (inputVal !== "") {  // Solo validar si hay algo escrito
+                    $("#tablaPlantaData tbody tr").each(function() {
+                        let cedula = $(this).find('td:eq(0)').text().trim();
+                        let nombre = $(this).find('td:eq(1)').text().trim().toLowerCase();
+    
+                        if (cedula === inputVal || nombre === inputVal) {
+                            isValid = true;
+                            return false;  // Salir del bucle si se encuentra una coincidencia
+                        }
+                    });
+    
+                    if (!isValid) {
+                        alert('Valor no válido. Seleccione un valor de la lista.');
+                        row.find('.cedula-input, .nombre-input').val('');  // Limpiar ambos campos de la fila
+                    }
+                }
+            });
+            // Limpiar el campo opuesto si se borra el campo actual
+            $(this).on('input', function() {
+                let row = $(this).closest('tr');
+                if ($(this).val().trim() === "") {
+                    if ($(this).hasClass('cedula-input')) {
+                        row.find('.nombre-input').val('');  // Limpiar el campo "Nombre" si "Cédula" está vacío
+                    } else if ($(this).hasClass('nombre-input')) {
+                        row.find('.cedula-input').val('');  // Limpiar el campo "Cédula" si "Nombre" está vacío
+                    }
+                }
+                validarEnTiempoReal(); // Validar en tiempo real cada vez que se cambie un campo
+            });
+        });
+    }     
+
+    // Función para verificar si la cédula o nombre ya está asignado
+    function validarAsignacionUnica(row) {
+        let cedula = row.find('.cedula-input').val();
+        let nombre = row.find('.nombre-input').val();
+        let duplicado = false;
+
+        $("#tablaAsignacion tbody tr").not(row).each(function() {
+            if ($(this).find('.cedula-input').val() === cedula || $(this).find('.nombre-input').val() === nombre) {
+                duplicado = true;
+                return false;
+            }
+        });
+
+        if (duplicado) {
+            alert('El técnico ya fue asignado.');  // Mostrar alerta
+            row.find('.cedula-input, .nombre-input').val('');
+        }
+
+    }
+
+    // Función para habilitar drag and drop
+    function initDragAndDrop() {
+        $("#tablaPlantaData tbody tr").draggable({
+            helper: "clone",
+            cursor: "move",
+            zIndex: 100,
+        });
+
+        $("#tablaAsignacion tbody tr .cedula-input, #tablaAsignacion tbody tr .nombre-input").droppable({
+            accept: "#tablaPlantaData tbody tr",
+            drop: function(event, ui) {
+                let cedula = ui.helper.find('td:eq(0)').text();
+                let nombre = ui.helper.find('td:eq(1)').text();
+                let row = $(this).closest('tr');
+
+                if ($(this).hasClass('cedula-input')) {
+                    row.find('.cedula-input').val(cedula);
+                    row.find('.nombre-input').val(nombre);
+                } else {
+                    row.find('.nombre-input').val(nombre);
+                    row.find('.cedula-input').val(cedula);
+                }
+
+                validarAsignacionUnica(row);
+                actualizarColorimetriaPlanta();  // Actualizar colorimetría después de asignar cédula y nombre
+            }
+        });
+    }
+
+    // Reaplicar autocomplete y drag and drop al agregar nuevas filas
+    $("#tablaAsignacion").on('DOMNodeInserted', 'tr', function() {
+        initAutocomplete();
+        initDragAndDrop();
+        actualizarColorimetriaPlanta(); // Actualizar colorimetría después de insertar la fila
+    });
+
+    // Función para actualizar las colorimetrías de las filas
+    function actualizarColorimetria() {
+        $("#tablaAsignacion tbody tr").each(function() {
+            var turno = $(this).find(".turno-select").val();
+            if (["", "...", "AUSENCIA", "DESCANSO", "VACACIONES", "OTRAS TAREAS"].includes(turno)) {
+                $(this).css('background-color', ''); // Limpiar colorimetría
+            }
+        });
+        // Llamada inicial para actualizar colorimetría al cargar la página
+        actualizarColorimetriaPlanta();
+    }
+
+    // ACTUALIZAR CONTROLES CUANDO SE CAMBIEN LOS PUESTOS PARAMETRIZADOS INICIALMENTE
+    // Guardar las opciones seleccionadas previamente para poder restaurarlas si el usuario cancela
+    let prevPuestoSC = null;
+    let prevPuestoUQ = null;
+
+    // Evento al enfocar la lista de N° Puestos SC
+    $("#puestosSC").focus(function() {
+        prevPuestoSC = $(this).val();
+    }).change(function() {
+        var nuevoPuestoSC = $(this).val();
+        var totalPuestos = parseInt(nuevoPuestoSC) + parseInt($("#puestosUQ").val());
+
+        // Validar si se selecciona una opción válida distinta de "Seleccionar..."
+        if (nuevoPuestoSC && prevPuestoSC && prevPuestoSC !== nuevoPuestoSC) {
+            // Código solo ajustar el número de filas
+            if (confirm("¿Desea ajustar la configuración de asignaciones?")) {
+                actualizarFilasAsignacion(totalPuestos); // Código Nuevo
+                prevPuestoSC = nuevoPuestoSC; // Actualizar la opción previa con la nueva
+            } else {
+                // Si el usuario cancela, restaurar la opción previa
+                $(this).val(prevPuestoSC);
+            }
+        }
+    });
+
+    // Evento al enfocar la lista de N° Puestos UQ
+    $("#puestosUQ").focus(function() {
+        prevPuestoUQ = $(this).val();
+    }).change(function() {
+        var nuevoPuestoUQ = $(this).val();
+        var totalPuestos = parseInt(nuevoPuestoUQ) + parseInt($("#puestosSC").val());
+    
+        // Validar si se selecciona una opción válida distinta de "Seleccionar..."
+        if (nuevoPuestoUQ && prevPuestoUQ && prevPuestoUQ !== nuevoPuestoUQ) {
+            // Código solo ajustar el número de filas
+            if (confirm("¿Desea ajustar la configuración de asignaciones?")) {
+                actualizarFilasAsignacion(totalPuestos); // Código Nuevo
+                prevPuestoUQ = nuevoPuestoUQ; // Actualizar la opción previa con la nueva
+            } else {
+                // Si el usuario cancela, restaurar la opción previa
+                $(this).val(prevPuestoUQ);
+            }
+        }
+    });
+
+    // Función para ajustar el número de filas en la grilla de asignación
+    function actualizarFilasAsignacion(totalPuestos) {
+        var tbody = $("#tablaAsignacion tbody");
+        var filasActuales = tbody.find('tr').length;
+
+        // Eliminar todas las filas si no hay puestos seleccionados
+        if (totalPuestos === 0) {
+            tbody.empty();
+            return;
+        }
+
+        // Si el número total de puestos es mayor que las filas actuales, agregar filas
+        if (totalPuestos > filasActuales) {
+            for (var i = filasActuales + 1; i <= totalPuestos; i++) {
+                agregarFilaAsignacion(i); // Agregar nuevas filas
+            }
+        } else if (totalPuestos < filasActuales) {
+            tbody.find('tr').slice(totalPuestos).remove(); // Eliminar filas si se reduce el número de puestos
+        }
+
+        validarEnTiempoReal(); // Llamar a la validación en tiempo real después del cambio
+    }
+
+    // Función para agregar una nueva fila en la tabla de asignación
+    function agregarFilas(puestosTotal) {
+        var tbody = $("#tablaAsignacion tbody");
+        var filasActuales = tbody.find('tr').length;
+    
+        if (filasActuales < puestosTotal) {
+            var filasParaAgregar = puestosTotal - filasActuales;
+    
+            for (var i = 0; i < filasParaAgregar; i++) {
+                var tr = $('<tr>');
+                tr.append('<td>' + (filasActuales + i + 1) + '</td>');
+                tr.append('<td><input type="text" class="cedula-input form-control" /></td>');  // Cedula con clase 'cedula-input'
+                tr.append('<td><input type="text" class="nombre-input form-control" /></td>');  // Nombre con clase 'nombre-input'
+                tr.append('<td><select class="form-control turno-select"><option value="">Seleccionar...</option></select></td>');
+                tr.append('<td class="hora-inicio">Por asignar</td>');
+                tr.append('<td class="hora-fin">Por asignar</td>');
+                tr.append('<td><select class="form-control concesion-select"></select></td>');
+                tr.append('<td><select class="form-control control-select"><option value="">Seleccionar...</option></select></td>');
+                tr.append('<td class="rutas-asociadas">Por asignar</td>');
+                tr.append('<td><textarea class="observaciones-input form-control" rows="1.8" placeholder="Ingrese observaciones..."></textarea></td>');
+                tbody.append(tr);
+    
+                // Cargar turnos en la lista desplegable
+                cargarTurnos(tr.find('.turno-select'));
+    
+                // Cargar concesiones en la lista desplegable
+                cargarConcesiones(tr.find('.concesion-select'));
+    
+                // Actualización de horas basada en el turno seleccionado
+                tr.find('.turno-select').change(function() {
+                    var turno = $(this).val();
+                    var row = $(this).closest('tr');
+                    var horaInicioCell = row.find(".hora-inicio");
+                    var horaFinCell = row.find(".hora-fin");
+    
+                    if (turno) {
+                        cargarHoras(horaInicioCell, turno, 'inicio');
+                        cargarHoras(horaFinCell, turno, 'fin');
+                    } else {
+                        horaInicioCell.text('Por asignar');
+                        horaFinCell.text('Por asignar');
+                    }
+                });
+    
+                // Actualización de controles basada en la concesión seleccionada
+                tr.find('.concesion-select').change(function() {
+                    var concesion = $(this).val();
+                    var row = $(this).closest('tr');
+                    var controlSelect = row.find(".control-select");
+                    var rutasAsociadasCell = row.find(".rutas-asociadas");
+    
+                    var puestosSC = $("#puestosSC").val();
+                    var puestosUQ = $("#puestosUQ").val();
+                    var puestos = (concesion === "SAN CRISTÓBAL") ? puestosSC : (concesion === "USAQUÉN") ? puestosUQ : "";
+    
+                    if (puestos) {
+                        $.get("/api/control", { concesion: concesion, puestos: puestos }, function(data) {
+                            controlSelect.empty();
+                            controlSelect.append('<option value="">Seleccionar...</option>'); // Añadir opción predeterminada vacía
+                            data.forEach(function(control) {
+                                controlSelect.append(new Option(control, control));
+                            });
+                        });
+                    } else {
+                        controlSelect.empty();
+                        controlSelect.append('<option value="">Seleccionar...</option>'); // Añadir opción predeterminada vacía
+                    }
+                    // Limpiar rutas asociadas cuando se cambia la concesión
+                    rutasAsociadasCell.text('Por asignar');
+                    validarEnTiempoReal(); // Llamar a la validación en tiempo real después del cambio
+                });
+    
+            }
+    
+            aplicarColorimetria(); // Aplicar la colorimetría a las nuevas filas
+        }
+    }
+        
+    function cargarConcesiones(selectElement) {
+        $.get("/api/concesion", function(data) {
+            selectElement.empty();
+            selectElement.append('<option value="">Seleccionar...</option>');
+            data.forEach(function(concesion) {
+                selectElement.append(new Option(concesion, concesion));
+            });
+        });
+    } 
+        
+    // Función para recalcular rutas asociadas al cambiar N° Puestos SC y/o N° Puestos UQ
+    function recalcularRutasAsociadas() {
+        $('#tablaAsignacion tbody tr').each(function() {
+            var row = $(this);
+            var concesion = row.find(".concesion-select").val();
+            var control = row.find(".control-select").val();
+            var rutasAsociadasCell = row.find(".rutas-asociadas");
+
+            var puestosSC = $("#puestosSC").val();
+            var puestosUQ = $("#puestosUQ").val();
+            var puestos = (concesion === "SAN CRISTÓBAL") ? puestosSC : (concesion === "USAQUÉN") ? puestosUQ : "";
+
+            if (concesion && puestos && control) {
+                $.get("/api/rutas", { concesion: concesion, puestos: puestos, control: control }, function(data) {
+                    rutasAsociadasCell.text(data.rutas); // Actualizar rutas asociadas
+                });
+            } else {
+                rutasAsociadasCell.text('Por asignar');
+            }
+        });
+    }
+
+    // Añadir eventos al cambio en las listas N° Puestos SC y N° Puestos UQ
+    $("#puestosSC, #puestosUQ").change(function() {
+        recalcularRutasAsociadas(); // Recalcular rutas asociadas dinámicamente
+    });
+
+    // Función para limpiar asignaciones y actualizar controles
+    function limpiarAsignacionesYActualizar() {
+        $(".concesion-select").val('');
+        $(".control-select").empty().append('<option value="">Seleccionar...</option>');
+        $(".rutas-asociadas").text('Por asignar');
+        $("#tablaAsignacion tbody tr").each(function() {
+            var turnoSelect = $(this).find(".turno-select");
+            cargarTurnos(turnoSelect); // Recargar la lista de turnos
+            turnoSelect.val(''); // Limpiar Turno
+            $(this).find(".hora-inicio").text('Por asignar'); // Limpiar H. Inicio
+            $(this).find(".hora-fin").text('Por asignar'); // Limpiar H. Fin
+
+            // Desbloquear todas las listas desplegables de concesión y control
+            $(".concesion-select, .control-select").prop('disabled', false);
+            // Eliminar clases de colorimetría
+            $(this).removeClass('ausencia descanso vacaciones otras-tareas');
+        });
+        actualizarColorimetria(); // Limpiar colorimetría
+    }
+                
+    // Función para comparar dos rangos de tiempo
+    function isOverlap(startTime1, endTime1, startTime2, endTime2) {
+        if (!startTime1 || !endTime1 || !startTime2 || !endTime2) return false;
+
+        const [startHour1, startMinute1] = startTime1.split(':').map(Number);
+        const [endHour1, endMinute1] = endTime1.split(':').map(Number);
+        const [startHour2, startMinute2] = startTime2.split(':').map(Number);
+        const [endHour2, endMinute2] = endTime2.split(':').map(Number);
+
+        const start1 = startHour1 * 60 + startMinute1;
+        const end1 = endHour1 * 60 + endMinute1;
+        const start2 = startHour2 * 60 + startMinute2;
+        const end2 = endHour2 * 60 + endMinute2;
+
+        return (start1 < end2) && (end1 > start2);
+    }
+
+    // Validación en tiempo real del Solapamiento
+    function validarEnTiempoReal() {
+        const tbody = $("#tablaAsignacion tbody");
+        let assignments = [];
+    
+        tbody.find('tr').each(function() {
+            const row = $(this);
+            const rowData = {
+                cedula: row.find('.cedula-input').val(),
+                fecha: $("#fechaAsignacion").val(),
+                turno: row.find('.turno-select').val(),
+                hora_inicio: row.find('.hora-inicio').text(),
+                hora_fin: row.find('.hora-fin').text(),
+                concesion: row.find('.concesion-select').val(),
+                puestos: $("#puestosSC").val() || $("#puestosUQ").val(), // Usar los puestos seleccionados globalmente
+                puestos_SC: $("#puestosSC").val(),  // Añadir puestos_SC de forma adicional
+                puestos_UQ: $("#puestosUQ").val(),  // Añadir puestos_UQ de forma adicional
+                control: row.find('.control-select').val()
+            };
+        
+            assignments.push(rowData);
+        });
+
+        // Validar cada fila de la grilla
+        tbody.find('tr').each(function() {
+            const row = $(this);
+            const nuevaAsignacion = assignments.find(a => a.cedula === row.find('.cedula-input').val());
+        
+            if (!validarSolapamiento(nuevaAsignacion, assignments.filter(a => a.cedula !== nuevaAsignacion.cedula))) {
+                row.css('background-color', '#FFC0CB'); // Marcar la fila en rojo
+            } else {
+                row.css('background-color', ''); // Resetear el color de la fila
+            }
+        });
+    }
+    
+    // Añadir eventos en tiempo real para detectar cambios
+    $(document).on('change', '.turno-select, .hora-inicio, .hora-fin, .concesion-select, .control-select', function() {
+        validarEnTiempoReal();
+    });
+    
+    // Función para validar la asignación en la grilla para REGLA DE NEGOCIO
+    function validarSolapamiento(nuevaAsignacion, existingAssignments) {
+        // Excluir validación si el turno es "...", "AUSENCIA", "DESCANSO", "VACACIONES" u "OTRAS TAREAS"
+        const excludedTurnos = ["", "...", "AUSENCIA", "DESCANSO", "VACACIONES", "OTRAS TAREAS"];
+        if (excludedTurnos.includes(nuevaAsignacion.turno)) {
+            return true; // No realizar la validación si el turno está en la lista excluida
+        }
+        for (let asignacion of existingAssignments) {
+            if (
+                nuevaAsignacion.turno === asignacion.turno &&
+                nuevaAsignacion.concesion === asignacion.concesion &&
+                nuevaAsignacion.control === asignacion.control &&
+                (
+                    (nuevaAsignacion.hora_inicio >= asignacion.hora_inicio && nuevaAsignacion.hora_inicio < asignacion.hora_fin) ||
+                    (nuevaAsignacion.hora_fin > asignacion.hora_inicio && nuevaAsignacion.hora_fin <= asignacion.hora_fin) ||
+                    (nuevaAsignacion.hora_inicio <= asignacion.hora_inicio && nuevaAsignacion.hora_fin >= asignacion.hora_fin)
+                )
+            ) {
+                return false; // Solapamiento encontrado
+            }
+        }
+        return true; // No hay solapamientos
+    }
+
+    // ####### GUARDAR GRILLA DE ASIGNACIONES ######
+    // Función de guardar asignación para incluir la validación en el frontend
+    function guardarAsignacion() {
+        const tbody = $("#tablaAsignacion tbody");
+        let valid = true;
+        let assignments = [];
+        const excludedTurnos = ["AUSENCIA", "DESCANSO", "VACACIONES", "OTRAS TAREAS"];
+
+        // Obtener y validar la Fecha de Asignación
+        const fechaAsignacion = $("#fechaAsignacion").val();
+        if (!fechaAsignacion) {
+            alert("Error: La Fecha de Asignación es inválida o no está seleccionada.");
+            valid = false;
+            return; // Salir de la función si la fecha no es válida
+    }
+
+        // Obtener y validar el Supervisor Enlace
+        const supervisorSelect = $("#supervisor");
+        const cedulaSupervisor = supervisorSelect.data('cedula');
+        const nombreSupervisor = supervisorSelect.data('nombre');
+
+        if (!cedulaSupervisor || !nombreSupervisor) {
+            alert("Error: El Supervisor Enlace es inválido o no está seleccionado.");
+            valid = false;
+            return; // Salir de la función si no se ha seleccionado un Supervisor Enlace
+        }
+
+    // Recopilar datos de la grilla de asignación   
+    tbody.find('tr').each(function() {
+        const row = $(this);
+        const cedula = row.find('.cedula-input').val().trim();
+        const nombre = row.find('.nombre-input').val().trim().toUpperCase();  // Forzar a mayúsculas
+        const supervisor = $("#supervisor");
+        const cedulaSupervisor = supervisor.data('cedula');
+        const nombreSupervisor = supervisor.data('nombre');
+
+        if (!cedula || !nombre) {
+            alert("Error: La cédula y el nombre son obligatorios y no pueden estar vacíos.");
+            valid = false;
+            return false; // Detener el recorrido si se encuentra un error
+        }
+        
+        const rowData = {
+            cedula: cedula,
+            nombre: nombre,
+            turno: row.find('.turno-select').val(),
+            hora_inicio: row.find('.hora-inicio').text(),
+            hora_fin: row.find('.hora-fin').text(),
+            concesion: row.find('.concesion-select').val(),
+            control: row.find('.control-select').val(),
+            rutas_asociadas: row.find('.rutas-asociadas').text(),
+            observaciones: row.find('.observaciones-input').val() || '',
+            puestosSC: $("#puestosSC").val() || 0, // Si el campo está vacío, se asigna 0
+            puestosUQ: $("#puestosUQ").val() || 0,  // Si el campo está vacío, se asigna 0
+            cedula_enlace: cedulaSupervisor, // Añadir la cédula del supervisor
+            nombre_supervisor_enlace: nombreSupervisor // Añadir el nombre del supervisor
+        };
+        rowData.fecha = fechaAsignacion;
+        assignments.push(rowData);
+    });
+
+        // Validación: Verificar que cada cédula tenga una asignación válida
+        for (let i = 0; i < assignments.length; i++) {
+            const asignacion = assignments[i];
+            if (
+                !excludedTurnos.includes(asignacion.turno) && // Excluir ciertos turnos de la validación
+                (!asignacion.turno || !asignacion.concesion || !asignacion.control)
+            ) {
+                alert(`Error: La cédula ${asignacion.cedula} no tiene una asignación completa.`);
+                valid = false;
+                break; // Salir del bucle for si se encuentra un error
+            }
+        }
+    
+        if (valid) {
+            for (let i = 0; i < assignments.length; i++) {
+                for (let j = i + 1; j < assignments.length; j++) {
+                    if (!validarSolapamiento(assignments[i], [assignments[j]])) {
+                        alert(`Error: Solapamiento detectado entre las asignaciones de la cédula ${assignments[i].cedula}`);
+                        valid = false;
+                        break;
+                    }
+                }
+                if (!valid) break;
+            }
+        }
+    
+        if (valid) {
+            // Deshabilitar el botón de guardar para evitar múltiples clics
+            document.getElementById('btnGuardarAsignacion').disabled = true;
+
+            fetch('/api/guardar_asignaciones', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(assignments),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                } else if (data.error) {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                alert("Error al guardar las asignaciones. Intente de nuevo.");
+                console.error("Error al guardar las asignaciones:", error);
+            })
+            .finally(() => {
+                // Rehabilitar el botón de guardar después de completar la operación
+                document.getElementById('btnGuardarAsignacion').disabled = false;
+            });
+        }
+    }
+
+</script>
+
+<!-- FUNCIONES DE LA VENTANA MODAL AL EJECUTAR EL BOTON "CONSULTAR ASIGNACIONES" -->
+<script>
+
+    function mostrarAyudaModal() {
+        $// Restablecer el modal en blanco
+        document.getElementById('fechaAyuda').value = '';
+        document.getElementById('concesionAyuda').innerHTML = '<option value="" disabled selected>Seleccionar Concesión...</option>';
+        document.getElementById('fechaHoraAyuda').innerHTML = '<option value="" disabled selected>Seleccionar Fecha y Hora...</option>';
+        $('#modalAyuda').modal('show');
+    }
+
+    document.getElementById('fechaAyuda').addEventListener('change', function() { 
+        var fecha = this.value;
+        
+        if (fecha) {
+            fetch('/api/obtener_concesiones_por_fecha', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ fecha: fecha })
+            })
+            .then(response => {
+                if (response.status === 404) {
+                    throw new Error('No se encontraron asignaciones para la fecha seleccionada.');
+                }
+                return response.json();
+            })
+            .then(concesiones => {
+                var concesionSelect = document.getElementById('concesionAyuda');
+                concesionSelect.innerHTML = '<option value="" disabled selected>Seleccionar Concesión...</option>';
+        
+                concesiones.forEach(concesion => {
+                    var option = document.createElement('option');
+                    option.value = concesion;
+                    option.textContent = concesion;
+                    concesionSelect.appendChild(option);
+                });
+            })
+            .catch(error => alert(error.message));
+        } else {
+            alert('Por favor seleccione una fecha válida.');
+        }
+    });
+    
+    document.getElementById('concesionAyuda').addEventListener('change', function() { 
+        var fecha = document.getElementById('fechaAyuda').value;
+        var concesion = this.value;
+    
+        if (fecha && concesion) {
+            fetch('/api/obtener_fechas_horas_registro', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ fecha: fecha, concesion: concesion })
+            })
+            .then(response => {
+                if (response.status === 404) {
+                    throw new Error('No se encontraron registros para la fecha y concesión seleccionada.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                var fechaHoraSelect = document.getElementById('fechaHoraAyuda');
+                fechaHoraSelect.innerHTML = '<option value="" disabled selected>Seleccionar Fecha y Hora...</option>';
+                
+                data.fechas_horas.forEach(fechaHora => {
+                    var option = document.createElement('option');
+                    option.value = fechaHora;
+                    option.textContent = fechaHora;
+                    fechaHoraSelect.appendChild(option);
+                });
+            })
+            .catch(error => alert(error.message));
+        } else {
+            alert('Por favor seleccione una concesión válida.');
+        }
+    }); 
+    
+    function obtenerAsignacionesAyuda() { 
+        // Limpiar la tabla de asignación completamente
+        const $tablaAsignacion = $('#tablaAsignacion tbody');
+        
+        if ($tablaAsignacion.children('tr').length > 0) {
+            if (!confirm("Se realizará un cargue de asignación, perderá los registros en la tabla de asignación. ¿Desea continuar?")) {
+                return;  // Si el usuario cancela, no continúa
+            } else {
+                $tablaAsignacion.empty();
+                console.log("Tabla limpiada, cantidad de filas ahora: ", $tablaAsignacion.children('tr').length);
+            }
+        }
+    
+        var fecha = document.getElementById('fechaAyuda').value;
+        var concesion = document.getElementById('concesionAyuda').value;
+        var fechaHoraRegistro = document.getElementById('fechaHoraAyuda').value;
+        
+        if (fecha && concesion && fechaHoraRegistro) {
+            fetch('/api/obtener_asignaciones_ayuda', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ fecha: fecha, concesion: concesion, fecha_hora_registro: fechaHoraRegistro })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                } else {
+                    console.log('Datos recibidos:', data.asignaciones);
+                    window.asignacionesConsultadas = data.asignaciones;
+                    procesarAsignaciones(data.asignaciones);
+                }
+            })
+            .catch(error => alert('Error al obtener asignaciones: ' + error.message));
+        } else {
+            alert('Por favor seleccione todos los campos para cargar asignaciones.');
+        }
+    }
+    
+    async function procesarAsignaciones(asignaciones) {
+        const $tablaAsignacion = $("#tablaAsignacion tbody");
+        $tablaAsignacion.empty();
+        console.log("Tabla limpiada, cantidad de filas ahora: ", $tablaAsignacion.children('tr').length);
+    
+        let puestosSC = 0;
+        let puestosUQ = 0;
+    
+        // Verificar que las asignaciones sean un array
+        if (!Array.isArray(asignaciones)) {
+            console.error('Error: asignaciones no es un array');
+            return;
+        }
+    
+        // Filtrar asignaciones para obtener valores únicos por cédula y campos asociados
+        let asignacionesFiltradas = asignaciones.reduce((acc, asignacion) => {
+            const llaveUnica = asignacion.cedula + asignacion.nombre + asignacion.turno + asignacion.concesion + asignacion.control;
+            if (!acc.has(llaveUnica)) {
+                acc.set(llaveUnica, asignacion);
+            }
+            return acc;
+        }, new Map());
+    
+        // Convertir el Map a un Array de asignaciones únicas
+        asignacionesFiltradas = Array.from(asignacionesFiltradas.values());
+    
+        // Procesar asignaciones para obtener los valores de puestosSC o puestosUQ
+        asignaciones.forEach(asignacion => {
+            if (asignacion.concesion === 'SAN CRISTÓBAL' && asignacion.puestosSC) {
+                puestosSC = asignacion.puestosSC;
+            } else if (asignacion.concesion === 'USAQUÉN' && asignacion.puestosUQ) {
+                puestosUQ = asignacion.puestosUQ;
+            }
+        });
+    
+        // Esperar hasta que el select esté habilitado
+        async function esperarSelectListo(selector) {
+            return new Promise(resolve => {
+                const interval = setInterval(() => {
+                    if (!$(selector).prop('disabled') && $(selector).children().length > 1) { // Asegurarse de que haya opciones
+                        clearInterval(interval);
+                        resolve();
+                    }
+                }, 400); // Verificar cada 400ms si el select está habilitado
+            });
+        }
+    
+        // Asignar el valor único en los select correspondientes de manera asíncrona
+        if (puestosSC > 0) {
+            $('#checkSC').prop('checked', true); // Habilitar el checkbox
+            togglePuestosSC(true, puestosSC);  // Cargar la lista dinámicamente y asignar el valor
+            
+            // Esperar hasta que el select de puestosSC esté habilitado
+            await esperarSelectListo('#puestosSC');
+            console.log(`Valor de puestos SC asignado: ${puestosSC}`);
+        }
+        
+        if (puestosUQ > 0) {
+            $('#checkUQ').prop('checked', true); // Habilitar el checkbox
+            togglePuestosUQ(true, puestosUQ);  // Cargar la lista dinámicamente y asignar el valor
+            
+            // Esperar hasta que el select de puestosUQ esté habilitado
+            await esperarSelectListo('#puestosUQ');
+            console.log(`Valor de puestos UQ asignado: ${puestosUQ}`);
+        }
+    
+        // Función para agregar una fila y asignar valores a esa fila de manera asíncrona
+        async function agregarFilaConValores(asignacion, index) {
+            agregarFilaAsignacion(index + 1);  // Crear la fila
+            let nuevaFila = $tablaAsignacion.children('tr').eq(index); // Obtener la fila por índice
+    
+            // Asignar los valores únicos a cada campo de la fila
+            nuevaFila.find('.cedula-input').val(asignacion.cedula); // Insertar cédula
+            nuevaFila.find('.nombre-input').val(asignacion.nombre); // Insertar nombre
+    
+            // Asignar el turno de manera asíncrona
+            await esperarSelectListo(nuevaFila.find('.turno-select'));  // Esperar hasta que el select de turno esté listo
+            // Insertar turno
+            if (asignacion.turno) {
+                nuevaFila.find('.turno-select').val(asignacion.turno);
+            } else {
+                console.error('Turno no disponible para la asignación', asignacion);
+            }
+            
+             // Asignar la concesión de manera asíncrona
+            await esperarSelectListo(nuevaFila.find('.concesion-select')); // Esperar hasta que el select de concesión esté listo
+            // Insertar concesión
+            if (asignacion.concesion) {
+                nuevaFila.find('.concesion-select').val(asignacion.concesion);
+            } else {
+                console.error('Concesión no disponible para la asignación', asignacion);
+            }
+            
+            // Aplicar reglas de negocio si la concesión es "NO APLICA"
+            if (asignacion.concesion === "NO APLICA") {
+                nuevaFila.find('.turno-select').trigger('change'); // Aplicar reglas de negocio
+            }
+    
+            // Asignar el control y recalcular las rutas asociadas de manera asíncrona
+            let concesion = nuevaFila.find('.concesion-select').val();
+            let puestos = (concesion === 'SAN CRISTÓBAL') ? puestosSC : puestosUQ;
+    
+            if (concesion && puestos) {
+                const data = await $.get("/api/control", { concesion: concesion, puestos: puestos });
+                let controlSelect = nuevaFila.find('.control-select');
+                controlSelect.empty();
+                controlSelect.append('<option value="">Seleccionar...</option>'); // Opción predeterminada vacía
+    
+                data.forEach(function(control) {
+                    controlSelect.append(new Option(control, control));
+                });
+    
+                // Asignar el valor de control
+                controlSelect.val(asignacion.control);
+                recalcularRutaAsociada(nuevaFila, asignacion); // Recalcular rutas asociadas
+            }
+            // Asignar las horas exactas desde la base de datos
+            nuevaFila.find('.hora-inicio').text(asignacion.h_inicio); // Insertar hora de inicio
+            nuevaFila.find('.hora-fin').text(asignacion.h_fin); // Insertar hora de fin
+            nuevaFila.find('.observaciones-input').val(asignacion.observaciones); // Insertar observaciones
+    
+        }
+
+        // Recalcular las rutas asociadas
+        function recalcularRutaAsociada(fila, asignacion) {
+            let concesion = fila.find('.concesion-select').val();
+            let control = fila.find('.control-select').val();
+            let puestos = (concesion === 'SAN CRISTÓBAL') ? puestosSC : puestosUQ;
+            let rutasAsociadasCell = fila.find('.rutas-asociadas');
+    
+            if (concesion && puestos && control) {
+                $.get("/api/rutas", { concesion: concesion, puestos: puestos, control: control }, function(data) {
+                    rutasAsociadasCell.text(data.rutas); // Actualizar rutas asociadas
+                });
+            } else {
+                rutasAsociadasCell.text('Por asignar');
+            }
+        }
+    
+        // Crear filas para cada asignación y asignar los valores de manera asíncrona
+        for (let index = 0; index < asignacionesFiltradas.length; index++) {
+            await agregarFilaConValores(asignacionesFiltradas[index], index); // Agregar la fila y asignar valores
+        }
+    
+        console.log("Asignaciones procesadas, cantidad de filas ahora: ", $tablaAsignacion.children('tr').length);
+    
+        // Aplicar colorimetría después de actualizar las filas
+        actualizarColorimetriaPlanta();
+    
+        // *** Preguntar si se desea generar el PDF antes de cerrar el modal ***
+        if (confirm("¿Deseas descargar el informe de asignaciones en PDF?")) {
+            generarPDF();  // Llama a generarPDF solo si el usuario selecciona "Sí"
+        }
+    
+        // Cerrar la ventana modal
+        $('#modalAyuda').modal('hide');
+    }
+    
+    function generarPDF() {
+        // Definir las variables para fecha y hora desde el DOM
+        let fechaAsignacion = document.getElementById('fechaAyuda').value;
+        let fechaHoraRegistro = document.getElementById('fechaHoraAyuda').value;
+        // Verificación de la variable 'asignaciones'
+        let asignaciones = window.asignacionesConsultadas;
+    
+        //console.log('Asignaciones para el PDF:', asignaciones);
+        
+        if (!Array.isArray(asignaciones) || asignaciones.length === 0) {
+            alert("No hay asignaciones consultadas para generar el PDF.");
+            return;
+        }
+    
+        // Verifica los datos que se están enviando
+        console.log(JSON.stringify({
+            asignaciones: asignaciones,
+            fecha_asignacion: fechaAsignacion,
+            fecha_hora_registro: fechaHoraRegistro
+        }));
+    
+        // Realizar la petición para generar el PDF
+        fetch('/generar_pdf/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                asignaciones: asignaciones,
+                fecha_asignacion: fechaAsignacion,
+                fecha_hora_registro: fechaHoraRegistro
+            })
+        })
+        .then(response => response.blob())
+        .then(blob => {
+            // Crear un enlace para descargar el archivo PDF generado
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `asignaciones_tecnicos_${fechaAsignacion}.pdf`;
+            link.click();
+        })
+        .catch(error => {
+            console.error('Error generando el PDF:', error);
+        });
+    }   
+
+</script> 
+
+{% endblock %}

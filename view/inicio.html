@@ -1,0 +1,23 @@
+{% extends "components/layout.html" %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="container mt-2 mb-2">
+    <div class="row">
+        <div class="col text-center">
+            <h1 style="font-size: 28px; font-family: 'Century Gothic', sans-serif; color: #0d2a8b;">
+                ¡Bienvenido, {{ user_session.nombres }} {{ user_session.apellidos }}!
+            </h1>
+            <p style="font-size: 18px; color: #666; margin-bottom: 8px;">
+                Estamos aquí para ayudarte a gestionar tus tareas de manera eficiente.
+                Ingresa al Menú lateral Izquierdo
+            </p>
+            <img src="/static/Fondo.jpg" alt="Bienvenida" class="img-fluid mt-2 mb-2" style="max-width: 60%; height: auto;">
+            <p style="font-size: 18px; color: #666; margin-bottom: 8px;">
+                Centro de Información - Consorcio Express S.A.S
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

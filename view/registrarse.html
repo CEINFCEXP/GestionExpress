@@ -1,0 +1,83 @@
+{% extends "components/layout.html" %}
+
+{% block title %}Crear Usuario{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-center mt-2">
+      <div class="col-md-6">
+        <div class="card shadow">
+          <div class="card-body">
+            <h2 class="card-title text-center mb-4" style="font-family: 'Century Gothic', sans-serif;">Creación de Usuario</h2>
+            <p class="text-center" style="font-size: 20px; color: #0d2a8b;">Centro de Control</p>
+            {% if success_message %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+              {{ success_message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endif %}
+            {% if error_message %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              {{ error_message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endif %}
+            <form method="post" action="/registrarse" class="row g-3">
+              <div class="col-md-6">
+                <label for="validationDefaultUsername" class="form-label">Usuario (Cédula)</label>
+                <div class="input-group">
+                  <span class="input-group-text" id="inputGroupPrepend2">@</span>
+                  <input
+                    name="username"
+                    type="text"
+                    class="form-control"
+                    id="validationDefaultUsername"
+                    aria-describedby="inputGroupPrepend2"
+                    required
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '');"
+                  />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label for="validationDefault01" class="form-label">Nombre(s)</label>
+                <input name="nombres" type="text" class="form-control" id="validationDefault01" required
+                oninput="this.value = this.value.toUpperCase();"
+                />
+              </div>
+              <div class="col-md-6">
+                <label for="validationDefault02" class="form-label">Apellido(s)</label>
+                <input name="apellidos" type="text" class="form-control" id="validationDefault02" required
+                oninput="this.value = this.value.toUpperCase();" 
+                />
+              </div>
+              <div class="col-md-6">
+                <label for="validationDefault04" class="form-label">Cargo</label>
+                <select name="cargo" class="form-select" id="validationDefault04" required>
+                  <option selected disabled value="">Seleccione el Cargo ...</option>
+                  <option value="Analista Centro de Control">Administrador</option>
+                  <option value="Analista Centro de Control">Analista Centro de Control</option>
+                  <option value="Jefe Centro de Control">Jefe Centro de Control</option>
+                  <option value="Jefe Centro de Control">Juridico</option>
+                  <option value="Supervisor Centro de Control">Supervisor Centro de Control</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="validationDefault05" class="form-label">Contraseña</label>
+                <input
+                  name="password_user"
+                  type="password"
+                  class="form-control"
+                  id="validationDefault05"
+                  required
+                />
+              </div>
+              <div class="col-12 text-center mt-4">
+                <button class="btn btn-primary btn-lg" type="submit">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
