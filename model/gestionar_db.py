@@ -2,6 +2,7 @@ import psycopg2
 from psycopg2 import OperationalError
 from threading import Lock
 from datetime import datetime, time
+from bs4 import BeautifulSoup
 import pytz
 from fastapi import HTTPException
 
@@ -13,46 +14,181 @@ class HandleDB:
     _instance = None
     _lock = Lock()
 
-    def __new__(cls): # Implementación del patrón Singleton para asegurar una única instancia de la clase HandleDB
+    def __new__(cls):  # Implementación del patrón Singleton para asegurar una única instancia de la clase HandleDB
         with cls._lock:
             if not cls._instance:
                 cls._instance = super().__new__(cls)
-                cls._instance._con = psycopg2.connect(DATABASE_PATH)
+                cls._instance._con = cls._create_connection()  # Usar el método estático para crear la conexión
                 cls._instance._cur = cls._instance._con.cursor()
             return cls._instance
+        
+    @staticmethod
+    def _create_connection():
+        return psycopg2.connect(DATABASE_PATH)  # Reemplaza con la cadena de conexión a tu base de datos PostgreSQL
 
-    def get_all(self): # Método para obtener todos los registros de usuarios
+    def _check_connection(self):
+        if self._con.closed:  # Verifica si la conexión está cerrada
+            self._con = self._create_connection()  # Reabre la conexión
+            self._cur = self._con.cursor()  # Reasigna el cursor
+
+    def get_all(self):  # Método para obtener todos los registros de usuarios
         with self._lock:
+            self._check_connection()  # Verifica la conexión antes de usarla
             self._cur.execute("SELECT * FROM usuarios")
             return self._cur.fetchall()
 
-    def get_only(self, username): 
+    def get_only(self, username):
         with self._lock:
+            self._check_connection()  # Verifica la conexión antes de usarla
             cur = self._con.cursor()  # Crear un nuevo cursor
             try:
                 cur.execute("SELECT * FROM usuarios WHERE username = %s", (username,))
                 result = cur.fetchone()
+            except Exception as e:
+                self._con.rollback()  # Si ocurre un error, hacemos rollback de la transacción
+                raise e  # Opcionalmente, lanzar el error para depuración
             finally:
-                cur.close()  # Asegurarse de cerrar el cursor después de su uso
+                cur.close()  # Asegúrate de cerrar el cursor después de su uso
             return result
-                
-    def insert(self, data_user): # Método para insertar un nuevo usuario en la base de datos
+
+    def insert(self, data_user):  # Método para insertar un nuevo usuario en la base de datos
         with self._lock:
+            self._check_connection()  # Verifica la conexión antes de usarla
             self._cur.execute("""
-                INSERT INTO usuarios (nombres, apellidos, username, cargo, password_user)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO usuarios (nombres, apellidos, username, rol, password_user, estado)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """, (
                 data_user["nombres"],
                 data_user["apellidos"],
                 data_user["username"],
-                data_user["cargo"],
-                data_user["password_user"]
+                data_user["rol"],
+                data_user["password_user"],
+                1 # Siempre se insertará como 'activo' con estado 1
             ))
             self._con.commit()
 
-    def __del__(self): # Método para cerrar la conexión con la base de datos al finalizar el uso
+    def insert_role(self, role_data):  # Método para insertar un nuevo rol en la tabla 'roles'
         with self._lock:
-            self._con.close()
+            self._check_connection()  # Verifica la conexión antes de usarla
+            self._cur.execute("""
+                INSERT INTO roles (nombre_rol, pantallas_asignadas)
+                VALUES (%s, %s)
+            """, (
+                role_data["nombre_rol"],
+                role_data["pantallas_asignadas"]
+            ))
+            self._con.commit()
+
+    def get_all_roles(self):
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("SELECT id_rol, nombre_rol, pantallas_asignadas FROM roles")
+            return self._cur.fetchall()
+
+    def get_pantallas_from_layout(self, layout_path):
+        with open(layout_path, 'r', encoding='utf-8') as f:
+            layout_html = f.read()
+        soup = BeautifulSoup(layout_html, 'html.parser')
+        pantallas = [link.text.strip() for link in soup.select(".sidebar .nav-link")]
+        return pantallas
+        
+    def get_role_by_id(self, role_id):
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("SELECT id_rol, nombre_rol, pantallas_asignadas FROM roles WHERE id_rol = %s", (role_id,))
+            rol_data = self._cur.fetchone()
+            if rol_data and rol_data[2]:  # Validar que `pantallas_asignadas` no esté vacío
+                return rol_data
+            else:
+                return None
+
+    def update_role(self, role_id, role_name, permissions):
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("""
+                UPDATE roles SET nombre_rol = %s, pantallas_asignadas = %s WHERE id_rol = %s
+            """, (role_name, permissions, role_id))
+            self._con.commit()
+
+    def delete_role(self, role_id):
+        with self._lock:
+            self._check_connection()
+            try:
+                self._cur.execute("DELETE FROM roles WHERE id_rol = %s", (role_id,))
+                self._con.commit()  # Realiza commit para confirmar la transacción
+            except Exception as e:
+                self._con.rollback()  # Realiza rollback en caso de error
+                raise e
+
+    def get_pantallas_by_role(self, role_id):
+        """Consulta las pantallas asignadas a un rol en la base de datos."""
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("SELECT pantallas_asignadas FROM roles WHERE id_rol = %s", (role_id,))
+            result = self._cur.fetchone()
+            if result:
+                return result[0].split(',')  # Convertimos la cadena a lista
+            return []
+        
+    def get_all_users(self):
+        with self._lock:
+            self._check_connection()
+            # Asegurémonos de obtener todos los campos
+            self._cur.execute("SELECT id, nombres, apellidos, username, rol, estado FROM usuarios")
+            usuarios = self._cur.fetchall()
+            # print("Usuarios obtenidos de la base de datos:", usuarios)  # Debugging
+            return usuarios
+      
+    def get_user_by_id(self, user_id):
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("SELECT id, nombres, apellidos, username, rol, estado FROM usuarios WHERE id = %s", (user_id,))
+            usuario = self._cur.fetchone()
+            if usuario:
+                return {
+                    "id": usuario[0],
+                    "nombres": usuario[1],
+                    "apellidos": usuario[2],
+                    "username": usuario[3],
+                    "rol": usuario[4],
+                    "estado": usuario[5]
+                }
+            return None
+           
+    def update_user(self, user_id, data):
+        with self._lock:
+            self._check_connection()
+
+            # Comienza a construir la consulta SQL
+            query = """
+                UPDATE usuarios SET nombres = %s, apellidos = %s, username = %s, rol = %s, estado = %s
+            """
+            params = [data['nombres'], data['apellidos'], data['username'], data['rol'], data['estado']]
+
+            # Solo agrega la contraseña si está presente en los datos
+            if "password_user" in data and data["password_user"]:
+                query += ", password_user = %s"
+                params.append(data["password_user"])
+            
+            # Finaliza la consulta SQL
+            query += " WHERE id = %s"
+            params.append(user_id)
+
+            self._cur.execute(query, params)
+            self._con.commit()
+                
+    def inactivate_user(self, user_id):
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("""
+                UPDATE usuarios SET estado = 0 WHERE id = %s
+            """, (user_id,))
+            self._con.commit()
+
+    def __del__(self):  # Método para cerrar la conexión con la base de datos al finalizar el uso
+        with self._lock:
+            if not self._con.closed:
+                self._con.close()
 
 class Cargue_Controles:
     def __init__(self):

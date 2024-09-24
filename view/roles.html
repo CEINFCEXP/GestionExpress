@@ -1,87 +1,170 @@
 {% extends "components/layout.html" %}
 
-{% block title %}
-    Gestión de Roles
-{% endblock %}
-
-{% block head %}
-    <!-- Incluyendo los estilos de Bootstrap y Font Awesome -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-{% endblock %}
+{% block title %}Gestión de Roles{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-auto mb-auto">
-    <!-- Encabezado -->
+<div class="container-fluid d-flex flex-column" style="height: 90vh;">
     <div class="row justify-content-between align-items-center mb-4">
         <h1 class="col-auto" style="font-size: 22px; font-family: 'Century Gothic', sans-serif;">Gestión de Roles</h1>
         <h1 class="col-auto" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!</h1>
         <img src="/static/Consorcio.png" alt="Consorcio Icon" class="col-auto" style="max-width: 100px; height: auto;">
     </div>
 
-    <!-- Contenedor principal dividido en dos secciones -->
-    <div class="row">
-        <!-- Sección izquierda: Formulario para crear nuevo rol -->
-        <div class="col-md-6 mb-4">
-            <div class="p-4" style="max-height: calc(100vh - 150px); background-color: #f9f9f9; border-radius: 10px; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);">
-                <h3 class="mb-3" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #555;font-weight: bold;">Crear Nuevo Rol</h3>
-                <form action="/roles/add" method="post">
-                    <div class="mb-4">
-                        <label for="roleName" class="form-label" style="color: #555;">Nombre del Rol</label>
-                        <input type="text" class="form-control" id="roleName" name="role_name" placeholder="Ejemplo: Administrador" style="border-radius: 6px;" required>
-                    </div>
+    {% if success_message %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ success_message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
 
-                    <div class="mb-4">
-                        <label for="permissions" class="form-label" style="color: #555;">Pantallas a Asignar</label>
-                        <select multiple class="form-select" name="permissions" id="permissions" style="max-height: calc(100vh - 150px); border-radius: 6px;">
-                            {% for pantalla in pantallas %}
-                            <option value="{{ pantalla }}">{{ pantalla }}</option>
-                            {% endfor %}
-                        </select>
-                        <small class="form-text text-muted">Mantenga presionado Ctrl o Cmd para seleccionar varias pantallas</small>
-                    </div>
+    {% if error_message %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ error_message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
 
-                    <div class="text-center">
-                        <button type="submit" class="btn btn-success px-4 py-2" style="border-radius: 50px; font-size: 16px;">
-                            <i class="fas fa-plus-circle"></i> Crear Rol
-                        </button>
-                    </div>
-                </form>
+    <div class="row flex-grow-1">
+        <!-- Formulario de creación de roles -->
+        <div class="col-lg-5 d-flex flex-column">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Crear Nuevo Rol</h4>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    <form id="createRoleForm" action="/roles" method="post">
+                        <input type="hidden" name="role_id" value="">
+                        <div class="mb-3">
+                            <label for="roleName" class="form-label">Nombre del Rol</label>
+                            <input type="text" class="form-control" id="roleName" name="role_name" placeholder="Ingrese el nombre del rol" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="permissions" class="form-label">Pantallas a Asignar</label>
+                            <select multiple class="form-select" id="permissions" name="permissions" style="height: 170px;" required>
+                                {% for pantalla in pantallas %}
+                                    <option value="{{ pantalla }}">{{ pantalla }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">Mantenga presionado Ctrl o Cmd para seleccionar varias pantallas.</small>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Guardar</button>
+                    </form>
+                </div>
             </div>
         </div>
 
-        <!-- Sección derecha: Tabla de roles existentes con barra de desplazamiento -->
-        <div class="col-md-6 mb-4">
-            <h3 class="mb-3" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #555;font-weight: bold;">Roles Existentes</h3>
-            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;"> <!-- Sección con scroll -->
-                <table class="table table-striped table-hover" style="border-radius: 8px;">
-                    <thead class="table-dark">
-                        <tr>
-                            <th scope="col" style="width: 20%;">Rol</th>
-                            <th scope="col" style="width: 50%;">Pantallas Asignadas</th> 
-                            <th scope="col" class="text-center" style="width: 30%;">Acciones</th> 
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for role, permissions in roles.items() %}
-                        <tr>
-                            <td>{{ role }}</td>
-                            <td>{{ permissions | join(', ') }}</td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-edit"></i> Editar
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-trash-alt"></i> Eliminar
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <!-- Tabla de roles existentes -->
+        <div class="col-lg-7 d-flex flex-column">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white" style="margin-bottom: 0;">
+                    <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Roles Existentes</h4>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto; padding-top: 0;">
+                    <table class="table table-hover table-striped" style="table-layout: fixed; width: 100%;">
+                        <thead class="table-light" style="position: sticky; top: 0; z-index: 1; margin-top: 0; padding: 0;">
+                            <tr>
+                                <th style="width: 1px;" >ID</th>
+                                <th style="width: 25px;" >Nombre</th>
+                                <th style="width: 50px;" >Pantallas Asignadas</th>
+                                <th style="width: 30px;" class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for role in roles %}
+                                <tr>
+                                    <td>{{ role[0] }}</td>
+                                    <td>{{ role[1] }}</td>
+                                    <td>{{ role[2] }}</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editRoleModal" data-role-id="{{ role[0] }}">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </button>
+                                        <form action="/roles/{{ role[0] }}/eliminar" method="post" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash-alt"></i> Eliminar
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
+        </div>
+
+<!-- Modal para editar rol -->
+<div class="modal fade" id="editRoleModal" tabindex="-1" aria-labelledby="editRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editRoleForm" method="post">
+                <input type="hidden" id="editRoleIdHidden" name="role_id" value="">
+
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="editRoleModalLabel">Editar Rol</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Mostrar el ID del rol -->
+                    <div class="mb-3">
+                        <label for="editRoleId" class="form-label">ID del Rol</label>
+                        <input type="text" class="form-control" id="editRoleId" disabled>
+                    </div>
+
+                    <!-- Nombre del rol -->
+                    <div class="mb-3">
+                        <label for="editRoleName" class="form-label">Nombre del Rol</label>
+                        <input type="text" class="form-control" id="editRoleName" name="role_name" required>
+                    </div>
+
+                    <!-- Permisos para el rol -->
+                    <div class="mb-3">
+                        <label for="editPermissions" class="form-label">Pantallas a Asignar</label>
+                        <select multiple class="form-select" id="editPermissions" name="permissions" required>
+                            {% for pantalla in pantallas %}
+                                <option value="{{ pantalla }}">{{ pantalla }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+    // Función para abrir el modal de edición y cargar los datos del rol seleccionado
+    document.getElementById('editRoleModal').addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const roleId = button.getAttribute('data-role-id');
+        
+        // Restablecer los valores del modal antes de cargar nuevos datos
+        document.getElementById('editRoleId').value = '';
+        document.getElementById('editRoleName').value = '';
+        const editPermissions = document.getElementById('editPermissions');
+        Array.from(editPermissions.options).forEach(option => option.selected = false);
+
+        // Solicitar datos del rol seleccionado
+        fetch(`/roles/${roleId}/datos`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('editRoleId').value = data.id_rol;
+                document.getElementById('editRoleName').value = data.nombre_rol;
+
+                // Seleccionar las pantallas asignadas
+                Array.from(editPermissions.options).forEach(option => {
+                    option.selected = data.pantallas_asignadas.includes(option.value);
+                });
+
+                // Actualizamos el formulario para que apunte a la ruta correcta de edición
+                document.getElementById('editRoleForm').action = `/roles/${roleId}/editar`;
+            });
+    });
+</script>
 {% endblock %}

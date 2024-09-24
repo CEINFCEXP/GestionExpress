@@ -11,11 +11,13 @@ from controller.user import User
 from controller.cargues import ProcesarCargueControles
 from model.gestionar_db import Cargue_Controles
 from model.gestionar_db import Cargue_Asignaciones
+from model.gestionar_db import HandleDB
 from model.consultas_db import Reporte_Asignaciones
 from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, concesion, control, rutas, turnos, hora_inicio, hora_fin
+from werkzeug.security import generate_password_hash
 import psycopg2
 import json
-from typing import List
+from typing import List, Optional
 from io import BytesIO 
 import os
 
@@ -23,6 +25,7 @@ app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key="!secret_key")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="./view")
+db = HandleDB()
 DATABASE_PATH = "postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -38,18 +41,42 @@ def root(req: Request, user_session: dict = Depends(get_user_session)):
 # Ruta Login
 @app.post("/", response_class=HTMLResponse)
 def login(req: Request, username: str = Form(...), password_user: str = Form(...)):
-    verify, nombres, apellidos = check_user(username, password_user)  # Asegúrate de que check_user devuelva estos valores
+    # Verifica las credenciales del usuario
+    verify, nombres, apellidos = check_user(username, password_user)
+    
     if verify:
-        req.session['user'] = {"username": username, "nombres": nombres, "apellidos": apellidos}
-        return RedirectResponse(url="/inicio", status_code=302)
+        # Obtén la información del usuario desde la base de datos, incluyendo el rol
+        user_data = db.get_only(username)  # Esto debe retornar la fila completa del usuario
+
+        if user_data:
+            estado = user_data[6]  # campo de estado del usuario
+            rol = user_data[4]  # es el id_rol del usuario
+            
+            # Verificamos si el estado del usuario es activo (1)
+            if estado == 1:
+                # Guardar la sesión del usuario, incluyendo el rol
+                req.session['user'] = {
+                    "username": username,
+                    "nombres": nombres,
+                    "apellidos": apellidos,
+                    "rol": rol
+                }
+
+                # Redirigir al usuario a la página de inicio después del login
+                return RedirectResponse(url="/inicio", status_code=302)
+            else:
+                # Si el usuario está inactivo (estado == 0), muestra un mensaje de error
+                error_message = "El usuario está inactivo. No puede iniciar sesión."
+                return templates.TemplateResponse("index.html", {"request": req, "error_message": error_message})
     else:
+        # Si las credenciales no son válidas, muestra un mensaje de error
         error_message = "Por favor valide sus credenciales y vuelva a intentar."
         return templates.TemplateResponse("index.html", {"request": req, "error_message": error_message})
 
 @app.get("/inicio", response_class=HTMLResponse)
 def registrarse(req: Request, user_session: dict = Depends(get_user_session)):
     if not user_session:
-        return RedirectResponse(url="/", status_code=302)
+        return RedirectResponse(url="/", status_code=302)    
     return templates.TemplateResponse("inicio.html", {"request": req, "user_session": user_session})
   
 # Ruta de cierre de sesión
@@ -64,11 +91,35 @@ async def logout(request: Request): # Limpiar cualquier estado de sesión
 def registrarse(req: Request, user_session: dict = Depends(get_user_session)):
     if not user_session:
         return RedirectResponse(url="/", status_code=302)
-    return templates.TemplateResponse("registrarse.html", {"request": req, "user_session": user_session})
+
+    roles = db.get_all_roles()  # Obtiene los roles desde la base de datos
+    usuarios = db.get_all_users()  # Obtiene los usuarios desde la base de datos
+
+    return templates.TemplateResponse("registrarse.html", {
+        "request": req,
+        "user_session": user_session,
+        "roles": roles,
+        "usuarios": usuarios
+    })
+
+@app.get("/registrarse/{user_id}/datos" )
+async def get_user_data(user_id: int):
+    user = db.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    return JSONResponse(content={
+        "id": user["id"],
+        "nombres": user["nombres"],
+        "apellidos": user["apellidos"],
+        "username": user["username"],
+        "rol": user["rol"],
+        "estado": user["estado"]
+    })
 
 @app.post("/registrarse", response_class=HTMLResponse)
 def registrarse_post(req: Request, nombres: str = Form(...), apellidos: str = Form(...),
-                     username: str = Form(...), cargo: str = Form(...),
+                     username: str = Form(...), rol: int = Form(...),
                      password_user: str = Form(...), user_session: dict = Depends(get_user_session)):
     if not user_session:
         return RedirectResponse(url="/", status_code=302)
@@ -77,19 +128,198 @@ def registrarse_post(req: Request, nombres: str = Form(...), apellidos: str = Fo
         "nombres": nombres,
         "apellidos": apellidos,
         "username": username,
-        "cargo": cargo,
-        "password_user": password_user
+        "rol": rol,
+        "password_user": password_user,
+        "estado": 1
     }
     
     user = User(data_user)
     result = user.create_user()
 
     if result.get("success"):
-        success_message = "Usuario creado correctamente."
-        return templates.TemplateResponse("registrarse.html", {"request": req, "user_session": user_session, "success_message": success_message})
+        # Establecer una cookie con el mensaje de éxito
+        response = RedirectResponse(url="/registrarse", status_code=303)
+        response.set_cookie(key="success_message", value="Usuario creado correctamente.", max_age=5)
+        return response
     else:
         error_message = result.get("message", "Error desconocido al crear usuario.")
         return templates.TemplateResponse("registrarse.html", {"request": req, "user_session": user_session, "error_message": error_message})
+
+@app.post("/registrarse/{id}/editar")
+async def editar_usuario(id: int, request: Request, user_data: dict = Depends(get_user_session)):
+    try:
+        form_data = await request.form()
+        # Convertimos FormData en un diccionario
+        form_data_dict = dict(form_data)
+
+        # Verificamos si se proporcionó una nueva contraseña
+        password_user = form_data_dict.get("password_user")
+        if not password_user:
+            # Si no se proporcionó una nueva contraseña, quitamos ese campo del formulario
+            form_data_dict.pop("password_user", None)
+        else:
+            # Si se proporciona una nueva contraseña, la encriptamos
+            form_data_dict["password_user"] = generate_password_hash(password_user)
+
+        # Llama a la función para actualizar el usuario en la base de datos
+        db.update_user(id, form_data_dict)
+        
+        # Crear respuesta de redirección con una cookie que contenga el mensaje de éxito
+        response = RedirectResponse(url="/registrarse", status_code=303)
+        response.set_cookie(key="success_message", value="Usuario actualizado correctamente.", max_age=5)
+        return response
+
+    except Exception as e:
+        return templates.TemplateResponse("registrarse.html", {
+            "request": request,
+            "user_session": user_data,
+            "error_message": f"Error al actualizar el usuario: {str(e)}"
+        })
+
+@app.post("/registrarse/{id}/inactivar")
+async def inactivate_user(id: int, request: Request, user_data: dict = Depends(get_user_session)):
+    try:
+        db.inactivate_user(id)
+       
+        # Crear respuesta de redirección con una cookie que contenga el mensaje de éxito
+        response = RedirectResponse(url="/registrarse", status_code=303)
+        response.set_cookie(key="success_message", value="Usuario inactivado correctamente.", max_age=5)
+        return response
+        
+    except Exception as e:
+        return templates.TemplateResponse("registrarse.html", {
+            "request": request,
+            "user_session": user_data,
+            "error_message": f"Error al inactivar el usuario: {str(e)}"
+        })
+
+@app.get("/roles", response_class=HTMLResponse)
+async def get_roles(request: Request, user_session: dict = Depends(get_user_session)):
+    if not user_session:
+        return RedirectResponse(url="/", status_code=302)  # Redirigir si no hay sesión iniciada.
+
+    pantallas_disponibles = db.get_pantallas_from_layout('view/components/layout.html')
+    roles = db.get_all_roles()
+
+    # Verifica si existe el parámetro de éxito en la URL
+    success_message = None
+    success_param = request.query_params.get('success', None)
+
+    if success_param == '1':
+        success_message = "Rol creado correctamente."
+    elif success_param == '2':
+        success_message = "Rol actualizado correctamente."
+    elif success_param == '3':
+        success_message = "Rol eliminado correctamente."
+
+    return templates.TemplateResponse("roles.html", {
+        "request": request,
+        "roles": roles,
+        "pantallas": pantallas_disponibles,
+        "success_message": success_message,
+        "user_session": user_session  # Pasa `user_session` al contexto de la plantilla.
+    })
+
+@app.get("/roles/{id_rol}/datos")
+async def obtener_datos_rol(id_rol: int):
+    # Obtener los datos del rol desde la base de datos
+    rol = db.get_role_by_id(id_rol)
+
+    if not rol:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+
+    id_rol, nombre_rol, pantallas_asignadas = rol
+
+    return JSONResponse(content={
+        "id_rol": id_rol,
+        "nombre_rol": nombre_rol,
+        "pantallas_asignadas": pantallas_asignadas.split(',')  # Convertimos las pantallas a lista
+    })
+
+@app.post("/roles", response_class=HTMLResponse)
+async def add_role(request: Request, role_name: str = Form(...), permissions: List[str] = Form(...), role_id: Optional[int] = Form(None)):
+    if role_id:
+        # Si hay un role_id, entonces es una actualización
+        return await update_role(request, role_id, role_name, permissions)
+
+    # Validaciones
+    if not role_name.strip():
+        return templates.TemplateResponse("roles.html", {
+            "request": request,
+            "roles": db.get_all_roles(),
+            "pantallas": db.get_pantallas_from_layout('view/components/layout.html'),
+            "error_message": "Debe ingresar un nombre para el rol."
+        })
+
+    if not permissions or len(permissions) == 0:
+        return templates.TemplateResponse("roles.html", {
+            "request": request,
+            "roles": db.get_all_roles(),
+            "pantallas": db.get_pantallas_from_layout('view/components/layout.html'),
+            "error_message": "Debe seleccionar al menos una pantalla para asignar al rol."
+        })
+
+    # Inserta el nuevo rol en la base de datos
+    permisos_string = ','.join(permissions)
+    db.insert_role({
+        "nombre_rol": role_name,
+        "pantallas_asignadas": permisos_string
+    })
+
+    return RedirectResponse(url="/roles?success=1", status_code=303)
+
+@app.post("/roles/{role_id}/editar", response_class=HTMLResponse)
+async def update_role(request: Request, role_id: int, role_name: str = Form(...), permissions: List[str] = Form(...)):
+    # Validaciones
+    if not role_name.strip():
+        return templates.TemplateResponse("roles.html", {
+            "request": request,
+            "roles": db.get_all_roles(),
+            "pantallas": db.get_pantallas_from_layout('view/components/layout.html'),
+            "error_message": "Debe ingresar un nombre para el rol."
+        })
+
+    if not permissions or len(permissions) == 0:
+        return templates.TemplateResponse("roles.html", {
+            "request": request,
+            "roles": db.get_all_roles(),
+            "pantallas": db.get_pantallas_from_layout('view/components/layout.html'),
+            "error_message": "Debe seleccionar al menos una pantalla para asignar al rol."
+        })
+
+    # Actualizar el rol
+    permisos_string = ','.join(permissions)
+    db.update_role(role_id, role_name, permisos_string)
+
+    return RedirectResponse(url="/roles?success=2", status_code=303)
+
+@app.post("/roles/{role_id}/eliminar")
+async def eliminar_rol(role_id: int):
+    try:
+        db.delete_role(role_id)
+        return RedirectResponse(url="/roles?success=3", status_code=303)
+    except Exception as e:
+        return templates.TemplateResponse("roles.html", {
+            "roles": db.get_all_roles(),
+            "pantallas": db.get_pantallas_from_layout('view/components/layout.html'),
+            "error_message": f"Ocurrió un error al intentar eliminar el rol: {e}"
+        })
+
+@app.get("/pantallas_permitidas", response_class=JSONResponse)
+def obtener_pantallas_permitidas(req: Request, user_session: dict = Depends(get_user_session)):
+    if not user_session:
+        return JSONResponse({"error": "Usuario no autenticado"}, status_code=401)
+
+    role_id = user_session.get("rol")
+    if not role_id:
+        return JSONResponse({"error": "Rol no encontrado para el usuario"}, status_code=404)
+
+    # Consultar las pantallas asignadas al rol del usuario
+    pantallas_permitidas = db.get_pantallas_by_role(role_id)
+    if not pantallas_permitidas:
+        return JSONResponse({"error": "No hay pantallas asignadas para el rol"}, status_code=404)
+
+    return JSONResponse({"pantallas": pantallas_permitidas}, status_code=200)
 
 @app.get("/asignacion", response_class=HTMLResponse)
 def asignacion(req: Request, user_session: dict = Depends(get_user_session)):
@@ -479,52 +709,6 @@ def generar_pdf_asignaciones(request: PDFRequest):
 
     except Exception as e:
         return {"error": str(e)}
-
-############ SECCIÓN PARAMETRIZACIÓN DE ROLES ################
-# Simula la base de datos de roles
-roles_db = {
-    "admin": ["Centro de Control", "Configuración"],
-    "user": ["Centro de Control"]
-}
-
-def get_pantallas_from_layout():
-    # Asegúrate de que el archivo 'layout.html' está en 'view/components'
-    layout_path = os.path.join(os.path.dirname(__file__), 'view', 'components', 'layout.html')
-    print(f"Intentando abrir el archivo en: {layout_path}")  # Imprime la ruta para verificar
-    with open(layout_path, 'r', encoding='utf-8') as f:
-        layout_html = f.read()
-
-    # Usa BeautifulSoup para extraer los enlaces
-    soup = BeautifulSoup(layout_html, 'html.parser')
-    
-    # Extrae los textos de los enlaces dentro del sidebar
-    pantallas = []
-    for link in soup.select(".sidebar .nav-link"):
-        pantallas.append(link.text.strip())  # Extrae el texto visible del enlace
-
-    return pantallas
-
-@app.get("/roles", response_class=HTMLResponse)
-def get_roles(req: Request, user_session: dict = Depends(get_user_session)):
-    if not user_session:
-        return RedirectResponse(url="/", status_code=302)
-
-    pantallas_disponibles = get_pantallas_from_layout()  # Extrae las pantallas del layout
-    roles = roles_db  # Simulando datos de la base de datos
-    
-    return templates.TemplateResponse("roles.html", {
-        "request": req, 
-        "roles": roles, 
-        "pantallas": pantallas_disponibles, 
-        "user_session": user_session  # Asegurarse de pasar user_session
-    })
-
-@app.post("/roles/add", response_class=HTMLResponse)
-async def add_role(request: Request, role_name: str = Form(...), permissions: list[str] = Form(...)):
-    # Simula agregar un nuevo rol a la base de datos
-    roles_db[role_name] = permissions
-    pantallas_disponibles = get_pantallas_from_layout()  # Extrae las pantallas del layout
-    return templates.TemplateResponse("roles.html", {"request": request, "roles": roles_db, "pantallas": pantallas_disponibles})
 
 ################## SECCIÓN JURIDICO ####################
 @app.get("/juridico", response_class=HTMLResponse)
