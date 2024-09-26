@@ -11,6 +11,7 @@ from controller.user import User
 from controller.cargues import ProcesarCargueControles
 from model.gestionar_db import Cargue_Controles
 from model.gestionar_db import Cargue_Asignaciones
+from model.gestionar_db import CargueLicenciasBI
 from model.gestionar_db import HandleDB
 from model.consultas_db import Reporte_Asignaciones
 from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, concesion, control, rutas, turnos, hora_inicio, hora_fin
@@ -26,6 +27,7 @@ app.add_middleware(SessionMiddleware, secret_key="!secret_key")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="./view")
 db = HandleDB()
+import shutil
 DATABASE_PATH = "postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -142,8 +144,11 @@ def registrarse_post(req: Request, nombres: str = Form(...), apellidos: str = Fo
         response.set_cookie(key="success_message", value="Usuario creado correctamente.", max_age=5)
         return response
     else:
+        # Establecer una cookie con el mensaje de error
         error_message = result.get("message", "Error desconocido al crear usuario.")
-        return templates.TemplateResponse("registrarse.html", {"request": req, "user_session": user_session, "error_message": error_message})
+        response = RedirectResponse(url="/registrarse", status_code=303)
+        response.set_cookie(key="error_message", value=error_message, max_age=5)
+        return response
 
 @app.post("/registrarse/{id}/editar")
 async def editar_usuario(id: int, request: Request, user_data: dict = Depends(get_user_session)):
@@ -707,6 +712,65 @@ def generar_pdf_asignaciones(request: PDFRequest):
             "Content-Disposition": "attachment; filename=asignaciones_tecnicos.pdf"
         })
 
+    except Exception as e:
+        return {"error": str(e)}
+
+############### SECCIÓN POWER_BI EMBEBIDO #################
+@app.get("/powerbi", response_class=HTMLResponse)
+def get_powerbi(req: Request, user_session: dict = Depends(get_user_session)):
+    if not user_session:
+        return RedirectResponse(url="/", status_code=302)
+
+    # Obtener la cédula del usuario logueado desde la sesión
+    cedula = user_session.get('username')  # La cédula está en 'username'
+    
+    # Consulta a la tabla licencias_bi
+    licencias_bi_query = """SELECT licencia_bi, contraseña_licencia 
+                            FROM licencias_bi 
+                            WHERE cedula = %s"""
+    result = db.fetch_one(query=licencias_bi_query, values=(cedula,))
+
+    if result:
+        # Imprimir en la terminal para verificar las credenciales
+        #print(f"Licencia: {result[0]}")
+        #print(f"Contraseña: {result[1]}")
+        
+        # Si se encuentra una licencia, pasar los datos a la plantilla
+        return templates.TemplateResponse("powerbi.html", {
+            "request": req,
+            "user_session": user_session,
+            "licencia_bi": result[0],
+            "contraseña_licencia": result[1],
+            "error_message": None  # No hay error
+        })
+    else:
+        # Si no se encuentra la licencia, mostrar el mensaje de error en la plantilla
+        return templates.TemplateResponse("powerbi.html", {
+            "request": req,
+            "user_session": user_session,
+            "licencia_bi": None,
+            "contraseña_licencia": None,
+            "error_message": "No se encontraron licencias para el usuario."  # Pasar el mensaje de error
+        })
+
+@app.post("/cargar_licencias")
+async def cargar_licencias(file: UploadFile = File(...)):
+    try:
+        # Guardar el archivo temporalmente
+        file_path = f"temp_{file.filename}"
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # Instanciar el cargador de licencias y cargar el archivo
+        db_conn = psycopg2.connect(DATABASE_PATH)
+        cargador = CargueLicenciasBI(db_conn)
+        result = cargador.cargar_licencias_excel(file_path)
+
+        # Eliminar el archivo temporal
+        os.remove(file_path)
+
+        # Retornar el resultado en formato JSON
+        return result
     except Exception as e:
         return {"error": str(e)}
 

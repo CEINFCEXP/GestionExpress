@@ -3,6 +3,7 @@ from psycopg2 import OperationalError
 from threading import Lock
 from datetime import datetime, time
 from bs4 import BeautifulSoup
+import pandas as pd
 import pytz
 from fastapi import HTTPException
 
@@ -80,10 +81,15 @@ class HandleDB:
             self._con.commit()
 
     def get_all_roles(self):
-        with self._lock:
-            self._check_connection()
-            self._cur.execute("SELECT id_rol, nombre_rol, pantallas_asignadas FROM roles")
-            return self._cur.fetchall()
+        try:
+            with self._lock:
+                self._check_connection()
+                self._cur.execute("SELECT id_rol, nombre_rol, pantallas_asignadas FROM roles")
+                return self._cur.fetchall()
+        except psycopg2.OperationalError as e:
+            self._con.rollback()  # Si ocurre un error, realiza un rollback
+            print(f"Error de conexión: {str(e)}")
+            raise e  # Opcionalmente, relanzar el error o intentar reconectar
 
     def get_pantallas_from_layout(self, layout_path):
         with open(layout_path, 'r', encoding='utf-8') as f:
@@ -184,6 +190,30 @@ class HandleDB:
                 UPDATE usuarios SET estado = 0 WHERE id = %s
             """, (user_id,))
             self._con.commit()
+    
+    # Conexión Licencias Power BI
+    def fetch_one(self, query, values=None):
+        with self._lock:
+            self._check_connection()  # Verificar la conexión
+            try:
+                self._cur.execute(query, values)  # Ejecutar la consulta con parámetros
+                return self._cur.fetchone()  # Obtener un solo resultado
+            except Exception as e:
+                self._con.rollback()  # Hacer rollback si hay un error
+                raise e  # Lanzar el error
+
+    # Conexiones Licencias Power BI
+    def fetch_all(self, query, params=None):
+        with self._lock:
+            self._check_connection()
+            try:
+                if params:
+                    self._cur.execute(query, params)
+                else:
+                    self._cur.execute(query)
+                return self._cur.fetchall()
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error fetching data: {str(e)}")
 
     def __del__(self):  # Método para cerrar la conexión con la base de datos al finalizar el uso
         with self._lock:
@@ -418,3 +448,39 @@ class Cargue_Asignaciones:
 
         finally:
             conn.close()  # Cerrar la conexión
+            
+class CargueLicenciasBI:
+    def __init__(self, db_conn):
+        self.conn = db_conn
+        self.cursor = self.conn.cursor()
+
+    def cargar_licencias_excel(self, file_path):
+        try:
+            # Leer el archivo Excel
+            df = pd.read_excel(file_path)
+
+            # Validar si las columnas necesarias están presentes
+            if not set(['cedula', 'nombre', 'correo_corporativo', 'grupo', 'licencia_bi', 'contraseña_licencia']).issubset(df.columns):
+                raise ValueError("El archivo Excel debe contener las columnas: 'cedula', 'nombre', 'correo_corporativo', 'grupo', 'licencia_bi' y 'contraseña_licencia'.")
+
+            # Insertar o actualizar los datos en la tabla licencias_bi
+            for _, row in df.iterrows():
+                self.cursor.execute('''
+                    INSERT INTO licencias_bi (cedula, nombre, correo_corporativo, grupo, licencia_bi, contraseña_licencia)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (cedula) DO UPDATE
+                    SET nombre = EXCLUDED.nombre, correo_corporativo = EXCLUDED.correo_corporativo,
+                        grupo = EXCLUDED.grupo, licencia_bi = EXCLUDED.licencia_bi, contraseña_licencia = EXCLUDED.contraseña_licencia
+                ''', (
+                    row['cedula'], row['nombre'], row['correo_corporativo'], row['grupo'],
+                    row['licencia_bi'], row['contraseña_licencia']
+                ))
+
+            # Hacer commit a la base de datos
+            self.conn.commit()
+            return {"message": "Licencias cargadas exitosamente."}
+
+        except Exception as e:
+            self.conn.rollback()
+            raise HTTPException(status_code=400, detail=f"Error al cargar el archivo Excel: {str(e)}")
+
