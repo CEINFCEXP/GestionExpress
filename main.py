@@ -13,9 +13,11 @@ from model.gestionar_db import Cargue_Controles
 from model.gestionar_db import Cargue_Asignaciones
 from model.gestionar_db import CargueLicenciasBI
 from model.gestionar_db import HandleDB
+from model.gestionar_db import Cargue_Roles_Blob_Storage
 from model.consultas_db import Reporte_Asignaciones
 from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, concesion, control, rutas, turnos, hora_inicio, hora_fin
 from werkzeug.security import generate_password_hash
+from azure.storage.blob import BlobServiceClient
 import psycopg2
 import json
 from typing import List, Optional
@@ -95,12 +97,14 @@ def registrarse(req: Request, user_session: dict = Depends(get_user_session)):
         return RedirectResponse(url="/", status_code=302)
 
     roles = db.get_all_roles()  # Obtiene los roles desde la base de datos
+    roles_storage = storage_db.get_all_roles_storage()  # Obtiene los roles storage
     usuarios = db.get_all_users()  # Obtiene los usuarios desde la base de datos
 
     return templates.TemplateResponse("registrarse.html", {
         "request": req,
         "user_session": user_session,
         "roles": roles,
+        "roles_storage": roles_storage,
         "usuarios": usuarios
     })
 
@@ -116,21 +120,27 @@ async def get_user_data(user_id: int):
         "apellidos": user["apellidos"],
         "username": user["username"],
         "rol": user["rol"],
-        "estado": user["estado"]
+        "estado": user["estado"],
+        "rol_storage": user["rol_storage"],
     })
 
 @app.post("/registrarse", response_class=HTMLResponse)
 def registrarse_post(req: Request, nombres: str = Form(...), apellidos: str = Form(...),
                      username: str = Form(...), rol: int = Form(...),
-                     password_user: str = Form(...), user_session: dict = Depends(get_user_session)):
+                     rol_storage: int = Form(...), password_user: str = Form(...), 
+                     user_session: dict = Depends(get_user_session)):
     if not user_session:
         return RedirectResponse(url="/", status_code=302)
+    
+    # Si no se selecciona un rol de storage, guardar "0"
+    rol_storage = rol_storage if rol_storage != 0 else 0
 
     data_user = {
         "nombres": nombres,
         "apellidos": apellidos,
         "username": username,
         "rol": rol,
+        "rol_storage": rol_storage,
         "password_user": password_user,
         "estado": 1
     }
@@ -165,6 +175,10 @@ async def editar_usuario(id: int, request: Request, user_data: dict = Depends(ge
         else:
             # Si se proporciona una nueva contraseña, la encriptamos
             form_data_dict["password_user"] = generate_password_hash(password_user)
+            
+        # Verificamos si se seleccionó un rol de storage
+        rol_storage = form_data_dict.get("rol_storage")
+        form_data_dict["rol_storage"] = rol_storage if rol_storage != "0" else 0
 
         # Llama a la función para actualizar el usuario en la base de datos
         db.update_user(id, form_data_dict)
@@ -773,6 +787,123 @@ async def cargar_licencias(file: UploadFile = File(...)):
         return result
     except Exception as e:
         return {"error": str(e)}
+
+############### SECCIÓN CONTENEDORES BLOB STORAGE #################
+# Instancia de la clase Cargue_Roles_Blob_Storage
+storage_db = Cargue_Roles_Blob_Storage()
+
+# Obtener contenedores de Blob Storage
+def obtener_contenedores_blob_storage():
+    try:
+        connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+        if not connection_string:
+            raise ValueError("No se encontró la cadena de conexión de Azure Storage en las variables de entorno")
+        
+        # Crear el cliente de Blob Storage utilizando la cadena de conexión
+        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        contenedores = blob_service_client.list_containers()
+        return [container.name for container in contenedores]
+    except Exception as e:
+        # Loguear el error y retornar una lista vacía
+        print(f"Error al obtener los contenedores de Blob Storage: {str(e)}")
+        return []
+
+# Pantalla principal de roles_storage
+@app.get("/roles_storage", response_class=HTMLResponse)
+def get_roles_storage(req: Request, user_session: dict = Depends(get_user_session)):
+    if not user_session:
+        return RedirectResponse(url="/", status_code=302)
+
+    # Intentar obtener los contenedores de Azure Blob Storage
+    contenedores_disponibles = obtener_contenedores_blob_storage()
+
+    # Mostrar un mensaje de advertencia si no se encuentran contenedores
+    error_message = None
+    if not contenedores_disponibles:
+        error_message = "No se pudieron obtener los contenedores de Blob Storage. Verifique la conexión o Variable de Entorno."
+
+    # Obtener roles storage desde la base de datos
+    roles_storage = storage_db.get_all_roles_storage()
+
+    # Verificar si hay un mensaje de éxito o error en la URL
+    success_message = None
+    if req.query_params.get('success') == '1':
+        success_message = "Rol creado correctamente."
+    elif req.query_params.get('success') == '2':
+        success_message = "Rol actualizado correctamente."
+    elif req.query_params.get('success') == '3':
+        success_message = "Rol eliminado correctamente."
+
+    # Renderizar la plantilla con los datos y mensajes correspondientes
+    return templates.TemplateResponse("roles_storage.html", {
+        "request": req,
+        "user_session": user_session,
+        "containers": contenedores_disponibles,
+        "roles_storage": roles_storage,
+        "success_message": success_message,
+        "error_message": error_message
+    })
+
+# Crear nuevo rol de storage
+@app.post("/roles_storage", response_class=HTMLResponse)
+async def add_role_storage(req: Request, role_storage_name: str = Form(...), containers: list = Form(...)):
+    try:
+        # Validaciones
+        if not role_storage_name.strip():
+            return RedirectResponse(url="/roles_storage?error=Debe ingresar un nombre para el rol", status_code=303)
+
+        if not containers or len(containers) == 0:
+            return RedirectResponse(url="/roles_storage?error=Debe seleccionar al menos un contenedor", status_code=303)
+
+        # Inserta el nuevo rol en la base de datos
+        storage_db.insert_roles_storage({
+            "nombre_rol_storage": role_storage_name,
+            "contenedores_asignados": containers
+        })
+
+        return RedirectResponse(url="/roles_storage?success=1", status_code=303)
+    
+    except Exception as e:
+        return RedirectResponse(url=f"/roles_storage?error=Ocurrió un error: {str(e)}", status_code=303)
+
+# Obtener los datos de un rol específico
+@app.get("/roles_storage/{role_storage_id}/datos", response_class=JSONResponse)
+async def obtener_datos_role_storage(role_storage_id: int):
+    # Obtener los datos del rol desde la base de datos
+    role_storage = storage_db.get_role_storage_by_id(role_storage_id)
+
+    if not role_storage:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+
+    return JSONResponse(content=role_storage)
+
+# Editar un rol existente
+@app.post("/roles_storage/{role_storage_id}/editar", response_class=HTMLResponse)
+async def update_role_storage(req: Request, role_storage_id: int, role_storage_name: str = Form(...), containers: list = Form(...)):
+    try:
+        # Validaciones
+        if not role_storage_name.strip():
+            return RedirectResponse(url="/roles_storage?error=Debe ingresar un nombre para el rol", status_code=303)
+
+        if not containers or len(containers) == 0:
+            return RedirectResponse(url="/roles_storage?error=Debe seleccionar al menos un contenedor", status_code=303)
+
+        # Actualizar el rol en la base de datos
+        storage_db.update_role_storage(role_storage_id, role_storage_name, containers)
+
+        return RedirectResponse(url="/roles_storage?success=2", status_code=303)
+    
+    except Exception as e:
+        return RedirectResponse(url=f"/roles_storage?error=Ocurrió un error: {str(e)}", status_code=303)
+
+# Eliminar un rol
+@app.post("/roles_storage/{role_storage_id}/eliminar")
+async def eliminar_role_storage(role_storage_id: int):
+    try:
+        storage_db.delete_role_storage(role_storage_id)
+        return RedirectResponse(url="/roles_storage?success=3", status_code=303)
+    except Exception as e:
+        return RedirectResponse(url=f"/roles_storage?error=Ocurrió un error al intentar eliminar el rol: {str(e)}", status_code=303)
 
 ################## SECCIÓN JURIDICO ####################
 @app.get("/juridico", response_class=HTMLResponse)

@@ -67,7 +67,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="rol" class="form-label">Rol</label>
+                                <label for="rol" class="form-label">Rol Sistema</label>
                                 <select class="form-select" id="rol" name="rol" required>
                                     <option disabled selected>Seleccione el rol...</option>
                                     {% for rol in roles %}
@@ -78,12 +78,22 @@
                         </div>
 
                         <div class="row" style="margin-bottom: 0px;">
-                            <!-- Contraseña en la misma fila que el Rol -->
+                            <!-- Contraseña y Roles Storage en la misma fila -->
                             <div class="col-md-6 mb-3">
                                 <label for="password_user" class="form-label">Contraseña</label>
                                 <input type="password" class="form-control" id="password_user" name="password_user" required>
                             </div>
-                        </div>
+                        
+                            <div class="col-md-6 mb-3">
+                                <label for="rol_storage" class="form-label">Rol Storage (Azure)</label>
+                                <select class="form-select" id="rol_storage" name="rol_storage" required>
+                                    <option value="0" selected>No Asignar</option>  <!-- Opción para no asignar rol -->
+                                    {% for rol_storage in roles_storage %}
+                                        <option value="{{ rol_storage[0] }}">{{ rol_storage[1] }} ({{ rol_storage[0] }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>                        
 
                         <button type="submit" class="btn btn-success w-100">Guardar</button>
                     </form>
@@ -115,13 +125,14 @@
                     <table class="table table-hover table-striped" style="table-layout: fixed; width: 100%; font-size: 12px;">
                         <thead class="table-light" style="position: sticky; top: 0; z-index: 1; margin-top: 0; padding: 0;">
                             <tr>
-                                <th style="width: 5px;">ID</th>
+                                <th style="width: 3px;">ID</th>
                                 <th style="width: 12%;">Username</th>
-                                <th style="width: 40px;">Nombre</th>
-                                <th style="width: 40px;">Apellidos</th>
+                                <th style="width: 35px;">Nombre</th>
+                                <th style="width: 35px;">Apellidos</th>
                                 <th style="width: 3px;">Rol</th>
+                                <th style="width: 3px;">Blob</th>
                                 <th style="width: 8px;">Estado</th>
-                                <th style="width: 40px;" class="text-center">Acciones</th>
+                                <th style="width: 45px;" class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -131,7 +142,8 @@
                               <td>{{ usuario[3] }}</td> <!-- Username -->
                               <td>{{ usuario[1] }}</td> <!-- Nombres -->
                               <td>{{ usuario[2] }}</td> <!-- Apellidos -->
-                              <td>{{ usuario[4] }}</td> <!-- Rol -->
+                              <td>{{ usuario[4] }}</td> <!-- Rol Sistema-->
+                              <td>{{ usuario[6] }}</td> <!-- Storage  -->
                               <td>{{ 'Activo' if usuario[5] == 1 else 'Inactivo' }}</td> <!-- Estado -->
                               <td class="text-center">
                                   <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUserModal" data-user-id="{{ usuario[0] }}">
@@ -209,11 +221,22 @@
                       </div>
                   </div>
 
-                  <div class="mb-3">
-                      <label for="editUserPassword" class="form-label">Contraseña (opcional)</label>
-                      <input type="password" class="form-control" id="editUserPassword" name="password_user">
-                  </div>
-              </div>
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="editUserPassword" class="form-label">Contraseña (opcional)</label>
+                        <input type="password" class="form-control" id="editUserPassword" name="password_user">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="editUserRolStorage" class="form-label">Rol Storage (Azure)</label>
+                        <select class="form-select" id="editUserRolStorage" name="rol_storage" required>
+                            <option value="0">No Asignar</option>  <!-- Opción por defecto -->
+                            {% for rol_storage in roles_storage %}
+                                <option value="{{ rol_storage[0] }}">{{ rol_storage[1] }} ({{ rol_storage[0] }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
 
               <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
@@ -253,6 +276,7 @@
         document.getElementById('editUserRol').value = '';
         document.getElementById('editUserEstado').value = '';
         document.getElementById('editUserPassword').value = '';
+        document.getElementById('editUserRolStorage').value = '0';
 
         // Solicitar datos del usuario seleccionado
         fetch(`/registrarse/${userId}/datos`)
@@ -272,6 +296,7 @@
                 document.getElementById('editUserUsername').value = data.username;
                 document.getElementById('editUserRol').value = data.rol;
                 document.getElementById('editUserEstado').value = data.estado;
+                document.getElementById('editUserRolStorage').value = data.rol_storage || '0'; 
 
                 // No mostrar la contraseña, solo permitir cambiarla
                 document.getElementById('editUserPassword').value = '';

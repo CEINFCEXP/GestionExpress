@@ -7,6 +7,7 @@ import pandas as pd
 import pytz
 from fastapi import HTTPException
 
+# Base de Datos POSTGRESQL en Azure (Cuenta: sergio.hincapie@ucentral.edu.co)
 DATABASE_PATH = "postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress" 
 # Establecer la zona horaria de Colombia
 colombia_tz = pytz.timezone('America/Bogota')
@@ -56,13 +57,14 @@ class HandleDB:
         with self._lock:
             self._check_connection()  # Verifica la conexión antes de usarla
             self._cur.execute("""
-                INSERT INTO usuarios (nombres, apellidos, username, rol, password_user, estado)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO usuarios (nombres, apellidos, username, rol, rol_storage, password_user, estado)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 data_user["nombres"],
                 data_user["apellidos"],
                 data_user["username"],
                 data_user["rol"],
+                data_user["rol_storage"],
                 data_user["password_user"],
                 1 # Siempre se insertará como 'activo' con estado 1
             ))
@@ -84,7 +86,7 @@ class HandleDB:
         try:
             with self._lock:
                 self._check_connection()
-                self._cur.execute("SELECT id_rol, nombre_rol, pantallas_asignadas FROM roles")
+                self._cur.execute("SELECT id_rol, nombre_rol, pantallas_asignadas FROM roles ORDER BY id_rol ASC")
                 return self._cur.fetchall()
         except psycopg2.OperationalError as e:
             self._con.rollback()  # Si ocurre un error, realiza un rollback
@@ -140,7 +142,7 @@ class HandleDB:
         with self._lock:
             self._check_connection()
             # Asegurémonos de obtener todos los campos
-            self._cur.execute("SELECT id, nombres, apellidos, username, rol, estado FROM usuarios")
+            self._cur.execute("SELECT id, nombres, apellidos, username, rol, estado, rol_storage FROM usuarios ORDER BY id ASC")
             usuarios = self._cur.fetchall()
             # print("Usuarios obtenidos de la base de datos:", usuarios)  # Debugging
             return usuarios
@@ -148,7 +150,7 @@ class HandleDB:
     def get_user_by_id(self, user_id):
         with self._lock:
             self._check_connection()
-            self._cur.execute("SELECT id, nombres, apellidos, username, rol, estado FROM usuarios WHERE id = %s", (user_id,))
+            self._cur.execute("SELECT id, nombres, apellidos, username, rol, estado, rol_storage FROM usuarios WHERE id = %s", (user_id,))
             usuario = self._cur.fetchone()
             if usuario:
                 return {
@@ -157,7 +159,8 @@ class HandleDB:
                     "apellidos": usuario[2],
                     "username": usuario[3],
                     "rol": usuario[4],
-                    "estado": usuario[5]
+                    "estado": usuario[5],
+                    "rol_storage": usuario[6]
                 }
             return None
            
@@ -167,9 +170,9 @@ class HandleDB:
 
             # Comienza a construir la consulta SQL
             query = """
-                UPDATE usuarios SET nombres = %s, apellidos = %s, username = %s, rol = %s, estado = %s
+                UPDATE usuarios SET nombres = %s, apellidos = %s, username = %s, rol = %s, estado = %s, rol_storage = %s
             """
-            params = [data['nombres'], data['apellidos'], data['username'], data['rol'], data['estado']]
+            params = [data['nombres'], data['apellidos'], data['username'], data['rol'], data['estado'], data['rol_storage']]
 
             # Solo agrega la contraseña si está presente en los datos
             if "password_user" in data and data["password_user"]:
@@ -484,3 +487,82 @@ class CargueLicenciasBI:
             self.conn.rollback()
             raise HTTPException(status_code=400, detail=f"Error al cargar el archivo Excel: {str(e)}")
 
+class Cargue_Roles_Blob_Storage:
+    _instance = None
+    _lock = Lock()  # Para manejar la concurrencia en la base de datos
+
+    def __new__(cls):
+        with cls._lock:
+            if not cls._instance:
+                cls._instance = super().__new__(cls)
+                cls._instance._con = cls._create_connection()  # Crear la conexión a la base de datos
+                cls._instance._cur = cls._instance._con.cursor()
+            return cls._instance
+
+    @staticmethod # Método para crear la conexión a la base de datos
+    def _create_connection():
+        return psycopg2.connect(DATABASE_PATH)
+
+    def _check_connection(self): # Verifica si la conexión está activa
+        if not hasattr(self, '_con') or self._con.closed:  # Asegura que la conexión existe y está abierta
+            self._con = self._create_connection()
+            self._cur = self._con.cursor()
+
+    def insert_roles_storage(self, role_data):
+        with self._lock:
+            self._check_connection()
+            try:
+                self._cur.execute("""
+                    INSERT INTO roles_storage (nombre_rol_storage, contenedores_asignados)
+                    VALUES (%s, %s)
+                """, (
+                    role_data["nombre_rol_storage"],
+                    ','.join(role_data["contenedores_asignados"])  # Convertimos la lista a una cadena
+                ))
+                self._con.commit()
+            except Exception as e:
+                self._con.rollback()  # Si hay un error, hacemos rollback
+                raise e
+
+    def get_all_roles_storage(self): # Método para obtener todos los roles de storage en la tabla roles_storage
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("SELECT id_rol_storage, nombre_rol_storage, contenedores_asignados FROM roles_storage ORDER BY id_rol_storage ASC")
+            return self._cur.fetchall()
+
+    def get_role_storage_by_id(self, role_storage_id): # Método para obtener un rol específico por ID
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("SELECT id_rol_storage, nombre_rol_storage, contenedores_asignados FROM roles_storage WHERE id_rol_storage = %s", (role_storage_id,))
+            role_data = self._cur.fetchone()
+            if role_data:
+                return {
+                    "id_rol_storage": role_data[0],
+                    "nombre_rol_storage": role_data[1],
+                    "contenedores_asignados": role_data[2].split(',')  # Convertimos la cadena a lista
+                }
+            return None
+
+    def update_role_storage(self, role_storage_id, role_name, contenedores_asignados): # Método para actualizar un rol en la tabla roles_storage
+        with self._lock:
+            self._check_connection()
+            try:
+                self._cur.execute("""
+                    UPDATE roles_storage
+                    SET nombre_rol_storage = %s, contenedores_asignados = %s
+                    WHERE id_rol_storage = %s
+                """, (role_name, ','.join(contenedores_asignados), role_storage_id))
+                self._con.commit()
+            except Exception as e:
+                self._con.rollback()  # Si hay un error, hacemos rollback
+                raise e
+
+    def delete_role_storage(self, role_storage_id): # Método para eliminar un rol de storage por ID
+        with self._lock:
+            self._check_connection()
+            try:
+                self._cur.execute("DELETE FROM roles_storage WHERE id_rol_storage = %s", (role_storage_id,))
+                self._con.commit()
+            except Exception as e:
+                self._con.rollback()
+                raise e

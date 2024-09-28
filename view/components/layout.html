@@ -142,7 +142,7 @@
     {% endif %}
 
     <!-- Grupo "Configuración" -->
-    {% if 'Crear Usuario' in pantallas_permitidas or 'Gestión de Roles' in pantallas_permitidas %}
+    {% if 'Crear Usuario' in pantallas_permitidas or 'Gestión de Roles' in pantallas_permitidas or 'Roles Blob Storage' in pantallas_permitidas %}
     <div class="group">
       <div class="group-title">Configuración</div>
       {% if 'Crear Usuario' in pantallas_permitidas %}
@@ -150,6 +150,9 @@
       {% endif %}
       {% if 'Gestión de Roles' in pantallas_permitidas %}
       <a class="nav-link" href="/roles">Gestión de Roles</a>
+      {% endif %}
+      {% if 'Roles Blob Storage' in pantallas_permitidas %}
+      <a class="nav-link" href="/roles_storage">Roles Blob Storage</a>
       {% endif %}
     </div>
     {% endif %}
@@ -220,7 +223,8 @@
         "Reportes": "/dashboard",
         "Control Clausulas": "/juridico",
         "Crear Usuario": "/registrarse",
-        "Gestión de Roles": "/roles"
+        "Gestión de Roles": "/roles",
+        "Roles Blob Storage": "/roles_storage"
       };
   
       fetch("/pantallas_permitidas")
@@ -232,7 +236,7 @@
             const gruposPantallas = {
               "Centro de Control": ["Asignaciones", "Reportes"],
               "Júridico": ["Control Clausulas"],
-              "Configuración": ["Crear Usuario", "Gestión de Roles"]
+              "Configuración": ["Crear Usuario", "Gestión de Roles", "Roles Blob Storage"]
             };
             
             Object.keys(gruposPantallas).forEach(grupo => {
