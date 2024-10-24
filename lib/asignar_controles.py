@@ -1,8 +1,12 @@
 import psycopg2
 from datetime import datetime
 from fastapi import HTTPException
+from dotenv import load_dotenv
+import os
 
-DATABASE_PATH = "postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress"
+# Cargar las variables de entorno desde .env
+load_dotenv()
+DATABASE_PATH = os.getenv("DATABASE_PATH")
 
 def fecha_asignacion(fecha_str):
     try:

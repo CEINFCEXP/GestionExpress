@@ -133,6 +133,14 @@
     </div>
     {% endif %}
 
+    <!-- Grupo "Centro de Información" -->
+    {% if 'Blob Storage' in pantallas_permitidas %}
+    <div class="group">
+      <div class="group-title">Centro Información</div>
+      <a class="nav-link" href="/containers">Blob Storage</a>
+    </div>
+    {% endif %}
+
     <!-- Grupo "Júridico" -->
     {% if 'Control Clausulas' in pantallas_permitidas %}
     <div class="group">
@@ -221,6 +229,7 @@
       const pantallasRutas = {
         "Asignaciones": "/asignacion",
         "Reportes": "/dashboard",
+        "Blob Storage": "/containers",
         "Control Clausulas": "/juridico",
         "Crear Usuario": "/registrarse",
         "Gestión de Roles": "/roles",
@@ -235,6 +244,7 @@
             
             const gruposPantallas = {
               "Centro de Control": ["Asignaciones", "Reportes"],
+              "Centro Información": ["Blob Storage"],
               "Júridico": ["Control Clausulas"],
               "Configuración": ["Crear Usuario", "Gestión de Roles", "Roles Blob Storage"]
             };

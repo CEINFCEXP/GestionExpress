@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Request, Form, Depends, File, UploadFile, HTTPException, Response
+from fastapi import FastAPI, Request, Form, Depends, File, UploadFile, HTTPException, Response, APIRouter
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 from bs4 import BeautifulSoup 
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer
@@ -15,23 +16,36 @@ from model.gestionar_db import CargueLicenciasBI
 from model.gestionar_db import HandleDB
 from model.gestionar_db import Cargue_Roles_Blob_Storage
 from model.consultas_db import Reporte_Asignaciones
+from model.gestion_clausulas import GestionClausulas
 from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, concesion, control, rutas, turnos, hora_inicio, hora_fin
 from werkzeug.security import generate_password_hash
-from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient, BlobClient
 import psycopg2
 import json
 from typing import List, Optional
 from io import BytesIO 
+import shutil
 import os
+import msal
+import requests
+from dotenv import load_dotenv
+
+# Cargar las variables de entorno desde .env
+load_dotenv()
 
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key="!secret_key")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="./view")
 db = HandleDB()
-import shutil
-DATABASE_PATH = "postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# Variables de entorno
+DATABASE_PATH = os.getenv("DATABASE_PATH")
+AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+TENANT_ID = os.getenv("TENANT_ID")
 
 # Función para verificar si el usuario ha iniciado sesión
 def get_user_session(req: Request):
@@ -421,7 +435,7 @@ async def descargar_plantilla():
 #########################################################################################
 # FUNCIONALIDADES PARA GESTIONAR LAS ASIGNACIONES "asignar_controles.py"
 def get_planta_data():
-    conn = psycopg2.connect("postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress")
+    conn = psycopg2.connect(DATABASE_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT cedula, nombre FROM planta")
     rows = cursor.fetchall()
@@ -429,7 +443,7 @@ def get_planta_data():
     return [{"cedula": row[0], "nombre": row[1]} for row in rows]
 
 def get_supervisores_data():
-    conn = psycopg2.connect("postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress")
+    conn = psycopg2.connect(DATABASE_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT cedula, nombre FROM supervisores")
     rows = cursor.fetchall()
@@ -477,7 +491,7 @@ async def get_turnos():
     return turnos()
 
 def get_turnos_data():
-    conn = psycopg2.connect("postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress") 
+    conn = psycopg2.connect(DATABASE_PATH) 
     cursor = conn.cursor()
     cursor.execute("SELECT turno, hora_inicio, hora_fin, detalles FROM turnos")
     rows = cursor.fetchall()
@@ -730,41 +744,78 @@ def generar_pdf_asignaciones(request: PDFRequest):
         return {"error": str(e)}
 
 ############### SECCIÓN POWER_BI EMBEBIDO #################
+AUTHORITY_URL = f"https://login.microsoftonline.com/{TENANT_ID}"
+SCOPE = ["https://analysis.windows.net/powerbi/api/.default"]
+
+# Función para obtener el token de acceso
+def get_access_token():
+    app = msal.ConfidentialClientApplication(
+        CLIENT_ID, authority=AUTHORITY_URL, client_credential=CLIENT_SECRET
+    )
+    token_response = app.acquire_token_for_client(scopes=SCOPE)
+    access_token = token_response.get('access_token')
+    #print("Token de acceso:", access_token)
+    return access_token
+
+# Función para obtener la lista de informes o aplicaciones disponibles en Power BI
+def get_available_reports(access_token):
+    url = "https://api.powerbi.com/v1.0/myorg/reports"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = requests.get(url, headers=headers)
+
+    # Verificar si la respuesta es exitosa
+    if response.status_code == 200:
+        try:
+            reports_data = response.json()
+            return reports_data.get('value', [])  # Devuelve la lista de informes si existe
+        except ValueError:
+            # Error al decodificar el JSON
+            print("Error al decodificar la respuesta JSON.")
+            print("Contenido de la respuesta:", response.text)
+            return []
+    else:
+        # Manejar errores de respuesta no exitosa
+        print(f"Error en la API de Power BI: {response.status_code}")
+        print("Contenido de la respuesta:", response.text)
+        return []
+
 @app.get("/powerbi", response_class=HTMLResponse)
 def get_powerbi(req: Request, user_session: dict = Depends(get_user_session)):
     if not user_session:
         return RedirectResponse(url="/", status_code=302)
 
     # Obtener la cédula del usuario logueado desde la sesión
-    cedula = user_session.get('username')  # La cédula está en 'username'
-    
+    cedula = user_session.get('username')
+
     # Consulta a la tabla licencias_bi
     licencias_bi_query = """SELECT licencia_bi, contraseña_licencia 
                             FROM licencias_bi 
                             WHERE cedula = %s"""
     result = db.fetch_one(query=licencias_bi_query, values=(cedula,))
-
+    
     if result:
-        # Imprimir en la terminal para verificar las credenciales
-        #print(f"Licencia: {result[0]}")
-        #print(f"Contraseña: {result[1]}")
-        
-        # Si se encuentra una licencia, pasar los datos a la plantilla
+        # Obtener el token de acceso para Power BI
+        access_token = get_access_token()
+
+        # Obtener la lista de informes disponibles
+        available_reports = get_available_reports(access_token)
+
         return templates.TemplateResponse("powerbi.html", {
             "request": req,
             "user_session": user_session,
             "licencia_bi": result[0],
             "contraseña_licencia": result[1],
-            "error_message": None  # No hay error
+            "available_reports": available_reports,
+            "error_message": None
         })
     else:
-        # Si no se encuentra la licencia, mostrar el mensaje de error en la plantilla
         return templates.TemplateResponse("powerbi.html", {
             "request": req,
             "user_session": user_session,
             "licencia_bi": None,
             "contraseña_licencia": None,
-            "error_message": "No se encontraron licencias para el usuario."  # Pasar el mensaje de error
+            "error_message": "No se encontraron licencias para el usuario."
         })
 
 @app.post("/cargar_licencias")
@@ -788,7 +839,7 @@ async def cargar_licencias(file: UploadFile = File(...)):
     except Exception as e:
         return {"error": str(e)}
 
-############### SECCIÓN CONTENEDORES BLOB STORAGE #################
+############### SECCIÓN ROLES DE CONTENEDORES BLOB STORAGE #################
 # Instancia de la clase Cargue_Roles_Blob_Storage
 storage_db = Cargue_Roles_Blob_Storage()
 
@@ -905,9 +956,170 @@ async def eliminar_role_storage(role_storage_id: int):
     except Exception as e:
         return RedirectResponse(url=f"/roles_storage?error=Ocurrió un error al intentar eliminar el rol: {str(e)}", status_code=303)
 
-################## SECCIÓN JURIDICO ####################
-@app.get("/juridico", response_class=HTMLResponse)
-def registrarse(req: Request, user_session: dict = Depends(get_user_session)):
+################## TRANSFERENCIA DE DATOS EN BLOB STORAGE ####################
+# Configuración de CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+router = APIRouter()
+app.include_router(router)
+
+@app.get("/containers", response_class=HTMLResponse)
+def get_containers(req: Request, user_session: dict = Depends(get_user_session)):
     if not user_session:
         return RedirectResponse(url="/", status_code=302)
-    return templates.TemplateResponse("juridico.html", {"request": req, "user_session": user_session})
+
+    context = {"request": req,"user_session": user_session}
+    return templates.TemplateResponse("containers.html", context)
+
+################## SECCIÓN JURIDICO ####################
+# Plantilla de cargue de planta activa y controles
+@app.get("/plantilla_cargue_juridico")
+async def descargar_plantilla_juridico():
+    file_path = "./cargues/parametros_clausulas.xlsx"
+    return FileResponse(path=file_path, filename="parametros_clausulas.xlsx", media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.get("/juridico", response_class=HTMLResponse)
+def control_clausulas(req: Request, user_session: dict = Depends(get_user_session)):
+    if not user_session:
+        return RedirectResponse(url="/", status_code=302)
+    
+    # Obteniendo los datos desde la base de datos
+    gestion = GestionClausulas()
+    clausulas = gestion.obtener_clausulas()
+    etapas = gestion.obtener_opciones_etapas()
+    clausulas_lista = gestion.obtener_opciones_clausulas()
+    concesiones = gestion.obtener_opciones_concesion()
+    contratos = gestion.obtener_opciones_contrato()
+    tipos_clausula = gestion.obtener_opciones_tipo_clausula()
+    procesos = gestion.obtener_opciones_procesos()
+    frecuencias = gestion.obtener_opciones_frecuencias()
+    responsables = gestion.obtener_opciones_responsables()
+    gestion.close()
+
+    return templates.TemplateResponse("juridico.html", {
+        "request": req, 
+        "user_session": user_session,
+        "clausulas": clausulas,
+        "etapas": etapas,
+        "clausulas_lista": clausulas_lista,
+        "concesiones": concesiones,
+        "contratos": contratos,
+        "tipos_clausula": tipos_clausula,
+        "procesos": procesos,
+        "frecuencias": frecuencias,
+        "responsables": responsables
+    })
+    
+@app.get("/obtener_subprocesos/{proceso}", response_class=JSONResponse)
+def obtener_subprocesos(proceso: str):
+    gestion = GestionClausulas()
+    subprocesos = gestion.obtener_opciones_subprocesos(proceso)
+    gestion.close()
+    return subprocesos
+      
+@app.get("/filtrar_clausulas", response_class=HTMLResponse)
+def filtrar_clausulas(req: Request, control: str = None, etapa: str = None, clausula: str = None, concesion: str = None, buscar: str = None, user_session: dict = Depends(get_user_session)):
+    gestion = GestionClausulas()
+    
+    # Mapear concesión a contrato antes de aplicar el filtro
+    contrato = None
+    if concesion and concesion != "Seleccionar...":
+        # Obtener el contrato basado en la concesión seleccionada
+        contrato = gestion.obtener_contrato_por_concesion(concesion)
+    
+    clausulas_filtradas = gestion.obtener_clausulas_filtradas(
+        control if control != "Seleccionar..." else None,
+        etapa if etapa != "Seleccionar..." else None, 
+        clausula if clausula != "Seleccionar..." else None, 
+        contrato,
+        buscar if buscar != "" else None
+    )
+    gestion.close()
+
+    return templates.TemplateResponse("juridico.html", {
+        "request": req, 
+        "clausulas": clausulas_filtradas,
+        "user_session": user_session
+    })
+
+@app.get("/obtener_id_proceso")
+async def obtener_id_proceso(proceso: str, subproceso: str):
+    try:
+        gestion_clausulas = GestionClausulas()
+        id_proceso = gestion_clausulas.obtener_id_proceso(proceso, subproceso)
+        return JSONResponse(content={"success": True, "id_proceso": id_proceso})
+    except Exception as e:
+        return JSONResponse(content={"success": False, "message": str(e)}, status_code=400)
+
+@app.post("/clausulas/nueva")
+async def crear_clausula(req: Request, control: str = Form(...), etapa: str = Form(...), 
+                         clausula: str = Form(...), modificaciones: str = Form(None), 
+                         contrato: str = Form(...), tema: str = Form(...), subtema: str = Form(...), 
+                         descripcion: str = Form(...), tipo: str = Form(...), norma: str = Form(None), 
+                         consecuencia: str = Form(None), frecuencia: str = Form(...), 
+                         periodo_control: str = Form(...), inicio_cumplimiento: str = Form(...), 
+                         fin_cumplimiento: str = Form(...), observacion: str = Form(None), 
+                         procesos_subprocesos: str = Form(...), 
+                         responsable_entrega: str = Form(...), ruta_soporte: str = Form(None)):
+    try:
+        # Validar que todos los campos requeridos están presentes y no vacíos
+        campos_faltantes = []
+        for campo, valor in locals().items():
+            if valor == "":
+                campos_faltantes.append(campo)
+        
+        if campos_faltantes:
+            raise ValueError(f"Faltan los siguientes campos: {', '.join(campos_faltantes)}")
+
+        # Si no faltan campos, procedemos con la creación de la cláusula
+        nueva_clausula = {
+            "control": control,
+            "etapa": etapa,
+            "clausula": clausula,
+            "modificacion": modificaciones,
+            "contrato": contrato,
+            "tema": tema,
+            "subtema": subtema,
+            "descripcion": descripcion,
+            "tipo": tipo,
+            "norma": norma,
+            "consecuencia": consecuencia,
+            "frecuencia": frecuencia,
+            "periodo_control": periodo_control,
+            "inicio_cumplimiento": inicio_cumplimiento,
+            "fin_cumplimiento": fin_cumplimiento,
+            "observacion": observacion,
+            "responsable_entrega": responsable_entrega,
+            "ruta_soporte": ruta_soporte
+        }
+
+        # Insertar la nueva cláusula en la base de datos usando GestionClausulas
+        gestion_clausulas = GestionClausulas()
+        clausula_id = gestion_clausulas.crear_clausula(nueva_clausula)
+
+        # Procesar los procesos_subprocesos (recibidos como un JSON en el frontend)
+        procesos_subprocesos = json.loads(procesos_subprocesos)  # Convertir de JSON a lista
+
+        # Recorrer y guardar cada combinación de proceso/subproceso en la tabla auxiliar
+        for ps in procesos_subprocesos:
+            proceso = ps['proceso']  # Obtener el nombre del proceso
+            subproceso = ps['subproceso']  # Obtener el nombre del subproceso
+            
+            # Obtener el id_proceso basado en proceso/subproceso desde la tabla de procesos
+            id_proceso = gestion_clausulas.obtener_id_proceso(proceso, subproceso)  # Ya tienes esta función en gestion_clausulas.py
+            
+            # Insertar en la tabla auxiliar clausula_proceso_subproceso
+            gestion_clausulas.registrar_clausula_proceso_subproceso(clausula_id, id_proceso)
+
+        # Responder con un mensaje de éxito en formato JSON
+        return JSONResponse(content={"success": True, "message": "Cláusula creada exitosamente"})
+    
+    except Exception as e:
+        # Responder con un mensaje de error en formato JSON
+        return JSONResponse(content={"success": False, "message": f"Error al crear la cláusula: {str(e)}"}, status_code=400)

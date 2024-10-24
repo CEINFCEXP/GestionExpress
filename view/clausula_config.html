@@ -1,0 +1,434 @@
+{% block content %}
+
+<!-- clausula_config.html -->
+<div class="mb-3" style="background-color: #d3d4e2; padding: 15px; border-radius: 5px;">
+    <div class="row" style="margin-bottom: 2px;">
+        <!-- ID Clausula - Control -->
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="{{ modal }}_id_clausula">ID Clausula</label>
+            <input type="text" id="{{ modal }}_id_clausula" name="id_clausula" class="form-control" style="font-size: 14px; height: 35px;" readonly>
+        </div>
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="control">Control</label>
+            <select id="control" name="control" class="form-select" style="font-size: 14px; height: 35px;" required>
+                <option value="" selected>Seleccionar...</option>
+                <option value="CONTRATO">CONTRATO</option>
+                <option value="MANUAL">MANUAL</option>    
+            </select>
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 2px;">
+        <!-- Cláusula y Etapa -->
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="clausula">Cláusula</label>
+            <input type="text" id="clausula" name="clausula" class="form-control" style="font-size: 14px; height: 35px;" required>
+        </div>
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="etapa">Etapa</label>
+            <select id="etapa" name="etapa" class="form-select" style="font-size: 14px; height: 35px;" required>
+                <option value="" selected>Seleccionar...</option>
+                {% for etapa in etapas %}
+                <option value="{{ etapa[0] }}">{{ etapa[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 2px;">
+        <!-- Contrato y Tipo -->
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="contrato">Contrato</label>
+            <select id="contrato" name="contrato" class="form-select" style="font-size: 14px; height: 35px;" required>
+                <option value="" selected>Seleccionar...</option>
+                {% for contrato in contratos %}
+                <option value="{{ contrato[0] }}">{{ contrato[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="tipo">Tipo</label>
+            <select id="tipo" name="tipo" class="form-select" style="font-size: 14px; height: 35px;" required>
+                <option value="" selected>Seleccionar...</option>
+                {% for tipo in tipos_clausula %}
+                <option value="{{ tipo[0] }}">{{ tipo[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="row">
+        <!-- Tema y Subtema -->
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="tema">Tema</label>
+            <input type="text" id="tema" name="tema" class="form-control" style="font-size: 14px; height: 35px;" required oninput="this.value = this.value.toUpperCase()">
+        </div>
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="subtema">Subtema</label>
+            <input type="text" id="subtema" name="subtema" class="form-control" style="font-size: 14px; height: 35px;" required oninput="this.value = this.value.toUpperCase()">
+        </div>
+    </div>
+    <div class="row">
+        <!-- Descripción y Modificaciones -->
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="descripcion">Descripción de la Cláusula</label>
+            <textarea id="descripcion" name="descripcion" class="form-control" required></textarea>
+        </div>
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="modificaciones">Modificaciones</label>
+            <textarea id="modificaciones" name="modificaciones" class="form-control"></textarea>
+        </div>
+    </div>
+    <div class="row">
+        <!-- Norma Relacionada y Consecuencias -->
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="norma_relacionada">Norma Relacionada</label>
+            <textarea id="norma_relacionada" name="norma" class="form-control"></textarea>
+        </div>
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="consecuencias">Consecuencias Incumplimiento</label>
+            <textarea id="consecuencias" name="consecuencia" class="form-control"></textarea>
+        </div>
+    </div>
+    <!-- Proceso Responsable y Subproceso Responsable -->
+    <div class="row">
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="{{ modal }}_proceso_responsable">Proceso Responsable</label>
+            <div class="input-group">
+                <select id="{{ modal }}_proceso_responsable" name="proceso" class="form-select" style="font-size: 14px; height: 35px;" required onchange="actualizarSubprocesos('{{ modal }}', this.value)">
+                    <option value="" selected>Seleccionar...</option>
+                    {% for proceso in procesos %}
+                    <option value="{{ proceso[0] }}">{{ proceso[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="{{ modal }}_subproceso_responsable">Subproceso Responsable</label>
+            <div class="input-group">
+                <select id="{{ modal }}_subproceso_responsable" name="subproceso" class="form-select" style="font-size: 14px; height: 35px;" required>
+                    <option value="" selected>Seleccionar...</option>
+                    <!-- Subprocesos cargados dinámicamente -->
+                </select>
+            </div>
+        </div>
+        <div class="col-md-12" style="padding-bottom: 5px; text-align: right;">
+            <!-- Botón para agregar el proceso y subproceso al contenedor -->
+            <button type="button" class="btn btn-primary" style="font-size: 12px; height: 25px; width: 70px; text-align: center; line-height: 05px;" onclick="agregarProcesoSubproceso('{{ modal }}')">Agregar</button>
+        </div>
+    </div>
+    <!-- Título que será visible cuando se agreguen procesos responsables -->
+    <h5 id="{{ modal }}_titulo_procesos_responsables" style="font-size: 12px; display: none; margin-top: 2px;">Procesos Responsables Agregados</h5>
+    <!-- Contenedor donde se agregarán los procesos y subprocesos seleccionados -->
+    <div id="{{ modal }}_contenedor_procesos_subprocesos" style="margin-top: 10px;"></div>
+    
+    <div class="row">
+        <!-- Campo Frecuencia Acreditación -->
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="{{ modal }}_frecuencia_acreditacion">Frecuencia Acreditación</label>
+            <select id="{{ modal }}_frecuencia_acreditacion" name="frecuencia" class="form-select" style="font-size: 14px; height: 35px;" required onchange="actualizarPeriodoControl('{{ modal }}')">
+                <option value="" selected>Seleccionar...</option>
+                {% for frecuencia in frecuencias %}
+                <option value="{{ frecuencia[0] }}">{{ frecuencia[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Campo Periodo Control Max -->
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="{{ modal }}_periodo_control">Periodo Control Max.</label>
+            <div id="{{ modal }}_periodo_control_container">
+                <input type="text" id="{{ modal }}_periodo_control" name="periodo_control" class="form-control" placeholder="Seleccionar periodo" readonly required>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <!-- Inicio Cumplimiento y Fin Cumplimiento -->
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="inicio_cumplimiento">Inicio Cumplimiento</label>
+            <input type="date" id="inicio_cumplimiento" name="inicio_cumplimiento" class="form-control" style="font-size: 14px; height: 35px;" required>
+        </div>
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="fin_cumplimiento">Fin Cumplimiento</label>
+            <input type="date" id="fin_cumplimiento" name="fin_cumplimiento" class="form-control" style="font-size: 14px; height: 35px;" required>
+        </div>
+    </div>
+    <div class="row">
+        <!-- Responsable de la Entrega y Ruta de Soportes -->
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="responsable_entrega">Responsable de la Entrega</label>
+            <select id="responsable_entrega" name="responsable_entrega" class="form-select" style="font-size: 14px; height: 35px;" required>
+                <option value="" selected>Seleccionar...</option>
+                {% for responsable in responsables %}
+                <option value="{{ responsable[0] }}">{{ responsable[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6" style="padding-bottom: 5px;">
+            <label for="ruta_soportes">Ruta de Soportes</label>
+            <input type="text" id="ruta_soportes" name="ruta_soporte" class="form-control">
+        </div>
+    </div>
+    <!-- Observaciones de la Cláusula -->
+    <div class="mb-3">
+        <label for="observaciones_clausula">Observaciones de la Cláusula</label>
+        <textarea id="observaciones_clausula" name="observacion" class="form-control"></textarea>
+    </div>
+</div>
+
+<!-- PERMITE SELECCIONAR SUBPROCESO A PARTIR DEL PROCESO SELECCIONADO -->
+<script>
+    function actualizarSubprocesos(modal, proceso) {
+        const subprocesoSelect = document.getElementById(`${modal}_subproceso_responsable`);
+        
+        // Limpiar las opciones de subprocesos
+        subprocesoSelect.innerHTML = '<option selected>Seleccionar...</option>';
+
+        if (!proceso) {
+            return; // Si no se selecciona un proceso, no hace nada
+        }
+
+        // Hacer una petición para obtener los subprocesos
+        fetch(`/obtener_subprocesos/${proceso}`)
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(subproceso => {
+                    const option = document.createElement('option');
+                    option.value = subproceso[0];
+                    option.textContent = subproceso[0];
+                    subprocesoSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error al cargar subprocesos:', error));
+    }
+</script>
+
+<!-- FUNCIONALIDAD PARA AGREGAR Y ELIMINAR procesos/subprocesos -->
+<script>
+    // Objeto para manejar los sets de procesos/subprocesos agregados por modal
+    const procesosSubprocesosAgregados = {};
+
+    function actualizarSubprocesos(modal, proceso) {
+        const subprocesoSelect = document.getElementById(`${modal}_subproceso_responsable`);
+        
+        // Limpiar las opciones de subprocesos
+        subprocesoSelect.innerHTML = '<option selected>Seleccionar...</option>';
+
+        if (!proceso) {
+            return; // Si no se selecciona un proceso, no hace nada
+        }
+
+        // Hacer una petición para obtener los subprocesos
+        fetch(`/obtener_subprocesos/${proceso}`)
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(subproceso => {
+                    const option = document.createElement('option');
+                    option.value = subproceso[0];
+                    option.textContent = subproceso[0];
+                    subprocesoSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error al cargar subprocesos:', error));
+    }
+
+    function agregarProcesoSubproceso(modal) {
+        const procesoSelect = document.getElementById(`${modal}_proceso_responsable`);
+        const subprocesoSelect = document.getElementById(`${modal}_subproceso_responsable`);
+    
+        const proceso = procesoSelect.options[procesoSelect.selectedIndex].text;  // Obtenemos el nombre del proceso
+        const subproceso = subprocesoSelect.options[subprocesoSelect.selectedIndex].text;  // Nombre del subproceso (texto visible)
+    
+        if (proceso === 'Seleccionar...' || subproceso === 'Seleccionar...') {
+            alert('Por favor, seleccione un proceso y un subproceso.');
+            return;
+        }
+
+        // Hacer una petición al backend para obtener el id_proceso basado en el proceso y subproceso
+        fetch(`/obtener_id_proceso?proceso=${encodeURIComponent(proceso)}&subproceso=${encodeURIComponent(subproceso)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const idProceso = data.id_proceso;  // Obtenemos el id_proceso retornado
+                    const claveUnica = `${idProceso}-${subproceso}`;  // Clave única para evitar duplicados
+    
+                    // Inicializa el set si no existe para este modal
+                    if (!procesosSubprocesosAgregados[modal]) {
+                        procesosSubprocesosAgregados[modal] = new Set();
+                    }
+    
+                    if (procesosSubprocesosAgregados[modal].has(claveUnica)) {
+                        alert('Ya ha agregado este proceso y subproceso.');
+                        return;
+                    }
+    
+                    // Mostrar el título cuando se agregue el primer proceso/subproceso
+                    const titulo = document.getElementById(`${modal}_titulo_procesos_responsables`);
+                    titulo.style.display = 'block'; // Mostrar el título
+    
+                    // Agregar la combinación al set para evitar repeticiones
+                    procesosSubprocesosAgregados[modal].add(claveUnica);
+    
+                    // Crear el elemento en el contenedor
+                    const contenedor = document.getElementById(`${modal}_contenedor_procesos_subprocesos`);
+                    const div = document.createElement('div');
+                    div.classList.add('row');
+                    div.style.marginBottom = '0';
+                    div.innerHTML = `
+                        <div class="row g-0">
+                            <div class="col-md-2">
+                                <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${idProceso}" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${proceso}" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${subproceso}" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-danger" style="font-size: 12px; height: 25px; width: 75px; text-align: center; line-height: 05px;" onclick="eliminarProcesoSubproceso(this, '${claveUnica}', '${modal}')">Eliminar</button>
+                            </div>
+                        </div>
+                    `;
+                    contenedor.appendChild(div);
+                } else {
+                    alert('Error al obtener el id_proceso: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error al obtener id_proceso:', error));
+    }  
+    
+    function eliminarProcesoSubproceso(boton, claveUnica, modal) {
+        // Eliminar del set de procesos y subprocesos agregados para este modal
+        procesosSubprocesosAgregados[modal].delete(claveUnica);
+
+        // Eliminar el elemento del DOM
+        const row = boton.parentElement.parentElement;
+        row.remove();
+
+        // Ocultar el título si ya no hay procesos en el contenedor
+        const contenedor = document.getElementById(`${modal}_contenedor_procesos_subprocesos`);
+        if (contenedor.children.length === 0) {
+            const titulo = document.getElementById(`${modal}_titulo_procesos_responsables`);
+            titulo.style.display = 'none'; // Ocultar el título
+        }      
+    }
+
+    // Manejo del envío del formulario para crear cláusulas
+    document.getElementById('form_crear_clausula').addEventListener('submit', async function (e) {
+        e.preventDefault(); 
+
+        const formData = new FormData(this);
+        
+        // Convertir procesosSubprocesosAgregados a JSON y añadir al formData
+        const procesosSubprocesos = Array.from(procesosSubprocesosAgregados['modalCrearClausula'] || []);
+        formData.append("procesos_subprocesos", JSON.stringify(procesosSubprocesos));
+
+        try {
+            const response = await fetch('/clausulas/nueva', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error en la respuesta del servidor: ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                // Ocultar el modal al éxito
+                const modalElement = document.getElementById('modalCrearClausula');
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
+                alert("Cláusula creada exitosamente");
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            alert('Ocurrió un error inesperado: ' + error.message);
+        }
+    });
+</script>
+
+<!-- VALIDA QUE LA FECHA FIN NO SEA INFERIOR A LA FECHA INICIO -->
+<script>
+    document.getElementById('fin_cumplimiento').addEventListener('input', function () {
+        const fechaInicio = document.getElementById('inicio_cumplimiento').value;
+        const fechaFin = document.getElementById('fin_cumplimiento').value;
+        
+        if (new Date(fechaFin) < new Date(fechaInicio)) {
+            this.setCustomValidity('La fecha de fin debe ser igual o posterior a la fecha de inicio.');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+</script>
+
+<!-- ACTUALIZACIÓN DE PERIODO_CONTROL SEGUN LA FRECUENCIA -->
+<script>
+    function actualizarPeriodoControl(modal) {
+        const frecuencia = document.getElementById(`${modal}_frecuencia_acreditacion`).value;
+        const periodoControlContainer = document.getElementById(`${modal}_periodo_control_container`);
+        
+        // Limpiar el contenido actual
+        periodoControlContainer.innerHTML = '';
+    
+        if (frecuencia === 'ÚNICA VEZ') {
+            // Permitir seleccionar una fecha fija
+            periodoControlContainer.innerHTML = '<input type="date" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" required>';
+        } else if (frecuencia === 'DIARIO') {
+            // Automáticamente establecer "DIARIO" como el valor
+            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="DIARIO" readonly required>';
+        } else if (frecuencia === 'QUINCENAL') {
+            // Seleccionar el día de la semana
+            periodoControlContainer.innerHTML = `
+                <select id="${modal}_periodo_control" name="periodo_control" class="form-select" required>
+                    <option value="LUNES">Lunes</option>
+                    <option value="MARTES">Martes</option>
+                    <option value="MIERCOLES">Miércoles</option>
+                    <option value="JUEVES">Jueves</option>
+                    <option value="VIERNES">Viernes</option>
+                    <option value="SABADO">Sábado</option>
+                    <option value="DOMINGO">Domingo</option>
+                </select>
+            `;
+        } else if (['MENSUAL', 'BIMESTRAL', 'TRIMESTRAL', 'SEMESTRAL'].includes(frecuencia)) {
+            // Seleccionar el día del mes
+            periodoControlContainer.innerHTML = '<input type="number" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" placeholder="Día del mes" min="1" max="31" required>';
+        } else if (frecuencia === 'ANUAL') {
+            // Seleccionar día y mes
+            periodoControlContainer.innerHTML = `
+                <input type="number" id="${modal}_periodo_control_dia" name="periodo_control_dia" class="form-control" placeholder="Día" min="1" max="31" style="width: 49%; display: inline-block;" required>
+                <input type="number" id="${modal}_periodo_control_mes" name="periodo_control_mes" class="form-control" placeholder="Mes" min="1" max="12" style="width: 49%; display: inline-block;" required>
+            `;
+        } else if (frecuencia === 'NO APLICA') {
+            // Automáticamente establecer "NO APLICA" como el valor
+            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="NO APLICA" readonly required>';
+        }
+    }    
+    // Al enviar el formulario, combinar día y mes si la frecuencia es ANUAL
+    document.getElementById('form_crear_clausula').addEventListener('submit', function (e) {
+        const frecuencia = document.getElementById('{{ modal }}_frecuencia_acreditacion').value;
+
+        if (frecuencia === 'ANUAL') {
+            const dia = document.getElementById('{{ modal }}_periodo_control_dia').value;
+            const mes = document.getElementById('{{ modal }}_periodo_control_mes').value;
+
+            if (dia && mes) {
+                // Combinar el día y mes en el formato "DD-MM"
+                const periodoControl = `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}`;
+                
+                // Establecer el valor combinado en un campo oculto
+                let hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'periodo_control';
+                hiddenInput.value = periodoControl;
+                this.appendChild(hiddenInput);
+            } else {
+                e.preventDefault();  // Evitar el envío del formulario si falta el día o mes
+                alert('Por favor, seleccione tanto el día como el mes.');
+            }
+        }
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,211 @@
+{% extends "components/layout.html" %}
+
+{% block title %}Azure Blob Storage{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .container {
+            margin-top: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .drop-zone {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background-color: #f8f9fa;
+            transition: background-color 0.3s, border-color 0.3s;
+            cursor: pointer;
+        }
+
+        .drop-zone.dragover {
+            background-color: #e9ecef;
+            border-color: #007bff;
+        }
+
+        .drop-zone i {
+            font-size: 50px;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone p {
+            font-size: 16px;
+            margin: 0;
+            color: #333;
+        }
+
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            background-color: #f1f1f1;
+            margin-top: 10px;
+        }
+
+        .progress-bar-fill {
+            width: 0;
+            height: 20px;
+            background-color: #007bff;
+            text-align: center;
+            color: white;
+            line-height: 20px;
+            transition: width 0.4s;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div id="app" class="container">
+    <h1 class="col-auto" style="font-size: 24px; font-family: 'Century Gothic', sans-serif;">Administrador de Azure Blob Storage</h1>
+
+    <div class="row">
+        <!-- Sección de Contenedores -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Contenedores</h2>
+                </div>
+                <div class="card-body">
+                    <input type="text" id="containerFilter" class="filter-input" placeholder="Filtrar contenedores">
+                    <ul id="containerList" class="list-group mb-3"></ul>
+                    <div class="new-container">
+                        <input type="text" id="newContainerName" class="form-control mb-2" placeholder="Nombre del nuevo contenedor">
+                        <button id="createContainerBtn" class="btn btn-primary">Crear Contenedor</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Archivos -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h2 class="h5 mb-0">Administrador de Archivos</h2>
+                </div>
+                <div class="card-body">
+                    <input type="text" id="fileFilter" class="filter-input" placeholder="Filtrar archivos">
+                    <h3 id="currentContainer" class="h6 mt-3">Archivos en <span></span></h3>
+                    <ul id="fileList" class="list-group mb-3"></ul>
+                    <!-- Drop Zone Mejorado -->
+                    <div id="dropZone" class="drop-zone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Arrastra y suelta aquí, o <strong>haz clic para seleccionar</strong></p>
+                        <input type="file" id="fileUpload" multiple class="form-control" style="display: none;">
+                    </div>
+                    <ul id="selectedFilesList" class="list-group mt-3"></ul>
+                    <button id="uploadFilesBtn" class="btn btn-success mt-2" style="display: none;">Subir archivos</button>
+                    <div id="uploadProgress" class="progress-bar mt-2" style="display: none;">
+                        <div class="progress-bar-fill"></div>
+                    </div>
+                    <div id="downloadProgress" class="progress-bar mt-2" style="display: none;">
+                        <div class="progress-bar-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const containerFilter = document.getElementById('containerFilter');
+        const containerList = document.getElementById('containerList');
+        const fileFilter = document.getElementById('fileFilter');
+        const fileList = document.getElementById('fileList');
+        const dropZone = document.getElementById('dropZone');
+        const fileUpload = document.getElementById('fileUpload');
+
+        function filterItems(filterElement, listElement) {
+            const filterText = filterElement.value.toLowerCase();
+            const items = listElement.getElementsByTagName('li');
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(filterText) ? '' : 'none';
+            }
+        }
+
+        containerFilter?.addEventListener('input', () => filterItems(containerFilter, containerList));
+        fileFilter?.addEventListener('input', () => filterItems(fileFilter, fileList));
+
+        // Manejador de arrastrar y soltar
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            fileUpload.files = e.dataTransfer.files;
+            fileUpload.dispatchEvent(new Event('change'));
+        });
+
+        dropZone.addEventListener('click', () => fileUpload.click());
+
+        fileUpload.addEventListener('change', () => {
+            const selectedFilesList = document.getElementById('selectedFilesList');
+            selectedFilesList.innerHTML = '';
+            for (const file of fileUpload.files) {
+                const li = document.createElement('li');
+                li.textContent = file.name;
+                li.classList.add('list-group-item');
+                selectedFilesList.appendChild(li);
+            }
+            document.getElementById('uploadFilesBtn').style.display = fileUpload.files.length > 0 ? 'block' : 'none';
+        });
+
+        // Función para cargar contenedores (simulada por ahora)
+        function loadContainers() {
+            const containers = [
+                '001-cexp-transversal',
+                '011-apoyo-operaciones',
+                '1011-fiducia-centro-de-informacion',
+                '10110-seguimiento-a-flota-centro-de-informacion',
+                '10111-modelo-ascensos-centro-de-informacion'
+            ];
+
+            containers.forEach(container => {
+                const li = document.createElement('li');
+                li.classList.add('list-group-item');
+                li.textContent = container;
+                containerList?.appendChild(li);
+            });
+        }
+
+        // Cargar contenedores al iniciar
+        loadContainers();
+    });
+</script>
+{% endblock %}

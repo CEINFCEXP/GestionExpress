@@ -7,50 +7,61 @@
 
     {% if not error_message %}
     <!-- Iframe que muestra Power BI -->
-    <div style="flex: 3; height: 100%; border-right: 1px solid #ddd; padding-right: 10px;">
-        <iframe id="powerbiFrame" src="https://app.powerbi.com/groups/me/apps?experience=power-bi"
+    <div style="flex: 1; height: 100%;">
+        <iframe id="powerbiFrame" src="https://app.powerbi.com/?experience=power-bi"
             style="width: 100%; height: 100%; border: none;"></iframe>
     </div>
     {% endif %}
 
-    <!-- Sección a la derecha con el ícono, las credenciales y el botón -->
-    <div style="flex: 1; padding: 20px; background-color: #f8f9fa;">
-        <div style="text-align: center;">
-            <img src="/static/images/powerbi.png" alt="Power BI Logo" style="width: 70px; margin-bottom: 10px; border-radius: 50%; border: 2px solid #b69606;">
-        </div>
-        <div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-            <h5 style="text-align: center; margin-bottom: 20px; font-weight: bold;">Acceso a Power BI</h5>
+    <!-- Botón que abre el modal -->
+    <div style="position: absolute; bottom: 20px; right: 20px;">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#credencialesModal">
+            <img src="/static/images/powerbi.png" alt="Power BI Logo" style="width: 30px; margin-right: 10px;">
+            PowerBI
+        </button>
+    </div>
 
-            <!-- Si hay un mensaje de error, mostrarlo -->
-            {% if error_message %}
-            <div class="alert alert-danger" role="alert">
-                {{ error_message }}
-            </div>
-            {% else %}
+    <!-- Modal -->
+    <div class="modal fade" id="credencialesModal" tabindex="-1" aria-labelledby="credencialesModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="credencialesModalLabel">Credenciales de Power BI</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <h5 style="text-align: center; margin-bottom: 20px; font-weight: bold;">Acceso a Power BI</h5>
+                    
+                    {% if error_message %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error_message }}
+                    </div>
+                    {% else %}
+                    
+                    <p style="text-align: justify;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}! Debido a restricciones de seguridad, no es posible mostrar Power BI directamente en la página. Puedes abrir Power BI en una nueva pestaña en <strong>Modo Incógnito</strong> y copiar las credenciales proporcionadas a continuación.</p>
+                    
+                    <!-- Mostrar credenciales de Power BI -->
+                    <div class="mb-3">
+                        <label for="licencia_bi" class="form-label"><strong>Licencia (Correo)</strong></label>
+                        <input type="text" class="form-control" id="licencia_bi" value="{{ licencia_bi }}" readonly style="background-color: #e9ecef;">
+                    </div>
+                    <div class="mb-3">
+                        <label for="contraseña_licencia" class="form-label"><strong>Contraseña</strong></label>
+                        <input type="text" class="form-control" id="contraseña_licencia" value="{{ contraseña_licencia }}" readonly style="background-color: #e9ecef;">
+                    </div>
+                    <a href="https://app.powerbi.com/groups/me/apps?experience=power-bi" target="_blank" class="btn btn-primary w-100">Abrir Power BI en Nueva Pestaña</a>
 
-            <p style="text-align: justify;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}! Debido a restricciones de seguridad, no es posible mostrar Power BI directamente en la página. Puedes abrir Power BI en una nueva pestaña en<strong> Modo Incógnito</strong> y copiar las credenciales proporcionadas a continuación.</p>
-            
-            <!-- Mostrar credenciales de Power BI -->
-            <div class="mb-3">
-                <label for="licencia_bi" class="form-label"><strong>Licencia (Correo)</strong></label>
-                <input type="text" class="form-control" id="licencia_bi" value="{{ licencia_bi }}" readonly style="background-color: #e9ecef;">
+                    {% endif %}
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="contraseña_licencia" class="form-label"><strong>Contraseña</strong></label>
-                <input type="text" class="form-control" id="contraseña_licencia" value="{{ contraseña_licencia }}" readonly style="background-color: #e9ecef;">
-            </div>
-            <a href="https://app.powerbi.com/groups/me/apps?experience=power-bi" target="_blank" class="btn btn-primary w-100">Abrir Power BI en Nueva Pestaña</a>
-            {% endif %}
         </div>
     </div>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const licencia = "{{ licencia_bi }}";
-        const password = "{{ contraseña_licencia }}";
-    });
-</script>
+<!-- Scripts de Bootstrap para el modal -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
 {% endblock %}

@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 import psycopg2
 from psycopg2 import OperationalError
 from threading import Lock
@@ -5,10 +6,12 @@ from datetime import datetime, time
 from bs4 import BeautifulSoup
 import pandas as pd
 import pytz
-from fastapi import HTTPException
+from dotenv import load_dotenv
+import os
 
-# Base de Datos POSTGRESQL en Azure (Cuenta: sergio.hincapie@ucentral.edu.co)
-DATABASE_PATH = "postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress" 
+# Cargar las variables de entorno desde .env
+load_dotenv()
+DATABASE_PATH = os.getenv("DATABASE_PATH") # Base de Datos POSTGRESQL en Azure (Cuenta: sergio.hincapie@ucentral.edu.co)
 # Establecer la zona horaria de Colombia
 colombia_tz = pytz.timezone('America/Bogota')
 
@@ -205,7 +208,6 @@ class HandleDB:
                 self._con.rollback()  # Hacer rollback si hay un error
                 raise e  # Lanzar el error
 
-    # Conexiones Licencias Power BI
     def fetch_all(self, query, params=None):
         with self._lock:
             self._check_connection()
@@ -225,7 +227,7 @@ class HandleDB:
 
 class Cargue_Controles:
     def __init__(self):
-        self.database_path = "postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress"
+        self.database_path = os.getenv("DATABASE_PATH")
         self.conn = psycopg2.connect(self.database_path)
         self.cursor = self.conn.cursor()
         

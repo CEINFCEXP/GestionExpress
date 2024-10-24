@@ -1,8 +1,6 @@
 {% extends "components/layout.html" %}
 
-{% block title %}
-    Seguimiento a Obligaciones Contractuales
-{% endblock %}
+{% block title %} Seguimiento a Obligaciones Contractuales {% endblock %}
 
 {% block head %}
     <!-- Incluyendo los estilos de Bootstrap y Font Awesome -->
@@ -12,124 +10,430 @@
 {% endblock %}
 
 {% block content %}
+
+<!-- Mensaje global de éxito/error en la página principal -->
+<div id="global_message" class="alert" role="alert" style="display: none;"></div>
+
 <!-- Titulo y Botones Iniciales -->
-<div class="container-fluid mt-auto mb-auto">
-    <div class="row justify-content-between align-items-center mb-4">
-        <h1 class="col-auto" style="font-size: 24px; font-family: 'Century Gothic', sans-serif;">Seguimientos Contractuales</h1>
-        <h1 class="col-auto" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!</h1>        
-        <img src="/static/Consorcio.png" alt="Consorcio Icon" class="col-auto" style="max-width: 100px; height: auto;">
+<div class="container-fluid mt-auto mb-auto"> <!-- margenes de toda la pagina -->
+    <div class="row justify-content-between align-items-center">
+        <h1 class="col-auto" style="font-size: 24px; font-family: 'Century Gothic', sans-serif;">Control de Cláusulas de Contrato y Manual</h1>
+        <h1 class="col-auto" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!</h1>
+        <!-- Botón para abrir ventana flotante -->
+        <div class="col-auto">
+            <a href="{{ url_for('descargar_plantilla_juridico') }}" class="btn btn-dark">Plantilla de Cargue</a>
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click();">Cargue Parametros</button>
+            <input type="file" id="fileInput" style="display: none;" onchange="cargarArchivo(this.files[0])">
+            <img src="/static/Consorcio.png" alt="Consorcio Icon" style="max-width: 100px; height: auto;">
+        </div>
     </div>
 
-    <!-- Filtros de Año, Cláusula y Estado -->
+    <!-- Filtros de Consulta -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <label for="anio" class="form-label">Año</label>
-            <select id="anio" class="form-select">
-                <option>2024</option>
-                <option>2025</option>
+        <div class="col-md-2">
+            <label for="control">Control</label>
+            <select id="control" class="form-select" style="font-size: 14px; height: 35px; padding: 5px 10px;">
+                <option selected>Seleccionar...</option>
+                <option value="CONTRATO">CONTRATO</option>
+                <option value="MANUAL">MANUAL</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="etapa">Etapa</label>
+            <select id="etapa" class="form-select" style="font-size: 14px; height: 35px; padding: 5px 10px;">
+                <option selected>Seleccionar...</option>
+                {% for etapa in etapas %}
+                    <option value="{{ etapa[0] }}">{{ etapa[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="clausula">Cláusula</label>
+            <select id="clausula" class="form-select" style="font-size: 14px; height: 35px; padding: 5px 10px;">
+                <option selected>Seleccionar...</option>
+                {% for clausula in clausulas_lista %}
+                    <option value="{{ clausula[0] }}">{{ clausula[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="concesion">Concesión</label>
+            <select id="concesion" class="form-select" style="font-size: 14px; height: 35px; padding: 5px 10px;">
+                <option selected>Seleccionar...</option>
+                {% for concesion in concesiones %}
+                    <option value="{{ concesion[0] }}">{{ concesion[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="estado">Estado</label>
+            <select id="estado" class="form-select" style="font-size: 14px; height: 35px; padding: 5px 10px;">
+                <option selected>Seleccionar...</option>
+                <!-- Opciones dinámicas -->
             </select>
         </div>
         <div class="col-md-3">
-            <label for="clausula" class="form-label">Cláusula</label>
-            <select id="clausula" class="form-select">
-                <option>Cláusula 1</option>
-                <option>Cláusula 2</option>
-            </select>
+            <label for="buscar">Buscar</label>
+            <input type="text" id="buscar" class="form-control" placeholder="Buscar en Tabla..." style="font-size: 14px; height: 35px; padding: 5px 10px;">
         </div>
-        <div class="col-md-3">
-            <label for="estado" class="form-label">Estado</label>
-            <select id="estado" class="form-select">
-                <option>En Proceso</option>
-                <option>Finalizado</option>
-            </select>
-        </div>
-        <div class="col-md-3 d-flex align-items-end">
-            <button class="btn btn-primary me-2">Consultar</button>
-            <button class="btn btn-secondary">Limpiar</button>
+        <!-- Botón Limpiar -->
+        <div class="col-md-1 d-flex align-items-end">
+            <button type="button" class="btn btn-secondary" id="limpiar" style="margin-left: 10px;">Limpiar</button>
         </div>
     </div>
 
-    <!-- Contenedor de la tabla Clausulas -->
-    <div class="row">
-        <div class="col-md-8">
-            <div class="table-container">
-                <table id="tablaClausulas" class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Cláusulas</th>
-                            <th>Ene</th>
-                            <th>Feb</th>
-                            <th>Mar</th>
-                            <th>Abr</th>
-                            <th>May</th>
-                            <th>Jun</th>
-                            <th>Jul</th>
-                            <th>Ago</th>
-                            <th>Sep</th>
-                            <th>Oct</th>
-                            <th>Nov</th>
-                            <th>Dic</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for i in range(1, 10) %} <!-- Se muestran filas de ejemplo -->
-                        <tr data-bs-toggle="modal" data-bs-target="#estadoModal">
-                            <td>Cláusula {{ i }}</td>
-                            <!-- Simular colores en cada mes de acuerdo a los estados de gestión -->
-                            {% for j in range(1, 13) %}
-                            <td>
-                                <div class="text-center">
-                                    {% if loop.index % 3 == 0 %}
-                                    <span class="badge bg-success">&nbsp;</span>
-                                    {% elif loop.index % 2 == 0 %}
-                                    <span class="badge bg-warning">&nbsp;</span>
-                                    {% else %}
-                                    <span class="badge bg-danger">&nbsp;</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <!-- Tabla Principal -->
+    <div class="table-wrapper" style="max-height: 600px; overflow-y: auto; border: 1px solid rgb(104, 103, 103);">
+        <table class="table table-bordered table-striped" style="font-size: 12px; width: 100%; margin-bottom: 0; border: 1px solid rgb(218, 212, 212);">
+            <thead class="table-responsive" style="background-color: #120b6e; color: #ffffff; position: sticky; top: 0; z-index: 100;">
+                <tr>
+                    <th style="width: 10px;">Ver</th>
+                    <th style="width: 15px;">Id</th>
+                    <th style="width: 20px;">Control</th>
+                    <th style="width: 25px;">Etapa</th>
+                    <th style="width: 15px;">Cláusula</th>
+                    <th style="width: 60px;">Contrato</th>
+                    <th style="width: 80px;">Tema</th>
+                    <th style="width: 250px;">Descripción</th>
+                    <th style="width: 20px;">Tipo de Cláusula</th>
+                    <th style="width: 50px;">Frecuencia</th>
+                    <th style="width: 50px;">Proceso Responsable</th>
+                    <th style="width: 50px;">SubProceso Responsable</th>
+                    <th style="width: 50px;">Estado de Cumplimiento</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Filas dinámicas aquí -->
+                {% for clausula in clausulas %}
+                <tr style="height: 70px;"> <!-- Definir el alto fijo -->
+                    <td>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalGestion" style="background-color: #ffffff; border-color: rgb(13, 15, 124);">
+                            <img src="/static/images/editar.png" alt="Editar" style="width: 20px; height: 20px;">
+                        </button>                                              
+                    </td>
+                    <td>{{ clausula.id }}</td>
+                    <td>{{ clausula.control }}</td>
+                    <td>{{ clausula.etapa }}</td>
+                    <td>{{ clausula.clausula }}</td>
+                    <td>{{ clausula.contrato_concesion }}</td>
+                    <td class="description-cell" 
+                        title="{{ clausula.tema }}" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top"
+                        style="max-height: 7.5em; overflow: hidden; text-overflow: ellipsis;  -webkit-box-orient: vertical;">
+                        {{ clausula.tema }}
+                    </td>
+                    <td class="description-cell" 
+                        title="{{ clausula.descripcion_clausula }}" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top"
+                        style="max-height: 11.5em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-box-orient: vertical;">
+                        {{ clausula.descripcion_clausula }}
+                    </td>
+                    <td>{{ clausula.tipo_clausula }}</td>
+                    <td>{{ clausula.frecuencia }}</td>
+                    <td>(-)</td>
+                    <td>(-)</td>
+                    <td>(-)</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-        <!-- Previsualización (Columna derecha) -->
-        <div class="col-md-4 bg-light p-3">
-            <h4>Previsualización</h4>
-            <p>Seleccione una celda en la tabla para ver los detalles de la cláusula y mes.</p>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-primary">Gestionar</button>
+
+    <style>
+        /* Cambiar color al pasar el cursor por encima de la fila */
+        tbody tr:hover {
+            background-color: #d2d5e6; /* Cambia este color según prefieras */
+        }
+    </style>    
+    
+    <!-- Botón para Crear Cláusula -->
+    <div class="d-flex justify-content-center align-items-center" style="margin-top: 20px;">
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCrearClausula">
+            Crear Cláusula
+        </button>
+    </div>
+
+    <!-- Modal para Crear Cláusula -->
+    <div class="modal fade" id="modalCrearClausula" tabindex="-1" aria-labelledby="modalCrearClausulaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog" style="max-width: 50%; height: 50%; max-height: 50;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalCrearClausulaLabel">Crear Nueva Cláusula</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Mensaje de error en caso de fallo (esto se mostrará si hay error) -->
+                    <div id="message" style="display: none;" class="alert" role="alert"></div>
+
+                    <!-- Formulario para crear cláusula -->
+                    <form id="form_crear_clausula" method="POST" action="/clausulas/nueva" onsubmit="return validarFormulario()">
+                        <input type="hidden" name="modal" value="crear">
+                        <!-- Trae Estandar de Clausula_Config-->
+                        {% set modal = 'crear' %}
+                        {% include 'clausula_config.html' %}
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary" style="font-size: 14px;">Crear Cláusula</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Modal de edición -->
-<div class="modal fade" id="estadoModal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalLabel">Editar Estado de la Cláusula</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <label for="estado" class="form-label">Estado</label>
-                <select id="estado" class="form-select">
-                    <option>En Proceso</option>
-                    <option>Finalizado</option>
-                    <option>Incumplido</option>
-                </select>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary">Guardar</button>
-                <button type="button" class="btn btn-primary">Prueba</button>
+
+    <!-- Modal de Gestión -->
+    <div class="modal fade" id="modalGestion" tabindex="-1" aria-labelledby="modalGestionLabel" aria-hidden="true">
+        <div class="modal-dialog" style="max-width: 95%; height: 95%; max-height: 95%;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalGestionLabel">Datos Generales de la Cláusula</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                    <!-- Incluir el archivo clausula_config.html para la sección izquierda -->
+                    <div class="col-md-5" style="background-color: #d3d4e2; padding: 15px; border-radius: 5px;">
+                        {% set modal = "gestionar" %}
+                        {% include 'clausula_config.html' %}
+                    </div>
+
+                    <!-- Sección derecha - Gestión de la Cláusula -->
+                    <div class="col-md-7">
+                        <!-- Tabla interna dentro del modal -->
+                        <div class="table-responsive">
+                            <h5 class="modal-title" id="modalGestionLabel">Gestión de Cláusula</h5>
+                            <table class="table table-bordered table-striped" style="font-size: 12px;">
+                                <thead class="table-responsive" style="background-color: #120b6e; color: #ffffff;">
+                                    <tr>
+                                        <th>Id</th>
+                                        <th>Fecha de Cumplimiento</th>
+                                        <th>Estado</th>
+                                        <th>Plan de Acción</th>
+                                        <th>Observación</th>
+                                        <th>Adjuntos</th>
+                                        <th>N° Radicado</th>
+                                        <th>Fecha Radicado</th>
+                                        <th>Registrado Por</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>(-)</td>
+                                        <td>(-)</td>
+                                        <td>(-)</td>
+                                        <td>(-)</td>
+                                        <td>(-)</td>
+                                        <td>(-)</td>
+                                        <td>(-)</td>
+                                        <td>(-)</td>
+                                        <td>(-)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary">Guardar</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+
+    
+    <!-- Actualiza las listas desplegables de filtros de acuerdo a gestion_clausulas.py -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const filters = {
+                control: document.getElementById('control'),
+                etapa: document.getElementById('etapa'),
+                clausula: document.getElementById('clausula'),
+                concesion: document.getElementById('concesion'),
+                buscar: document.getElementById('buscar')
+            };
+    
+            function filtrarClausulas() {
+                const queryParams = new URLSearchParams();
+    
+                if (filters.control.value !== 'Seleccionar...') {
+                    queryParams.append('control', filters.control.value);
+                }
+                if (filters.etapa.value !== 'Seleccionar...') {
+                    queryParams.append('etapa', filters.etapa.value);
+                }
+                if (filters.clausula.value !== 'Seleccionar...') {
+                    queryParams.append('clausula', filters.clausula.value);
+                }
+                if (filters.concesion.value !== 'Seleccionar...') {
+                    queryParams.append('concesion', filters.concesion.value);
+                }
+                if (filters.buscar.value !== '') {
+                    queryParams.append('buscar', filters.buscar.value);
+                }
+    
+                fetch(`/filtrar_clausulas?${queryParams.toString()}`)
+                    .then(response => response.text())
+                    .then(html => {
+                        const tableWrapper = document.querySelector('.table-wrapper');
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const newTable = doc.querySelector('.table-wrapper').innerHTML;
+                        tableWrapper.innerHTML = newTable;
+                    })
+                    .catch(error => console.error('Error al filtrar las cláusulas:', error));
+            }
+    
+            filters.control.addEventListener('change', filtrarClausulas);
+            filters.etapa.addEventListener('change', filtrarClausulas);
+            filters.clausula.addEventListener('change', filtrarClausulas);
+            filters.concesion.addEventListener('change', filtrarClausulas);
+            filters.buscar.addEventListener('input', filtrarClausulas);
+    
+            // Agregar manejador para el botón "Limpiar"
+            document.getElementById('limpiar').addEventListener('click', function () {
+                // Restablece todas las listas desplegables a "Seleccionar..."
+                filters.control.value = 'Seleccionar...';
+                filters.etapa.value = 'Seleccionar...';
+                filters.clausula.value = 'Seleccionar...';
+                filters.concesion.value = 'Seleccionar...';
+                filters.buscar.value = '';
+    
+                // Recarga la tabla sin filtros
+                filtrarClausulas();
+                
+            });
+        });
+    </script>   
+
+    <!-- Función para validar el formulario -->
+    <script>
+        function validarFormulario() {
+            const form = document.getElementById('form_crear_clausula');
+            if (!form.checkValidity()) {
+                form.reportValidity(); // Esto mostrará los errores de validación nativos del navegador
+                return false;
+            }
+            return true; // Permite el envío si todos los campos están completos
+        }
+    </script>   
+
+    <!-- Función para mensajes de respuesta al guardar -->
+    <script>
+        document.getElementById('form_crear_clausula').addEventListener('submit', async function (e) {
+            e.preventDefault(); 
+    
+            const formData = new FormData(this);
+            try {
+                const response = await fetch('/clausulas/nueva', {
+                    method: 'POST',
+                    body: formData
+                });
+    
+                if (!response.ok) {
+                    throw new Error(`Error en la respuesta del servidor: ${response.status}`);
+                }
+    
+                const result = await response.json(); // Procesar la respuesta JSON
+    
+                if (result.success) {
+                    // Si la creación es exitosa, cerrar el modal usando la API de Bootstrap 5
+                    const modalElement = document.getElementById('modalCrearClausula');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    } else {
+                        // Si el modal no está inicializado, inicializarlo y luego cerrarlo
+                        const newModal = new bootstrap.Modal(modalElement);
+                        newModal.hide();
+                    }
+                    
+                    // Mostrar el mensaje de éxito en la página principal
+                    showGlobalMessage(result.message, 'success');
+                } else {
+                    // Si ocurre un error del servidor (respuesta válida pero con errores)
+                    const messageDiv = document.getElementById('message');
+                    messageDiv.style.display = 'block';
+                    messageDiv.classList.remove('alert-success', 'alert-danger');
+                    messageDiv.classList.add('alert-danger');
+                    messageDiv.innerText = result.message || 'Error inesperado al crear la cláusula';
+                }
+            } catch (error) {
+                // Manejo de errores inesperados (como desconexiones o errores de red)
+                const messageDiv = document.getElementById('message');
+                messageDiv.style.display = 'block';
+                messageDiv.classList.remove('alert-success', 'alert-danger');
+                messageDiv.classList.add('alert-danger');
+                messageDiv.innerText = `Ocurrió un error inesperado: ${error.message}`;
+            }
+        });        
+    </script>
+    
+    <!-- Función para mostrar mensajes globales con temporizadorr-->
+    <script>
+        function showGlobalMessage(message, type = 'success') {
+            const globalMessageDiv = document.getElementById('global_message');
+            globalMessageDiv.style.display = 'block';
+            globalMessageDiv.classList.remove('alert-success', 'alert-danger');
+            globalMessageDiv.classList.add(`alert-${type}`);
+            globalMessageDiv.innerText = message;
+    
+            // Ocultar el mensaje después de 5 segundos
+            setTimeout(() => {
+                globalMessageDiv.style.display = 'none';
+                globalMessageDiv.classList.remove(`alert-${type}`);
+            }, 5000);
+        }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const successMessage = urlParams.get('success_message');
+            
+            if (successMessage) {
+                showGlobalMessage(successMessage, 'success');
+            }
+        });
+    </script>
+
+    <!-- Función para limpiar el formulario de crear y gestionar  -->
+    <script>
+        // Declaración global para almacenar los procesos y subprocesos agregados
+        const procesosSubprocesosAgregados = { modalCrearClausula: new Set() };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const modalCrearClausula = document.getElementById('modalCrearClausula');
+            const formCrearClausula = document.getElementById('form_crear_clausula');
+
+            // Función para limpiar el modal como si se ingresara a la aplicación
+            function resetModal() {
+                // Limpiar el formulario completamente
+                formCrearClausula.reset();
+
+                // Limpiar el contenedor visual de los procesos y subprocesos agregados
+                const contenedor = document.getElementById('modalCrearClausula_contenedor_procesos_subprocesos');
+                contenedor.innerHTML = ''; // Vacía el contenedor visual al abrir el modal
+
+                // Limpiar el set de procesos/subprocesos agregados
+                procesosSubprocesosAgregados['modalCrearClausula'].clear();
+
+                // Asegurarse de ocultar el título de "Procesos Responsables Agregados"
+                const titulo = document.getElementById('modalCrearClausula_titulo_procesos_responsables');
+                if (titulo) {
+                    titulo.style.display = 'none';
+                }
+            }
+
+            // Evento que se activa al abrir el modal
+            modalCrearClausula.addEventListener('shown.bs.modal', function () {
+                resetModal(); // Limpia completamente el modal cada vez que se abre
+            });
+        });
+    </script>
 
 {% endblock %}
