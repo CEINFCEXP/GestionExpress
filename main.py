@@ -17,6 +17,7 @@ from model.gestionar_db import HandleDB
 from model.gestionar_db import Cargue_Roles_Blob_Storage
 from model.consultas_db import Reporte_Asignaciones
 from model.gestion_clausulas import GestionClausulas
+from model.containerModel import ContainerModel
 from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, concesion, control, rutas, turnos, hora_inicio, hora_fin
 from werkzeug.security import generate_password_hash
 from azure.storage.blob import BlobServiceClient, BlobClient
@@ -957,25 +958,67 @@ async def eliminar_role_storage(role_storage_id: int):
         return RedirectResponse(url=f"/roles_storage?error=Ocurrió un error al intentar eliminar el rol: {str(e)}", status_code=303)
 
 ################## TRANSFERENCIA DE DATOS EN BLOB STORAGE ####################
-# Configuración de CORS
+container_model = ContainerModel()
+
+# Habilitar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Permitir todas las solicitudes de origen cruzado
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-router = APIRouter()
-app.include_router(router)
 
 @app.get("/containers", response_class=HTMLResponse)
 def get_containers(req: Request, user_session: dict = Depends(get_user_session)):
     if not user_session:
         return RedirectResponse(url="/", status_code=302)
 
-    context = {"request": req,"user_session": user_session}
+    containers = container_model.get_containers()
+    context = {"request": req,"user_session": user_session, "containers": containers}
     return templates.TemplateResponse("containers.html", context)
+
+@app.post("/containers")
+async def create_container(data: dict):
+    name = data.get("name")
+    if not name:
+        raise HTTPException(status_code=400, detail="El nombre del contenedor es requerido")
+    try:
+        container_model.create_container(name)
+        return {"message": f"Contenedor '{name}' creado exitosamente"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/containers/{container_name}/files")
+def get_files(container_name: str):
+    files = container_model.get_files(container_name)
+    return {"files": files}
+
+@app.post("/containers/{container_name}/files")
+async def upload_file(container_name: str, file: UploadFile = File(...)):
+    try:
+        contents = await file.read()
+        await container_model.upload_file(container_name, file.filename, contents)
+        return JSONResponse(status_code=200, content={"message": f"Archivo {file.filename} subido exitosamente"})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/containers/{container_name}/files/{file_name}/download")
+def download_file(container_name: str, file_name: str):
+    try:
+        file_content = container_model.download_file(container_name, file_name)
+        return StreamingResponse(BytesIO(file_content), media_type="application/octet-stream",
+                                 headers={"Content-Disposition": f"attachment; filename={file_name}"})
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@app.delete("/containers/{container_name}/files/{file_name}")
+def delete_file(container_name: str, file_name: str):
+    try:
+        container_model.delete_file(container_name, file_name)
+        return {"message": f"Archivo '{file_name}' eliminado exitosamente"}
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 ################## SECCIÓN JURIDICO ####################
 # Plantilla de cargue de planta activa y controles

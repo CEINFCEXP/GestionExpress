@@ -3,159 +3,207 @@
 {% block title %}Azure Blob Storage{% endblock %}
 
 {% block head %}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <style>
-        .container {
-            margin-top: 20px;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-weight: bold;
-        }
-
-        .card {
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .filter-input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        .drop-zone {
-            border: 2px dashed #007bff;
-            border-radius: 10px;
-            padding: 30px;
-            text-align: center;
-            background-color: #f8f9fa;
-            transition: background-color 0.3s, border-color 0.3s;
-            cursor: pointer;
-        }
-
-        .drop-zone.dragover {
-            background-color: #e9ecef;
-            border-color: #007bff;
-        }
-
-        .drop-zone i {
-            font-size: 50px;
-            color: #007bff;
-            margin-bottom: 10px;
-        }
-
-        .drop-zone p {
-            font-size: 16px;
-            margin: 0;
-            color: #333;
-        }
-
-        .btn-primary, .btn-secondary {
-            width: 100%;
-            margin-top: 10px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            background-color: #f1f1f1;
-            margin-top: 10px;
-        }
-
-        .progress-bar-fill {
-            width: 0;
-            height: 20px;
-            background-color: #007bff;
-            text-align: center;
-            color: white;
-            line-height: 20px;
-            transition: width 0.4s;
-        }
-    </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 {% endblock %}
 
 {% block content %}
-<div id="app" class="container">
-    <h1 class="col-auto" style="font-size: 24px; font-family: 'Century Gothic', sans-serif;">Administrador de Azure Blob Storage</h1>
 
-    <div class="row">
+<!-- Superposición de Carga -->
+<div id="loading-overlay" style="display: none; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000;">
+    <div class="loading-content text-center p-4 bg-white rounded shadow">
+        <img id="loading-gif" src="/static/images/cargando.gif" alt="Cargando..." width="70" height="70" class="mb-3"/>
+        <p style="font-size: 18px;" class="mb-0">Procesando archivos, por favor espere...</p>
+    </div>
+</div>
+
+<!-- Contenedor Principal -->
+<div class="container-fluid d-flex flex-column" style="height: 90vh;">
+
+    <!-- Cabecera -->
+    <div class="row justify-content-between align-items-center mb-4">
+        <h1 class="col-auto" style="font-size: 22px; font-family: 'Century Gothic', sans-serif;">Azure Blob Storage</h1>
+        <h1 class="col-auto" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!</h1>
+        <img src="/static/Consorcio.png" alt="Consorcio Icon" class="col-auto" style="max-width: 100px; height: auto;">
+    </div>
+
+    <!-- Secciones de Contenido -->
+    <div class="row flex-grow-1">
+
         <!-- Sección de Contenedores -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h2 class="h5 mb-0">Contenedores</h2>
-                </div>
-                <div class="card-body">
-                    <input type="text" id="containerFilter" class="filter-input" placeholder="Filtrar contenedores">
-                    <ul id="containerList" class="list-group mb-3"></ul>
-                    <div class="new-container">
-                        <input type="text" id="newContainerName" class="form-control mb-2" placeholder="Nombre del nuevo contenedor">
-                        <button id="createContainerBtn" class="btn btn-primary">Crear Contenedor</button>
-                    </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="card-title mb-3" style="font-size: 18px;">Contenedores</h4>
+                    <input type="text" class="filter-input form-control mb-3" placeholder="Filtrar contenedores">
+                    <ul class="list-group flex-grow-1 mb-3 overflow-auto" id="containerList" style="max-height: 300px;">
+                        {% for container in containers %}
+                            <li class="list-group-item" data-container="{{ container }}">{{ container }}</li>
+                        {% endfor %}
+                    </ul>
+                    <input type="text" class="form-control mb-2" id="newContainerName" placeholder="Nombre del nuevo contenedor">
+                    <button class="btn btn-primary w-100" id="createContainerBtn">Crear Contenedor</button>
                 </div>
             </div>
         </div>
 
         <!-- Sección de Archivos -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    <h2 class="h5 mb-0">Administrador de Archivos</h2>
-                </div>
-                <div class="card-body">
-                    <input type="text" id="fileFilter" class="filter-input" placeholder="Filtrar archivos">
-                    <h3 id="currentContainer" class="h6 mt-3">Archivos en <span></span></h3>
-                    <ul id="fileList" class="list-group mb-3"></ul>
-                    <!-- Drop Zone Mejorado -->
-                    <div id="dropZone" class="drop-zone">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Arrastra y suelta aquí, o <strong>haz clic para seleccionar</strong></p>
-                        <input type="file" id="fileUpload" multiple class="form-control" style="display: none;">
+        <div class="col-md-8">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h4 id="currentContainer" class="card-title mb-3" style="font-size: 18px;">Archivos de : <span></span></h4>
+                    <button class="btn btn-success mb-3 w-100" id="downloadSelectedBtn" style="display: none;">Descargar seleccionados</button>
+                    <ul class="list-group flex-grow-1 mb-3 overflow-auto" id="fileList" style="max-height: 300px;"></ul>
+
+                    <!-- Zona de Subida de Archivos -->
+                    <div class="drop-zone p-4 text-center border border-primary rounded mb-3" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-2"></i>
+                        <p class="mb-2">Arrastra y suelta archivos aquí o</p>
+                        <button class="btn btn-secondary" id="selectFilesBtn">Seleccionar archivos</button>
+                        <input type="file" id="fileUpload" multiple hidden>
                     </div>
-                    <ul id="selectedFilesList" class="list-group mt-3"></ul>
-                    <button id="uploadFilesBtn" class="btn btn-success mt-2" style="display: none;">Subir archivos</button>
-                    <div id="uploadProgress" class="progress-bar mt-2" style="display: none;">
-                        <div class="progress-bar-fill"></div>
-                    </div>
-                    <div id="downloadProgress" class="progress-bar mt-2" style="display: none;">
-                        <div class="progress-bar-fill"></div>
+
+                    <!-- Barra de Progreso -->
+                    <div class="progress" id="uploadProgress" style="display: none;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%;" role="progressbar"></div>
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 
-<!-- Scripts -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const containerFilter = document.getElementById('containerFilter');
         const containerList = document.getElementById('containerList');
-        const fileFilter = document.getElementById('fileFilter');
-        const fileList = document.getElementById('fileList');
+        const newContainerNameInput = document.getElementById('newContainerName');
+        const createContainerBtn = document.getElementById('createContainerBtn');
         const dropZone = document.getElementById('dropZone');
         const fileUpload = document.getElementById('fileUpload');
+        const fileList = document.getElementById('fileList');
+        const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        let currentContainer = "";
 
-        function filterItems(filterElement, listElement) {
-            const filterText = filterElement.value.toLowerCase();
-            const items = listElement.getElementsByTagName('li');
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-                const text = item.textContent.toLowerCase();
-                item.style.display = text.includes(filterText) ? '' : 'none';
+        // Almacenar archivos seleccionados
+        let selectedFiles = [];
+
+        // Filtrar contenedores
+        document.querySelector('.filter-input').addEventListener('input', function() {
+            const filter = this.value.toLowerCase();
+            document.querySelectorAll('#containerList li').forEach(item => {
+                item.style.display = item.textContent.toLowerCase().includes(filter) ? '' : 'none';
+            });
+        });
+
+        // Crear contenedor
+        createContainerBtn.addEventListener('click', function() {
+            const name = newContainerNameInput.value.trim();
+            if (name) {
+                fetch('/containers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                }).then(response => response.json())
+                  .then(data => {
+                      if (data.message) {
+                          alert(data.message);
+                          location.reload();
+                      }
+                  });
             }
-        }
+        });
 
-        containerFilter?.addEventListener('input', () => filterItems(containerFilter, containerList));
-        fileFilter?.addEventListener('input', () => filterItems(fileFilter, fileList));
+        // Seleccionar contenedor y mostrar archivos
+        containerList.addEventListener('click', function(event) {
+            const container = event.target.getAttribute('data-container');
+            if (container) {
+                currentContainer = container;
+                document.querySelector('#currentContainer span').textContent = container;
+                selectedFiles = [];  // Limpiar la selección de archivos
 
-        // Manejador de arrastrar y soltar
+                fetch(`/containers/${container}/files`)
+                    .then(response => response.json())
+                    .then(data => {
+                        fileList.innerHTML = '';
+                        data.files.forEach(file => {
+                            const li = document.createElement('li');
+                            li.className = 'list-group-item d-flex align-items-center justify-content-between';
+                            li.innerHTML = `
+                                <div class="d-flex align-items-center">
+                                    <input type="checkbox" class="file-checkbox me-2" data-file="${file}">
+                                    <span>${file}</span>
+                                </div>
+                                <button class="btn btn-sm btn-danger delete-btn" data-file="${file}">Eliminar</button>
+                            `;
+                            fileList.appendChild(li);
+                        });
+                        downloadSelectedBtn.style.display = 'none'; // Ocultar el botón al cargar nuevos archivos
+                    });
+            }
+        });
+
+        // Detectar cambios en la selección de archivos
+        fileList.addEventListener('change', function(event) {
+            if (event.target.classList.contains('file-checkbox')) {
+                const fileName = event.target.getAttribute('data-file');
+                if (event.target.checked) {
+                    selectedFiles.push(fileName);
+                } else {
+                    selectedFiles = selectedFiles.filter(file => file !== fileName);
+                }
+
+                // Mostrar u ocultar el botón de descarga múltiple
+                downloadSelectedBtn.style.display = selectedFiles.length > 0 ? 'block' : 'none';
+            }
+        });
+
+        // Descargar archivos seleccionados
+        downloadSelectedBtn.addEventListener('click', function() {
+            if (currentContainer && selectedFiles.length > 0) {
+                // Mostrar el overlay de carga solo cuando se haga clic
+                loadingOverlay.style.display = 'flex';
+
+                let downloadPromises = selectedFiles.map(fileName => {
+                    return fetch(`/containers/${currentContainer}/files/${fileName}/download`)
+                        .then(response => {
+                            if (response.ok) {
+                                return response.blob();
+                            } else {
+                                throw new Error("Error al descargar el archivo");
+                            }
+                        })
+                        .then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.style.display = 'none';
+                            a.href = url;
+                            a.download = fileName;
+
+                            document.body.appendChild(a);
+                            a.click();
+
+                            window.URL.revokeObjectURL(url);
+                            a.remove();
+                        });
+                });
+
+                // Ocultar el overlay después de que todas las descargas se completen
+                Promise.all(downloadPromises)
+                    .then(() => {
+                        loadingOverlay.style.display = 'none';
+                    })
+                    .catch(error => {
+                        loadingOverlay.style.display = 'none';
+                        alert(`Error al descargar los archivos: ${error.message}`);
+                    });
+            } else {
+                alert("No hay archivos seleccionados para descargar.");
+            }
+        });
+
+        // Restaurar la funcionalidad de arrastrar y soltar archivos
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('dragover');
@@ -168,44 +216,76 @@
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
-            fileUpload.files = e.dataTransfer.files;
-            fileUpload.dispatchEvent(new Event('change'));
+            const files = e.dataTransfer.files;
+            uploadFiles(files);
         });
 
-        dropZone.addEventListener('click', () => fileUpload.click());
+        document.getElementById('selectFilesBtn').addEventListener('click', () => {
+            fileUpload.click();
+        });
 
-        fileUpload.addEventListener('change', () => {
-            const selectedFilesList = document.getElementById('selectedFilesList');
-            selectedFilesList.innerHTML = '';
-            for (const file of fileUpload.files) {
-                const li = document.createElement('li');
-                li.textContent = file.name;
-                li.classList.add('list-group-item');
-                selectedFilesList.appendChild(li);
+        fileUpload.addEventListener('change', (e) => {
+            const files = e.target.files;
+            uploadFiles(files);
+        });
+
+        function uploadFiles(files) {
+            if (currentContainer) {
+                // Mostrar el overlay de carga
+                loadingOverlay.style.display = 'flex';
+        
+                const uploadPromises = [];
+                for (let file of files) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+        
+                    const uploadPromise = fetch(`/containers/${currentContainer}/files`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.message) {
+                            alert(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert(`Error al subir el archivo: ${file.name}`);
+                    });
+                    uploadPromises.push(uploadPromise);
+                }
+        
+                // Ocultar el overlay después de que todas las subidas se completen
+                Promise.all(uploadPromises)
+                    .then(() => {
+                        loadingOverlay.style.display = 'none';
+                        location.reload(); // Recargar la página para mostrar los archivos actualizados
+                    })
+                    .catch(error => {
+                        loadingOverlay.style.display = 'none';
+                        alert(`Error durante la subida de archivos: ${error.message}`);
+                    });
+            } else {
+                alert("Selecciona un contenedor antes de subir archivos.");
             }
-            document.getElementById('uploadFilesBtn').style.display = fileUpload.files.length > 0 ? 'block' : 'none';
+        }        
+
+        // Eliminar archivo
+        fileList.addEventListener('click', function(event) {
+            if (event.target.classList.contains('delete-btn')) {
+                const fileName = event.target.getAttribute('data-file');
+
+                fetch(`/containers/${currentContainer}/files/${fileName}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    location.reload();
+                });
+            }
         });
-
-        // Función para cargar contenedores (simulada por ahora)
-        function loadContainers() {
-            const containers = [
-                '001-cexp-transversal',
-                '011-apoyo-operaciones',
-                '1011-fiducia-centro-de-informacion',
-                '10110-seguimiento-a-flota-centro-de-informacion',
-                '10111-modelo-ascensos-centro-de-informacion'
-            ];
-
-            containers.forEach(container => {
-                const li = document.createElement('li');
-                li.classList.add('list-group-item');
-                li.textContent = container;
-                containerList?.appendChild(li);
-            });
-        }
-
-        // Cargar contenedores al iniciar
-        loadContainers();
     });
 </script>
+
 {% endblock %}
