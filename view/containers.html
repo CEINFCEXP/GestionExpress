@@ -21,10 +21,26 @@
 <div class="container-fluid d-flex flex-column" style="height: 90vh;">
 
     <!-- Cabecera -->
-    <div class="row justify-content-between align-items-center mb-4">
-        <h1 class="col-auto" style="font-size: 22px; font-family: 'Century Gothic', sans-serif;">Azure Blob Storage</h1>
-        <h1 class="col-auto" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!</h1>
-        <img src="/static/Consorcio.png" alt="Consorcio Icon" class="col-auto" style="max-width: 100px; height: auto;">
+    <div class="row align-items-center mb-2">
+        <!-- Título y GIF a la izquierda -->
+        <div class="col d-flex align-items-center">
+            <h1 class="mb-0" style="font-size: 22px; font-family: 'Century Gothic', sans-serif; margin: 0;">
+                Azure Blob Storage
+            </h1>
+            <img id="transfer-gif" src="/static/images/transfer.gif" width="70" height="70" alt="Gif de transferencia" style="margin-left: 10px;"/>
+        </div>
+
+        <!-- Saludo del usuario en el centro -->
+        <div class="col text-center">
+            <h1 class="mb-0" style="font-size: 14px; font-family: 'Century Gothic', sans-serif; margin: 0;">
+                ¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!
+            </h1>
+        </div>
+
+        <!-- Logo alineado a la derecha -->
+        <div class="col d-flex justify-content-end">
+            <img src="/static/Consorcio.png" alt="Consorcio Icon" style="max-width: 100px; height: auto; margin: 0;"/>
+        </div>
     </div>
 
     <!-- Secciones de Contenido -->
@@ -51,21 +67,37 @@
         <div class="col-md-8">
             <div class="card h-100 shadow-sm">
                 <div class="card-body d-flex flex-column">
-                    <h4 id="currentContainer" class="card-title mb-3" style="font-size: 18px;">Archivos de : <span></span></h4>
-                    <button class="btn btn-success mb-3 w-100" id="downloadSelectedBtn" style="display: none;">Descargar seleccionados</button>
-                    <ul class="list-group flex-grow-1 mb-3 overflow-auto" id="fileList" style="max-height: 300px;"></ul>
+                    <h4 id="currentContainer" class="card-title mb-3" style="font-size: 18px;">Contenedor : -- <span></span></h4>
+                    <button class="btn btn-success mb-3 w-100" id="downloadSelectedBtn" style="display: none;">Descargar archivo(s) seleccionado(s)</button>
+                    <ul class="list-group flex-grow-1 mb-3 overflow-auto" id="fileTree" 
+                        style="
+                            max-height: 300px; 
+                            list-style-type: none; 
+                            padding: 10; 
+                            border: 1px solid #6d6e77; 
+                            border-radius: 6px; 
+                            background-color: #9fb2eb23;
+                            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+                        ">
+                    </ul>
 
                     <!-- Zona de Subida de Archivos -->
                     <div class="drop-zone p-4 text-center border border-primary rounded mb-3" id="dropZone">
                         <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-2"></i>
-                        <p class="mb-2">Arrastra y suelta archivos aquí o</p>
-                        <button class="btn btn-secondary" id="selectFilesBtn">Seleccionar archivos</button>
+                        <p class="mb-2"><em>Selecciona el Folder con doble click, despues Arrastra y suelta los archivos aquí, ¡Verifica la ruta de carga!</em></p>
+                        <button class="btn btn-secondary" id="selectFilesBtn">Cargar Archivos al Blob</button>
                         <input type="file" id="fileUpload" multiple hidden>
+                    </div>
+
+                    <!-- Sección para mostrar la ruta de carga -->
+                    <div class="mb-3">
+                        <span style="font-weight: bold;"><strong>Ruta de carga:</strong></span>
+                        <span id="currentUploadPathDisplay">/</span>
                     </div>
 
                     <!-- Barra de Progreso -->
                     <div class="progress" id="uploadProgress" style="display: none;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%;" role="progressbar"></div>
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%;" role="progressbar"></div>
                     </div>
                 </div>
             </div>
@@ -81,13 +113,20 @@
         const createContainerBtn = document.getElementById('createContainerBtn');
         const dropZone = document.getElementById('dropZone');
         const fileUpload = document.getElementById('fileUpload');
-        const fileList = document.getElementById('fileList');
+        const fileTree = document.getElementById('fileTree');
         const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
         const loadingOverlay = document.getElementById('loading-overlay');
         let currentContainer = "";
+        let currentUploadPath = ""; 
 
         // Almacenar archivos seleccionados
         let selectedFiles = [];
+
+        // Verificar que los elementos existen
+        if (!containerList || !newContainerNameInput || !createContainerBtn || !dropZone || !fileUpload || !fileTree || !downloadSelectedBtn || !loadingOverlay) {
+            console.error("Uno o más elementos no se encontraron en el DOM.");
+            return;
+        }
 
         // Filtrar contenedores
         document.querySelector('.filter-input').addEventListener('input', function() {
@@ -115,43 +154,135 @@
             }
         });
 
+        // Crear árbol de directorio con rutas completas y orden alfabético
+        function createFileTree(node, files, basePath = "") {
+            const folders = [];
+            const filesOnly = [];
+
+            // Separar carpetas y archivos
+            for (const [key, value] of Object.entries(files)) {
+                if (value === null) {
+                    filesOnly.push(key); // Es un archivo
+                } else {
+                    folders.push([key, value]); // Es una carpeta
+                }
+            }
+
+            // Ordenar carpetas y archivos alfabéticamente
+            folders.sort((a, b) => a[0].localeCompare(b[0]));
+            filesOnly.sort((a, b) => a.localeCompare(b));
+
+            // Agregar carpetas al DOM
+            folders.forEach(([folderName, subFiles]) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item';
+
+                const folderPath = basePath ? `${basePath}/${folderName}` : folderName; // Construir la ruta completa para la carpeta
+                li.innerHTML = `<span class="folder" 
+                    style="  
+                        color: #1e3a8a; /* Texto  */
+                        display: inline-block; /* Bloque en línea */
+                        cursor: pointer; /* Cursor al pasar */
+                        font-weight: 600; /* Negrita intermedia */
+                        font-size: 16px; /* Tamaño de fuente  */           
+                    ">
+                    ${folderName}
+                </span>`;
+                
+                const ul = document.createElement('ul');
+                ul.className = 'list-group ms-3 d-none'; // Sublista para subdirectorios, oculta por defecto
+                li.appendChild(ul);
+
+                li.querySelector('.folder').addEventListener('click', () => {
+                    ul.classList.toggle('d-none'); // Mostrar/ocultar subcarpetas
+                });
+
+                // Permitir seleccionar la carpeta de carga
+                li.querySelector('.folder').addEventListener('dblclick', function() {
+                    currentUploadPath = folderPath; // Establecer la carpeta seleccionada para la carga
+                    document.querySelectorAll('.folder').forEach(f => f.classList.remove('selected-folder'));
+                    this.classList.add('selected-folder'); // Resaltar la carpeta seleccionada
+
+                    // Mostrar la ruta seleccionada en el frontend
+                    document.getElementById('currentUploadPathDisplay').textContent = `Contenedor/${currentUploadPath}`;
+                });
+
+                // Recursivamente construir el árbol para subdirectorios
+                createFileTree(ul, subFiles, folderPath);
+                node.appendChild(li);
+            });
+
+            // Agregar archivos sueltos al DOM
+            filesOnly.forEach(fileName => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item';
+
+                const filePath = basePath ? `${basePath}/${fileName}` : fileName; // Construir la ruta completa para el archivo
+                li.innerHTML = `
+                    <div class="d-flex align-items-center justify-content-between"
+                        style="
+                            padding: 0px; /* Aumentar el padding */
+                            border-radius: 6px; /* Bordes redondeados */
+                            margin-bottom: 1px; /* Espaciado inferior */
+                            font-size: 15px; /* Aumentar tamaño de fuente */
+                            font-family: 'Arial', sans-serif; /* Fuente moderna */
+                        ">
+
+                        <input type="checkbox" class="file-checkbox me-2" data-file="${filePath}"
+                            style="
+                                width: 15px; /* Ancho del checkbox */
+                                height: 15px; /* Alto del checkbox */
+                                transform: scale(1.5); /* Escalar el tamaño del checkbox */
+                                margin-right: 15px; /* Espaciado derecho */
+                                cursor: pointer; /* Cambiar el cursor al pasar */
+                            ">
+
+                        <span style="flex-grow: 1; color: #00010a; font-weight: 500;">${fileName}</span>
+                        <button class="btn btn-sm btn-danger delete-btn" data-file="${filePath}"
+                            style="
+                                font-size: 14px; 
+                                padding: 3px 15px;
+                                border-radius: 15px;        
+                            ">Eliminar</button>
+                    </div>
+                `;
+                node.appendChild(li);
+            });
+        }
+
         // Seleccionar contenedor y mostrar archivos
-        containerList.addEventListener('click', function(event) {
+        containerList.addEventListener('click', function (event) {
             const container = event.target.getAttribute('data-container');
             if (container) {
                 currentContainer = container;
                 document.querySelector('#currentContainer span').textContent = container;
                 selectedFiles = [];  // Limpiar la selección de archivos
-
+    
                 fetch(`/containers/${container}/files`)
                     .then(response => response.json())
                     .then(data => {
-                        fileList.innerHTML = '';
-                        data.files.forEach(file => {
-                            const li = document.createElement('li');
-                            li.className = 'list-group-item d-flex align-items-center justify-content-between';
-                            li.innerHTML = `
-                                <div class="d-flex align-items-center">
-                                    <input type="checkbox" class="file-checkbox me-2" data-file="${file}">
-                                    <span>${file}</span>
-                                </div>
-                                <button class="btn btn-sm btn-danger delete-btn" data-file="${file}">Eliminar</button>
-                            `;
-                            fileList.appendChild(li);
-                        });
-                        downloadSelectedBtn.style.display = 'none'; // Ocultar el botón al cargar nuevos archivos
+                        if (data.files_tree) {
+                            fileTree.innerHTML = '';  // Limpiar la lista de archivos
+                            createFileTree(fileTree, data.files_tree); // Crear el árbol de directorio
+                            downloadSelectedBtn.style.display = 'none'; // Ocultar el botón al cargar nuevos archivos
+                        } else {
+                            console.error("No se recibió la estructura de archivos esperada.");
+                        }
+                    })
+                    .catch(error => {
+                        alert(`Error al cargar archivos: ${error.message}`);
                     });
             }
-        });
+        });             
 
         // Detectar cambios en la selección de archivos
-        fileList.addEventListener('change', function(event) {
+        fileTree.addEventListener('change', function(event) {
             if (event.target.classList.contains('file-checkbox')) {
                 const fileName = event.target.getAttribute('data-file');
                 if (event.target.checked) {
                     selectedFiles.push(fileName);
                 } else {
-                    selectedFiles = selectedFiles.filter(file => file !== fileName);
+                    selectedFiles = selectedFiles.filter(file => file !== filePath);
                 }
 
                 // Mostrar u ocultar el botón de descarga múltiple
@@ -162,11 +293,10 @@
         // Descargar archivos seleccionados
         downloadSelectedBtn.addEventListener('click', function() {
             if (currentContainer && selectedFiles.length > 0) {
-                // Mostrar el overlay de carga solo cuando se haga clic
                 loadingOverlay.style.display = 'flex';
-
-                let downloadPromises = selectedFiles.map(fileName => {
-                    return fetch(`/containers/${currentContainer}/files/${fileName}/download`)
+        
+                let downloadPromises = selectedFiles.map(filePath => {
+                    return fetch(`/containers/${currentContainer}/files/${encodeURIComponent(filePath)}/download`)
                         .then(response => {
                             if (response.ok) {
                                 return response.blob();
@@ -179,11 +309,9 @@
                             const a = document.createElement('a');
                             a.style.display = 'none';
                             a.href = url;
-                            a.download = fileName;
-
+                            a.download = filePath.split('/').pop();  // Extrae el Nombre del archivo
                             document.body.appendChild(a);
                             a.click();
-
                             window.URL.revokeObjectURL(url);
                             a.remove();
                         });
@@ -193,17 +321,28 @@
                 Promise.all(downloadPromises)
                     .then(() => {
                         loadingOverlay.style.display = 'none';
-                    })
-                    .catch(error => {
-                        loadingOverlay.style.display = 'none';
-                        alert(`Error al descargar los archivos: ${error.message}`);
+
+                        // Desmarcar todos los checkboxes
+                        document.querySelectorAll('.file-checkbox').forEach(checkbox => {
+                            checkbox.checked = false;
                     });
+
+                    // Limpiar la lista de archivos seleccionados
+                    selectedFiles = [];
+
+                    // Ocultar el botón de descarga múltiple
+                    downloadSelectedBtn.style.display = 'none';
+                })
+                .catch(error => {
+                    loadingOverlay.style.display = 'none';
+                    alert(`Error al descargar los archivos: ${error.message}`);
+                });
             } else {
                 alert("No hay archivos seleccionados para descargar.");
             }
         });
 
-        // Restaurar la funcionalidad de arrastrar y soltar archivos
+        // Funcionalidad de arrastrar y soltar archivos
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('dragover');
@@ -229,17 +368,25 @@
             uploadFiles(files);
         });
 
+        // Cargar archivos seleccionados
         function uploadFiles(files) {
             if (currentContainer) {
+                // Usar la ruta seleccionada o la raíz del contenedor
+                const uploadPath = currentUploadPath ? `${currentUploadPath}/` : "";
+
                 // Mostrar el overlay de carga
                 loadingOverlay.style.display = 'flex';
-        
+
+                // Guardar el contenedor seleccionado en localStorage
+                localStorage.setItem('lastSelectedContainer', currentContainer);
+
                 const uploadPromises = [];
                 for (let file of files) {
                     const formData = new FormData();
                     formData.append('file', file);
-        
-                    const uploadPromise = fetch(`/containers/${currentContainer}/files`, {
+
+                    // Enviar la solicitud de carga con la ruta completa
+                    const uploadPromise = fetch(`/containers/${currentContainer}/files?path=${encodeURIComponent(uploadPath)}`, {
                         method: 'POST',
                         body: formData
                     })
@@ -254,11 +401,14 @@
                     });
                     uploadPromises.push(uploadPromise);
                 }
-        
+
                 // Ocultar el overlay después de que todas las subidas se completen
                 Promise.all(uploadPromises)
                     .then(() => {
                         loadingOverlay.style.display = 'none';
+                        currentUploadPath = ""; // Limpiar la ruta de carga después de la subida
+                        document.getElementById('currentUploadPathDisplay').textContent = "Directorio raíz del contenedor"; // Resetear la ruta en el frontend
+                        fileUpload.value = ""; // Limpiar el campo de archivo después de la subida
                         location.reload(); // Recargar la página para mostrar los archivos actualizados
                     })
                     .catch(error => {
@@ -268,21 +418,37 @@
             } else {
                 alert("Selecciona un contenedor antes de subir archivos.");
             }
-        }        
+        }       
 
         // Eliminar archivo
-        fileList.addEventListener('click', function(event) {
+        fileTree.addEventListener('click', function(event) {
             if (event.target.classList.contains('delete-btn')) {
                 const fileName = event.target.getAttribute('data-file');
 
-                fetch(`/containers/${currentContainer}/files/${fileName}`, {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    alert(data.message);
-                    location.reload();
-                });
+                // Confirmar la eliminación del archivo
+                const confirmDelete = confirm(`¿Está seguro de que desea eliminar el archivo "${fileName}"?`);
+
+                if (confirmDelete) {
+                    // Codificar solo el nombre del archivo
+                    const encodedFileName = encodeURIComponent(fileName);
+
+                    fetch(`/containers/${currentContainer}/files/${encodedFileName}`, {
+                        method: 'DELETE'
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Error al eliminar el archivo');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        alert(data.message);
+                        location.reload();
+                    })
+                    .catch(error => {
+                        alert(`Error al eliminar el archivo: ${error.message}`);
+                    });
+                }
             }
         });
     });

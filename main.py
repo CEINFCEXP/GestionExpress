@@ -21,6 +21,7 @@ from model.containerModel import ContainerModel
 from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, concesion, control, rutas, turnos, hora_inicio, hora_fin
 from werkzeug.security import generate_password_hash
 from azure.storage.blob import BlobServiceClient, BlobClient
+from urllib.parse import unquote
 import psycopg2
 import json
 from typing import List, Optional
@@ -991,32 +992,39 @@ async def create_container(data: dict):
 
 @app.get("/containers/{container_name}/files")
 def get_files(container_name: str):
-    files = container_model.get_files(container_name)
-    return {"files": files}
+    try:
+        files_tree = container_model.get_files(container_name)
+        return {"files_tree": files_tree}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/containers/{container_name}/files")
-async def upload_file(container_name: str, file: UploadFile = File(...)):
+async def upload_file(container_name: str, path: str = "", file: UploadFile = File(...)):
     try:
+        # Construir la ruta completa en el contenedor
+        full_path = os.path.join(path, file.filename) if path else file.filename
         contents = await file.read()
-        await container_model.upload_file(container_name, file.filename, contents)
-        return JSONResponse(status_code=200, content={"message": f"Archivo {file.filename} subido exitosamente"})
+        await container_model.upload_file(container_name, full_path, contents)
+        return JSONResponse(status_code=200, content={"message": f"Archivo {file.filename} subido exitosamente en {full_path}"})
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.get("/containers/{container_name}/files/{file_name}/download")
-def download_file(container_name: str, file_name: str):
+@app.get("/containers/{container_name}/files/{file_path:path}/download")
+def download_file(container_name: str, file_path: str):
     try:
-        file_content = container_model.download_file(container_name, file_name)
+        file_content = container_model.download_file(container_name, file_path)
         return StreamingResponse(BytesIO(file_content), media_type="application/octet-stream",
-                                 headers={"Content-Disposition": f"attachment; filename={file_name}"})
+                                 headers={"Content-Disposition": f"attachment; filename={os.path.basename(file_path)}"})
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-@app.delete("/containers/{container_name}/files/{file_name}")
+@app.delete("/containers/{container_name}/files/{file_name:path}")
 def delete_file(container_name: str, file_name: str):
     try:
-        container_model.delete_file(container_name, file_name)
-        return {"message": f"Archivo '{file_name}' eliminado exitosamente"}
+        # Decodificar el nombre del archivo para manejar caracteres especiales y rutas
+        decoded_file_name = unquote(file_name)
+        container_model.delete_file(container_name, decoded_file_name)
+        return {"message": f"Archivo '{decoded_file_name}' eliminado exitosamente"}
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
 
