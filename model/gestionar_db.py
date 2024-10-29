@@ -195,7 +195,7 @@ class HandleDB:
             self._cur.execute("""
                 UPDATE usuarios SET estado = 0 WHERE id = %s
             """, (user_id,))
-            self._con.commit()
+            self._con.commit()  
     
     # Conexión Licencias Power BI
     def fetch_one(self, query, values=None):
@@ -568,3 +568,16 @@ class Cargue_Roles_Blob_Storage:
             except Exception as e:
                 self._con.rollback()
                 raise e
+            
+    # Obtener Contenedores Blob Storage por Usuario (Rol de Usuario)
+    def get_contenedores_por_rol(self, role_storage_id):
+        self._check_connection()
+        self._cur.execute("SELECT contenedores_asignados FROM roles_storage WHERE id_rol_storage = %s", (role_storage_id,))
+        result = self._cur.fetchone()
+
+        if result and result[0]:
+            contenedores_asignados = result[0].split(',')
+            #print(f"Contenedores asignados para el rol {role_storage_id}: {contenedores_asignados}")
+        else:
+            contenedores_asignados = []
+        return contenedores_asignados  

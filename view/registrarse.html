@@ -28,12 +28,12 @@
 
     <div class="row flex-grow-1">
         <!-- Formulario de creación de usuarios -->
-        <div class="col-lg-5 d-flex flex-column">
-            <div class="card shadow-sm">
+        <div class="col-lg-5 d-flex flex-column" style="height: 80vh;">
+            <div class="card shadow-sm flex-grow-1 d-flex flex-column">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Crear Nuevo Usuario</h4>
                 </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                <div class="card-body flex-grow-1 d-flex flex-column" style="overflow-y: auto; height: 70vh;">
                     <form id="createUserForm" action="/registrarse" method="post">
                         <input type="hidden" name="user_id" value="">
 
@@ -98,9 +98,9 @@
                         <button type="submit" class="btn btn-success w-100">Guardar</button>
                     </form>
                     <!-- Aquí comienza el formulario para cargar las licencias Power BI, justo debajo del formulario de creación de usuarios -->
-                    <div style="margin-top: 0px; border-top: 2px solid #bebebe; padding-top: 3px;">
+                    <div style="margin-top: 20px; border-top: 2px solid #bebebe; padding-top: 20px;">
                         <form id="licencias-form" enctype="multipart/form-data">
-                            <h5 style="font-size: 14px; margin-bottom: 5px;">Solo para Cargar archivo de Licencias Power BI Consorcio Express:</h5>
+                            <h5 style="font-size: 14px; margin-bottom: 10px;">Solo para Cargar archivo de Licencias Power BI Consorcio Express:</h5>
                             
                             <!-- Contenedor flex para el input y el botón -->
                             <div style="display: flex; align-items: center;">
@@ -116,12 +116,12 @@
         </div>
 
         <!-- Tabla de usuarios existentes -->
-        <div class="col-lg-7 d-flex flex-column">
-            <div class="card shadow-sm">
+        <div class="col-lg-7 d-flex flex-column" style="height: 80vh;">
+            <div class="card shadow-sm flex-grow-1 d-flex flex-column">
                 <div class="card-header bg-dark text-white" style="margin-bottom: 0;">
                     <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Usuarios Existentes</h4>
                 </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto; padding-top: 0;">
+                <div class="card-body flex-grow-1 d-flex flex-column" style="overflow-y: auto; height: 70vh; padding-top: 0;">
                     <table class="table table-hover table-striped" style="table-layout: fixed; width: 100%; font-size: 12px;">
                         <thead class="table-light" style="position: sticky; top: 0; z-index: 1; margin-top: 0; padding: 0;">
                             <tr>

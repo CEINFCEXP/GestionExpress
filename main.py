@@ -71,6 +71,7 @@ def login(req: Request, username: str = Form(...), password_user: str = Form(...
         if user_data:
             estado = user_data[6]  # campo de estado del usuario
             rol = user_data[4]  # es el id_rol del usuario
+            rol_storage = user_data[7]  # es el id_rol_storage del usuario
             
             # Verificamos si el estado del usuario es activo (1)
             if estado == 1:
@@ -79,9 +80,12 @@ def login(req: Request, username: str = Form(...), password_user: str = Form(...
                     "username": username,
                     "nombres": nombres,
                     "apellidos": apellidos,
-                    "rol": rol
+                    "rol": rol,
+                    "rol_storage": rol_storage
                 }
 
+                #print("Sesión del usuario:", req.session['user']) 
+                
                 # Redirigir al usuario a la página de inicio después del login
                 return RedirectResponse(url="/inicio", status_code=302)
             else:
@@ -975,8 +979,15 @@ def get_containers(req: Request, user_session: dict = Depends(get_user_session))
     if not user_session:
         return RedirectResponse(url="/", status_code=302)
 
-    containers = container_model.get_containers()
-    context = {"request": req,"user_session": user_session, "containers": containers}
+    # Obtener rol_storage del usuario logueado
+    user_rol_storage = user_session.get("rol_storage")
+    if user_rol_storage is None:
+        return HTMLResponse("Error: No se encontró rol_storage en la sesión del usuario", status_code=400)
+
+    # Obtener contenedores permitidos según el rol_storage del usuario
+    allowed_containers = container_model.get_allowed_containers(user_rol_storage)
+
+    context = {"request": req, "user_session": user_session, "containers": allowed_containers}
     return templates.TemplateResponse("containers.html", context)
 
 @app.post("/containers")

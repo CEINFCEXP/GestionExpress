@@ -26,12 +26,12 @@
 
     <div class="row flex-grow-1">
         <!-- Formulario de creación de roles_storage -->
-        <div class="col-lg-5 d-flex flex-column">
-            <div class="card shadow-sm">
+        <div class="col-lg-5 d-flex flex-column" style="height: 80vh;">
+            <div class="card shadow-sm flex-grow-1 d-flex flex-column">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Crear Nuevo Rol Storage Azure</h4>
                 </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                <div class="card-body flex-grow-1 d-flex flex-column" style="overflow-y: auto; height: 70vh;">
                     <form id="createRoleStorageForm" action="/roles_storage" method="post">
                         <input type="hidden" name="role_storage_id" value="">
                         <div class="mb-3">
@@ -40,7 +40,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="containers" class="form-label">Contenedores a Asignar</label>
-                            <select multiple class="form-select" id="containers" name="containers" style="height: 170px;" required>
+                            <select multiple class="form-select" id="containers" name="containers" style="height: 35vh;" required>
                                 {% for container in containers %}
                                     <option value="{{ container }}">{{ container }}</option>
                                 {% endfor %}
@@ -54,12 +54,12 @@
         </div>
 
         <!-- Tabla de roles_storage existentes -->
-        <div class="col-lg-7 d-flex flex-column">
-            <div class="card shadow-sm">
+        <div class="col-lg-7 d-flex flex-column" style="height: 80vh;">
+            <div class="card shadow-sm flex-grow-1 d-flex flex-column">
                 <div class="card-header bg-dark text-white" style="margin-bottom: 0;">
                     <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Roles Storage Existentes</h4>
                 </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto; padding-top: 0;">
+                <div class="card-body flex-grow-1 d-flex flex-column" style="overflow-y: auto; height: 70vh; padding-top: 0;">
                     <table class="table table-hover table-striped" style="font-size: 12px; table-layout: fixed; width: 100%;">
                         <thead class="table-light" style="position: sticky; top: 0; z-index: 1; margin-top: 0; padding: 0;">
                             <tr>
