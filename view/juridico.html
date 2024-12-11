@@ -105,9 +105,10 @@
             <tbody>
                 <!-- Filas dinámicas aquí -->
                 {% for clausula in clausulas %}
-                <tr style="height: 70px;"> <!-- Definir el alto fijo -->
+                <tr style="height: 70px; vertical-align: top;"> <!-- Definir el alto fijo -->
                     <td>
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalGestion" style="background-color: #ffffff; border-color: rgb(13, 15, 124);">
+                        <!-- Botón en la tabla para llamar a la función de abrir modal de Edición o Gestión -->
+                        <button type="button" class="btn btn-primary" data-id="{{ clausula.id }}" onclick="abrirModalGestion(this)" data-bs-toggle="modal" data-bs-target="#modalGestion" style="background-color: #ffffff; border-color: rgb(13, 15, 124);">
                             <img src="/static/images/editar.png" alt="Editar" style="width: 20px; height: 20px;">
                         </button>                                              
                     </td>
@@ -120,14 +121,14 @@
                         title="{{ clausula.tema }}" 
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top"
-                        style="max-height: 7.5em; overflow: hidden; text-overflow: ellipsis;  -webkit-box-orient: vertical;">
+                        style="overflow: hidden; text-overflow: ellipsis; white-space: normal; max-height: 100px;">
                         {{ clausula.tema }}
                     </td>
                     <td class="description-cell" 
                         title="{{ clausula.descripcion_clausula }}" 
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top"
-                        style="max-height: 11.5em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-box-orient: vertical;">
+                        style="overflow: hidden; text-overflow: ellipsis; white-space: normal; max-height: 100px; display: block; ">
                         {{ clausula.descripcion_clausula }}
                     </td>
                     <td>{{ clausula.tipo_clausula }}</td>
@@ -140,7 +141,6 @@
             </tbody>
         </table>
     </div>
-
 
     <style>
         /* Cambiar color al pasar el cursor por encima de la fila */
@@ -169,7 +169,7 @@
                     <div id="message" style="display: none;" class="alert" role="alert"></div>
 
                     <!-- Formulario para crear cláusula -->
-                    <form id="form_crear_clausula" method="POST" action="/clausulas/nueva" onsubmit="return validarFormulario()">
+                    <form id="form_crear_clausula" method="POST" action="/clausulas/nueva">
                         <input type="hidden" name="modal" value="crear">
                         <!-- Trae Estandar de Clausula_Config-->
                         {% set modal = 'crear' %}
@@ -192,7 +192,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalGestionLabel">Datos Generales de la Cláusula</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" onclick="confirmarCierreModal()" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row">
@@ -210,28 +210,19 @@
                             <table class="table table-bordered table-striped" style="font-size: 12px;">
                                 <thead class="table-responsive" style="background-color: #120b6e; color: #ffffff;">
                                     <tr>
-                                        <th>Id</th>
-                                        <th>Fecha de Cumplimiento</th>
-                                        <th>Estado</th>
-                                        <th>Plan de Acción</th>
-                                        <th>Observación</th>
-                                        <th>Adjuntos</th>
-                                        <th>N° Radicado</th>
+                                        <th>Entrega Max</th>
                                         <th>Fecha Radicado</th>
+                                        <th>N° Radicado</th>
+                                        <th>Plan</th>
+                                        <th>Observación</th>
+                                        <th>Adjunto</th>
+                                        <th>Estado</th>
                                         <th>Registrado Por</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="tabla-gestion">
                                     <tr>
-                                        <td>(-)</td>
-                                        <td>(-)</td>
-                                        <td>(-)</td>
-                                        <td>(-)</td>
-                                        <td>(-)</td>
-                                        <td>(-)</td>
-                                        <td>(-)</td>
-                                        <td>(-)</td>
-                                        <td>(-)</td>
+                                        <!-- Tabla se crea en el Script function cargarFilasGestion(clausulaId) -->
                                     </tr>
                                 </tbody>
                             </table>
@@ -239,201 +230,260 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" onclick="confirmarCierreModal()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarClausula()">Guardar</button>
                 </div>
             </div>
         </div>
     </div>
 
     
-    <!-- Actualiza las listas desplegables de filtros de acuerdo a gestion_clausulas.py -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const filters = {
-                control: document.getElementById('control'),
-                etapa: document.getElementById('etapa'),
-                clausula: document.getElementById('clausula'),
-                concesion: document.getElementById('concesion'),
-                buscar: document.getElementById('buscar')
-            };
-    
-            function filtrarClausulas() {
-                const queryParams = new URLSearchParams();
-    
-                if (filters.control.value !== 'Seleccionar...') {
-                    queryParams.append('control', filters.control.value);
-                }
-                if (filters.etapa.value !== 'Seleccionar...') {
-                    queryParams.append('etapa', filters.etapa.value);
-                }
-                if (filters.clausula.value !== 'Seleccionar...') {
-                    queryParams.append('clausula', filters.clausula.value);
-                }
-                if (filters.concesion.value !== 'Seleccionar...') {
-                    queryParams.append('concesion', filters.concesion.value);
-                }
-                if (filters.buscar.value !== '') {
-                    queryParams.append('buscar', filters.buscar.value);
-                }
-    
-                fetch(`/filtrar_clausulas?${queryParams.toString()}`)
-                    .then(response => response.text())
-                    .then(html => {
-                        const tableWrapper = document.querySelector('.table-wrapper');
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        const newTable = doc.querySelector('.table-wrapper').innerHTML;
-                        tableWrapper.innerHTML = newTable;
-                    })
-                    .catch(error => console.error('Error al filtrar las cláusulas:', error));
-            }
-    
-            filters.control.addEventListener('change', filtrarClausulas);
-            filters.etapa.addEventListener('change', filtrarClausulas);
-            filters.clausula.addEventListener('change', filtrarClausulas);
-            filters.concesion.addEventListener('change', filtrarClausulas);
-            filters.buscar.addEventListener('input', filtrarClausulas);
-    
-            // Agregar manejador para el botón "Limpiar"
-            document.getElementById('limpiar').addEventListener('click', function () {
-                // Restablece todas las listas desplegables a "Seleccionar..."
-                filters.control.value = 'Seleccionar...';
-                filters.etapa.value = 'Seleccionar...';
-                filters.clausula.value = 'Seleccionar...';
-                filters.concesion.value = 'Seleccionar...';
-                filters.buscar.value = '';
-    
-                // Recarga la tabla sin filtros
-                filtrarClausulas();
-                
-            });
-        });
-    </script>   
+<!-- Actualiza las listas desplegables de filtros de acuerdo a gestion_clausulas.py -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const filters = {
+            control: document.getElementById('control'),
+            etapa: document.getElementById('etapa'),
+            clausula: document.getElementById('clausula'),
+            concesion: document.getElementById('concesion'),
+            buscar: document.getElementById('buscar')
+        };
 
-    <!-- Función para validar el formulario -->
-    <script>
-        function validarFormulario() {
-            const form = document.getElementById('form_crear_clausula');
-            if (!form.checkValidity()) {
-                form.reportValidity(); // Esto mostrará los errores de validación nativos del navegador
-                return false;
-            }
-            return true; // Permite el envío si todos los campos están completos
-        }
-    </script>   
+        function filtrarClausulas() {
+            const queryParams = new URLSearchParams();
 
-    <!-- Función para mensajes de respuesta al guardar -->
-    <script>
-        document.getElementById('form_crear_clausula').addEventListener('submit', async function (e) {
-            e.preventDefault(); 
-    
-            const formData = new FormData(this);
-            try {
-                const response = await fetch('/clausulas/nueva', {
-                    method: 'POST',
-                    body: formData
-                });
-    
-                if (!response.ok) {
-                    throw new Error(`Error en la respuesta del servidor: ${response.status}`);
-                }
-    
-                const result = await response.json(); // Procesar la respuesta JSON
-    
-                if (result.success) {
-                    // Si la creación es exitosa, cerrar el modal usando la API de Bootstrap 5
-                    const modalElement = document.getElementById('modalCrearClausula');
-                    const modal = bootstrap.Modal.getInstance(modalElement);
-                    if (modal) {
-                        modal.hide();
-                    } else {
-                        // Si el modal no está inicializado, inicializarlo y luego cerrarlo
-                        const newModal = new bootstrap.Modal(modalElement);
-                        newModal.hide();
-                    }
-                    
-                    // Mostrar el mensaje de éxito en la página principal
-                    showGlobalMessage(result.message, 'success');
-                } else {
-                    // Si ocurre un error del servidor (respuesta válida pero con errores)
-                    const messageDiv = document.getElementById('message');
-                    messageDiv.style.display = 'block';
-                    messageDiv.classList.remove('alert-success', 'alert-danger');
-                    messageDiv.classList.add('alert-danger');
-                    messageDiv.innerText = result.message || 'Error inesperado al crear la cláusula';
-                }
-            } catch (error) {
-                // Manejo de errores inesperados (como desconexiones o errores de red)
-                const messageDiv = document.getElementById('message');
-                messageDiv.style.display = 'block';
-                messageDiv.classList.remove('alert-success', 'alert-danger');
-                messageDiv.classList.add('alert-danger');
-                messageDiv.innerText = `Ocurrió un error inesperado: ${error.message}`;
+            if (filters.control.value !== 'Seleccionar...') {
+                queryParams.append('control', filters.control.value);
             }
-        });        
-    </script>
-    
-    <!-- Función para mostrar mensajes globales con temporizadorr-->
-    <script>
-        function showGlobalMessage(message, type = 'success') {
-            const globalMessageDiv = document.getElementById('global_message');
-            globalMessageDiv.style.display = 'block';
-            globalMessageDiv.classList.remove('alert-success', 'alert-danger');
-            globalMessageDiv.classList.add(`alert-${type}`);
-            globalMessageDiv.innerText = message;
-    
-            // Ocultar el mensaje después de 5 segundos
-            setTimeout(() => {
-                globalMessageDiv.style.display = 'none';
-                globalMessageDiv.classList.remove(`alert-${type}`);
-            }, 5000);
+            if (filters.etapa.value !== 'Seleccionar...') {
+                queryParams.append('etapa', filters.etapa.value);
+            }
+            if (filters.clausula.value !== 'Seleccionar...') {
+                queryParams.append('clausula', filters.clausula.value);
+            }
+            if (filters.concesion.value !== 'Seleccionar...') {
+                queryParams.append('concesion', filters.concesion.value);
+            }
+            if (filters.buscar.value !== '') {
+                queryParams.append('buscar', filters.buscar.value);
+            }
+
+            fetch(`/filtrar_clausulas?${queryParams.toString()}`)
+                .then(response => response.text())
+                .then(html => {
+                    const tableWrapper = document.querySelector('.table-wrapper');
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newTable = doc.querySelector('.table-wrapper').innerHTML;
+                    tableWrapper.innerHTML = newTable;
+                })
+                .catch(error => console.error('Error al filtrar las cláusulas:', error));
         }
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const urlParams = new URLSearchParams(window.location.search);
-            const successMessage = urlParams.get('success_message');
+
+        filters.control.addEventListener('change', filtrarClausulas);
+        filters.etapa.addEventListener('change', filtrarClausulas);
+        filters.clausula.addEventListener('change', filtrarClausulas);
+        filters.concesion.addEventListener('change', filtrarClausulas);
+        filters.buscar.addEventListener('input', filtrarClausulas);
+
+        // Agregar manejador para el botón "Limpiar"
+        document.getElementById('limpiar').addEventListener('click', function () {
+            // Restablece todas las listas desplegables a "Seleccionar..."
+            filters.control.value = 'Seleccionar...';
+            filters.etapa.value = 'Seleccionar...';
+            filters.clausula.value = 'Seleccionar...';
+            filters.concesion.value = 'Seleccionar...';
+            filters.buscar.value = '';
+
+            // Recarga la tabla sin filtros
+            filtrarClausulas();
             
-            if (successMessage) {
-                showGlobalMessage(successMessage, 'success');
-            }
         });
-    </script>
+    });
+</script>   
 
-    <!-- Función para limpiar el formulario de crear y gestionar  -->
-    <script>
-        // Declaración global para almacenar los procesos y subprocesos agregados
-        const procesosSubprocesosAgregados = { modalCrearClausula: new Set() };
+<!-- Función para validar el formulario -->
+<script>
+    function validarFormulario() {
+        const form = document.getElementById('form_crear_clausula');
+        if (!form.checkValidity()) {
+            form.reportValidity(); // Esto mostrará los errores de validación nativos del navegador
+            return false;
+        }
+        return true; // Permite el envío si todos los campos están completos
+    }
+</script>   
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const modalCrearClausula = document.getElementById('modalCrearClausula');
+<!-- Función para mostrar mensajes globales con temporizadorr-->
+<script>
+    function showGlobalMessage(message, type = 'success') {
+        const globalMessageDiv = document.getElementById('global_message');
+        globalMessageDiv.style.display = 'block';
+        globalMessageDiv.classList.remove('alert-success', 'alert-danger');
+        globalMessageDiv.classList.add(`alert-${type}`);
+        globalMessageDiv.innerText = message;
+
+        // Ocultar el mensaje después de 5 segundos
+        setTimeout(() => {
+            globalMessageDiv.style.display = 'none';
+            globalMessageDiv.classList.remove(`alert-${type}`);
+        }, 5000);
+    }
+</script>
+
+<!-- Función para mostrar mensajes globales Exito o Error-->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const successMessage = urlParams.get('success_message');
+        
+        if (successMessage) {
+            showGlobalMessage(successMessage, 'success');
+        }
+    });
+</script> 
+
+<!-- Declaración global para almacenar los procesos y subprocesos agregados -->
+<script>
+    const procesosSubprocesosAgregados = { modalCrearClausula: new Set() };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalCrearClausula = document.getElementById('modalCrearClausula');
+        const formCrearClausula = document.getElementById('form_crear_clausula');
+
+        // Función para limpiar el modal completamente cada vez que se abre
+        function resetModal() {
+            // Limpiar todos los campos de entrada de texto y listas desplegables en el formulario
             const formCrearClausula = document.getElementById('form_crear_clausula');
-
-            // Función para limpiar el modal como si se ingresara a la aplicación
-            function resetModal() {
-                // Limpiar el formulario completamente
-                formCrearClausula.reset();
-
-                // Limpiar el contenedor visual de los procesos y subprocesos agregados
-                const contenedor = document.getElementById('modalCrearClausula_contenedor_procesos_subprocesos');
-                contenedor.innerHTML = ''; // Vacía el contenedor visual al abrir el modal
-
-                // Limpiar el set de procesos/subprocesos agregados
-                procesosSubprocesosAgregados['modalCrearClausula'].clear();
-
-                // Asegurarse de ocultar el título de "Procesos Responsables Agregados"
-                const titulo = document.getElementById('modalCrearClausula_titulo_procesos_responsables');
-                if (titulo) {
-                    titulo.style.display = 'none';
-                }
+            if (formCrearClausula) {
+                // Limpiar manualmente cada campo de texto y lista desplegable en el formulario
+                const inputs = formCrearClausula.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    if (input.type === 'checkbox' || input.type === 'radio') {
+                        input.checked = false;
+                    } else if (input.tagName === 'SELECT') {
+                        input.selectedIndex = 0; // Restablecer al primer elemento
+                    } else {
+                        input.value = ''; // Restablecer el valor
+                    }
+                });
             }
+        
+            // Limpiar el contenedor visual de los procesos y subprocesos agregados
+            const contenedor = document.getElementById('modalCrearClausula_contenedor_procesos_subprocesos');
+            if (contenedor) {
+                contenedor.innerHTML = ''; // Vacía el contenedor visual al abrir el modal
+            }
+        
+            // Limpiar el conjunto de procesos/subprocesos agregados
+            if (procesosSubprocesosAgregados.modalCrearClausula) {
+                procesosSubprocesosAgregados.modalCrearClausula.clear();
+            }
+        
+            // Ocultar el título de "Procesos Responsables Agregados"
+            const titulo = document.getElementById('modalCrearClausula_titulo_procesos_responsables');
+            if (titulo) {
+                titulo.style.display = 'none';
+            }
+        }
 
-            // Evento que se activa al abrir el modal
-            modalCrearClausula.addEventListener('shown.bs.modal', function () {
-                resetModal(); // Limpia completamente el modal cada vez que se abre
-            });
-        });
-    </script>
+        // Asegurarse de llamar a resetModal antes de que el modal se muestre
+        if (modalCrearClausula) {
+            modalCrearClausula.addEventListener('show.bs.modal', resetModal);
+        }
+    }); 
+</script>
+
+<!-- Crear dinámicamente filas en el modal de gestión según la frecuencia (GESTIONAR). -->
+<script>
+    function cargarFilasGestion(clausulaId) {
+        fetch(`/api/fechas_dinamicas/${clausulaId}`)
+            .then(response => response.json())
+            .then(data => {
+                const tabla = document.getElementById("tabla-gestion");
+                tabla.innerHTML = ""; // Limpiar filas existentes
+                data.forEach(item => {
+                    // Convertir fecha de entrega a formato DD/MM/YYYY
+                    const [year, month, day] = item.entrega.split("-");
+                    const entregaFormatted = `${day}/${month}/${year}`;
+
+                    const fila = document.createElement("tr");
+                    fila.innerHTML = `
+                        <td>${entregaFormatted}</td>
+                        <td><input type="date" class="form-control fecha-radicado" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this)" /></td>
+                        <td><input type="text" class="form-control"></td>
+                        <td class="plan-accion" style="text-align: center;"></td>
+                        <td><textarea class="form-control"></textarea></td>
+                        <td><input type="file" class="form-control"></td>
+                        <td><select class="form-select"><option>Pendiente</option><option>Completado</option></select></td>
+                        <td>(Usuario Actual)</td>
+                    `;
+                    tabla.appendChild(fila);
+                });
+
+                // Asignar eventos de cambio en "Fecha Radicado"
+                const fechasRadicado = document.querySelectorAll(".fecha-radicado");
+                fechasRadicado.forEach(fecha => {
+                    fecha.addEventListener("change", function () {
+                        evaluarPlanAccion(this);
+                    });
+                });
+            })
+            .catch(error => console.error("Error al cargar filas:", error));
+    }
+
+    // Crear la condición SI requiere o NO Plan de Acción de acuerdo al cumplimiento de las entregas.
+    function evaluarPlanAccion(inputFecha) {
+        try {    
+            // Obtener Fecha Radicado (valor del input en formato YYYY-MM-DD)
+            const fechaRadicadoRaw = inputFecha.value;
+            if (!fechaRadicadoRaw) {
+                //console.log("Fecha Radicado está vacía.");
+                const planAccionCell = inputFecha.closest("tr").querySelector(".plan-accion");
+                planAccionCell.textContent = ""; // Limpiar si está vacío
+                planAccionCell.style.color = "";
+                return;
+            }
+    
+            const [radicadoYear, radicadoMonth, radicadoDay] = fechaRadicadoRaw.split("-");
+            const fechaRadicado = new Date(radicadoYear, radicadoMonth - 1, radicadoDay); // Constructor seguro
+            //console.log("Fecha Radicado (formateada):", `${radicadoDay}/${radicadoMonth}/${radicadoYear}`);
+            //console.log("Fecha Radicado (objeto Date):", fechaRadicado);
+    
+            // Obtener Fecha Entrega desde el atributo data-entrega (formato DD/MM/YYYY)
+            const entregaParts = inputFecha.getAttribute("data-entrega").split("/");
+            const fechaEntrega = new Date(entregaParts[2], entregaParts[1] - 1, entregaParts[0]); // Constructor seguro
+            //console.log("Fecha Entrega (data-entrega):", inputFecha.getAttribute("data-entrega"));
+            //console.log("Fecha Entrega (objeto Date):", fechaEntrega);
+    
+            // Normalizar fechas a medianoche para evitar problemas de zona horaria
+            fechaRadicado.setHours(0, 0, 0, 0);
+            fechaEntrega.setHours(0, 0, 0, 0);
+    
+            //console.log("Fecha Radicado (normalizada):", fechaRadicado);
+            //console.log("Fecha Entrega (normalizada):", fechaEntrega);
+    
+            // Seleccionar la celda de "Plan"
+            const planAccionCell = inputFecha.closest("tr").querySelector(".plan-accion");
+    
+            // Comparación explícita entre Fecha Radicado y Fecha Entrega
+            if (fechaRadicado > fechaEntrega) {
+                //console.log("Condición cumplida: 'SI'");
+                planAccionCell.textContent = "SI";
+                planAccionCell.style.color = "red";
+            } else {
+                //console.log("Condición cumplida: 'NO'");
+                planAccionCell.textContent = "NO";
+                planAccionCell.style.color = "green";
+            }
+    
+            //console.log("Evaluación completada para esta fila.");
+        } catch (error) {
+            //console.error("Error evaluando plan de acción:", error);
+        }
+    }
+</script>
+
+
 
 {% endblock %}

@@ -1,8 +1,11 @@
 import pandas as pd
 import psycopg2
 from psycopg2 import sql
+from dotenv import load_dotenv
 import os
 
+# Cargar las variables de entorno desde .env
+load_dotenv()
 # Configuración de la conexión a PostgreSQL
 DATABASE_PATH = os.getenv("DATABASE_PATH")
 conexion = psycopg2.connect(DATABASE_PATH)

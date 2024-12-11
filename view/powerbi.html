@@ -3,21 +3,17 @@
 {% block title %}Acceso a Power BI{% endblock %}
 
 {% block content %}
-<div class="container-fluid" style="display: flex; height: 90vh;">
 
-    {% if not error_message %}
-    <!-- Iframe que muestra Power BI -->
-    <div style="flex: 1; height: 100%;">
-        <iframe id="powerbiFrame" src="https://app.powerbi.com/?experience=power-bi"
-            style="width: 100%; height: 100%; border: none;"></iframe>
-    </div>
-    {% endif %}
+<button id="show-menu" type="button" class="btn btn-primary">
+    <img src="/static/images/power.png" alt="Power BI Logo" style="width: 30px; margin-right: 5px;" font-family: 'Century Gothic', Arial, sans-serif;>
+    <br> Menú <br> Power BI
+</button>
 
     <!-- Botón que abre el modal -->
     <div style="position: absolute; bottom: 20px; right: 20px;">
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#credencialesModal">
-            <img src="/static/images/powerbi.png" alt="Power BI Logo" style="width: 30px; margin-right: 10px;">
-            PowerBI
+            <img src="/static/images/candado.png" alt="Power BI Logo" style="width: 30px; margin-right: 10px;">
+            <br>Licencia<br>PowerBI
         </button>
     </div>
 
@@ -57,11 +53,384 @@
         </div>
     </div>
 
-</div>
-{% endblock %}
+<div id="menu">
+    <!-- Botón de Inicio Actualiza la Página (estilo del botón de cerrar) -->
+    <button onclick="location.reload()"
+            style="
+                background-color: transparent; /* Fondo transparente */
+                border: none; /* Sin borde */
+                color: black; /* Color del texto */
+                font-size: 20px; /* Tamaño del icono */
+                cursor: pointer; /* Cursor de mano al pasar */
+                margin-left: 170px; /* Espaciado desde el borde izquierdo */
+                transition: transform 0.2s; /* Suaviza el efecto de escala */
+            ">
+        <img src="/static/images/iniciopowerbi.png" 
+            alt="Inicio" 
+            style="
+                width: 30px; 
+                height: 30px; 
+                vertical-align: middle; /* Alinea la imagen con el texto */
+                transition: transform 0.2s;
+            ">
+    </button>
 
-{% block scripts %}
-<!-- Scripts de Bootstrap para el modal -->
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+    <style>
+        /* Efecto de escala al pasar el ratón */
+        button:hover img {
+            transform: scale(1.1); /* Aumenta el tamaño al pasar el ratón */
+        }
+    </style>
+
+
+
+    <!-- Botón Ocultar Menú (dentro del menú) -->
+    <button id="hide-menu" 
+            style="
+                font-family: 'Century Gothic', Arial, sans-serif; 
+                display: block; /* Hace que el botón sea un bloque */
+                margin: 10px auto; /* Centra horizontalmente usando márgenes automáticos */
+                text-align: center; /* Asegura que el contenido interno esté centrado */
+            ">
+        Áreas de Trabajo e Informes de Power BI <strong>☰ Cerrar</strong>
+    </button>
+    <!-- Grupo 1 -->
+    <h3><strong>01_Gerencia</strong></h3> <!-- Recuerde al agregar la url despues debe ir &report=nombre del informe -->
+    <ul>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiYWUwZjkwOWQtY2FjYS00ODI4LTk0OGItZWFjMjVlMWYyNWFjIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Planeación Indicadores Estratégicos CEX">Planeación Indicadores Estratégicos CEX</a></li>
+    </ul>
+    <!-- Grupo 2 -->
+    <h3><strong>20_Op_Planeación de Operaciones y Gestión de la Demanda</strong></h3> <!-- Recuerde al agregar la url despues debe ir &report=nombre del informe -->
+    <ul>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiODg5YmVkMzctYzk2ZC00YTA0LWFiNWMtN2FlOGI5ZGUxNjIzIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe BI Demanda Troncal">Informe BI Demanda Troncal</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiODdlMTVhODgtZTY1Yy00NDBkLTlhNWMtMzcyNWIxZTIwZmM4IiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Gestión de Demanda">Informe Gestión de Demanda</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiM2NkOWYyNzYtZGYxMi00ODk0LWJlMDUtNmM3ZDFlOGY5ZjhhIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe ITS">Informe ITS</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiMjcxMjkyZGItODI2Zi00YmU5LWJjODgtNzJjZGZlNzYwZjgyIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Pasajeros CEXP">Informe Pasajeros CEXP</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiNWJiNTVkZDctZTMzZS00ZjUyLTlhMzEtMWNmODI1OGI1OWUxIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Tablero de Control Tiempos de Ciclo">Informe Tablero de Control Tiempos de Ciclo</a></li>
+    </ul>
+    <!-- Grupo 3 -->
+    <h3><strong>21_Op_Programación y Gestión de Operadores</strong></h3> <!-- Recuerde al agregar la url despues debe ir &report=nombre del informe -->
+    <ul>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiYWYxMTJlOWMtZjgxYi00ZTZhLThkNTEtODQ2YTJhODQ3OTAxIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Disponibilidad de Operadores">Informe Disponibilidad de Operadores</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiODg4MTkxNmItMjQwMS00YjJhLThmZTUtM2E5YWNiNjQxZmQxIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Estado Operadores">Informe Estado Operadores</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiNmZjYWI4ZWEtMGE5MS00ZWNjLThjNjktZGE5MmZhMGI1YjNjIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Maestro Operadores">Informe Maestro Operadores</a></li>
+    </ul>
+    <!-- Grupo 4 -->
+    <h3><strong>22_Op_Control de la Operación</strong></h3> <!-- Recuerde al agregar la url despues debe ir &report=nombre del informe -->
+    <ul>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiZGZmYzAzZWEtMTMzNi00MWNjLTlkM2QtYjFhNmE4MTQ3OTI3IiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Efectividad de Retomas y Acciones de Regulación">Informe Efectividad de Retomas y Acciones de Regulación</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiYmVlMjllYWMtODFhYi00NDY5LTg3MTYtMGNkMmVkMWRlMTM2IiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe F2">Informe F2</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiMmM0Njg0N2EtOGI4My00OGFjLWFiZWYtNDcwMWViYTQ5NzlmIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe F3">Informe F3</a></li>
+    </ul>
+    <!-- Grupo 5 -->
+    <h3><strong>23_Op_Seguimiento a Indicadores Operacionales</strong></h3> <!-- Recuerde al agregar la url despues debe ir &report=nombre del informe -->
+    <ul>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiOGVmOTM5MWMtYWVmNS00ZmJlLTgyMTktYTZiYzlhZDcxNDFlIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Junta Directiva">Informe Junta Directiva</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiODIyOTRiOGItNjEzYi00NDBlLWEzMTQtNjY4Y2JmMGJjNGMwIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Operacional Flota Circulando">Informe Operacional Flota Circulando</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiNmU5Yjk1OWItODc3OC00ZmEyLWEzNTQtODkwZDFkMTZkMjM2IiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Modelo Seguimiento a Flota">Informe Modelo Seguimiento a Flota</a></li>
+    </ul>
+    <!-- Grupo 6 -->
+    <h3><strong>24_Op_Cumplimiento de Kilometros</strong></h3> <!-- Recuerde al agregar la url despues debe ir &report=nombre del informe -->
+    <ul>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiM2Q3ODE2NWEtZTQxOS00NDg0LTlmMGYtYWQyZGYyNDViMmFkIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Operacional Alimentación">Informe Operacional Alimentación</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiYmNjZTkyNDEtZmNmMC00Y2RmLTkyMzItZDU0MmU1ZTM1Y2M5IiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Operaciones Troncal">Informe Operaciones Troncal</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiOGNmMzE5ZDQtNjk3OC00M2MyLTllZjctMjZmZGI2NWIyODljIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Operacional Zonal">Informe Operacional Zonal</a></li>
+    </ul>
+    <!-- Grupo 7 -->
+    <h3><strong>25_Op_Seguimiento a los Ingresos</strong></h3> <!-- Recuerde al agregar la url despues debe ir &report=nombre del informe -->
+    <ul>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiZmEwZGFjOGQtMzQ3NC00ZGRlLTk5NTgtOTRiNjRkY2U2NTAyIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe OFF ICK y Manejo Interno">Informe OFF ICK y Manejo Interno</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiNjI0YWY0M2MtZmZkYy00N2JlLTk3NmMtNTc0MGE1MzdlMTc2IiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Seguimiento Ingresos">Informe Seguimiento Ingresos</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiOTM2NDQzNGMtNmQwYS00MGM3LTg1M2EtOWQzOGE5NjY1MjY5IiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Seguimiento Semanal Conciliación Zonal">Informe Seguimiento Semanal Conciliación Zonal</a></li>
+    </ul>
+    <!-- Grupo 8 -->
+    <h3><strong>26_Op_Seguimiento a EMIC - Objetivos y Rendimiento</strong></h3> <!-- Recuerde al agregar la url despues debe ir &report=nombre del informe -->
+    <ul>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiZjQxMDVjZDAtY2Y2MS00N2NmLTk2ODUtYzM1NDVmODExYjM0IiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Accidentalidad">Informe Accidentalidad</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiYThmNzRhODgtYWZjMi00MjU0LTkzY2QtNDFiZGUwZTE5NDRiIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe ICS">Informe ICS</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiMjMyMTc1N2YtNjMzYS00MDA5LWE1MTYtMzFjZTI2YzU3MzVlIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe Infracciones ICO">Informe Infracciones ICO</a></li>
+        <li><a href="#" data-report-url="https://app.powerbi.com/view?r=eyJrIjoiNzhkNjg3MzEtNWExOS00OTJmLWE2MTEtMGI1NTgxNWQxMTcwIiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9&report=Informe IRI">Informe IRI</a></li>
+    </ul>
+</div>
+
+<div id="content">
+    <!-- Mensaje de carga -->
+    <div id="loading-message" style="display: none;">Estamos Cargando el: <br>
+        <span id="report-name"></span> <br> ...Por favor espere...
+        <img id="loadingbi-gif" src="/static/images/cargandobi.gif" alt="Cargando..." style="display: block; margin: 0 auto;" width="150" height="150" class="mb-3"/>
+    </div>
+
+    <!-- Informe inicial -->
+    <iframe id="default-report-frame" title="PBI - ESTRUCTURA APP POWER BI CEXP" width="100%" height="100%" src="https://app.powerbi.com/view?r=eyJrIjoiZGY0MmE2N2MtZjkzZi00MGViLWE4NzYtNTM4NjRkN2Q4NzE2IiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9" frameborder="0" allowfullscreen="true" style="display: block;"></iframe>
+
+    <!-- Informe seleccionado -->
+    <iframe id="report-frame" sandbox="allow-same-origin allow-scripts allow-popups" allowfullscreen style="display: none;"></iframe>
+</div>
+
+<style>
+    /* Estilos personalizados */
+    #menu {  /* Estilo para el panel lateral */
+        height: 90%; /* El panel lateral ocupa el 100% de la altura de la ventana */
+        width: 5; /* Inicia con un ancho de 0, es decir, oculto */
+        position: fixed; /* Fija el panel en su posición relativa a la ventana */
+        z-index: 100; /* Asegura que el panel esté por encima de otros elementos */
+        top: 45px; /* Fija el panel en la parte superior de la ventana */
+        left: 0px; /* Fija el panel en la parte izquierda de la ventana */
+        background-color: #a2f9b571; /* Color de fondo oscuro */
+        overflow-x: hidden; /* Oculta el contenido que exceda el ancho */
+        transition: 0.15s; /* Suaviza la transición de apertura y cierre en 0.15 segundos */
+        padding-top: 10px; /* Añade un espacio superior dentro del panel para separar del borde */
+        font-family: 'Century Gothic', Arial, sans-serif;
+    }
+
+    #menu { /* Estilo para el panel lateral */
+        width: 0%; /* Fija el ancho del panel */
+        float: left; /* Fija el panel en la parte izquierda de la ventana */
+        background-color: #f9f9f9; /* Color de fondo del panel */
+        padding: 0px; /* Elimina el espacio interno del panel */
+        border-right: 5px solid #16A038; /* Agrega una línea de separación entre el panel y el contenido */
+        font-family: 'Century Gothic', Arial, sans-serif;
+    }
+
+    #menu h3 { /* Estilo para los títulos de los grupos del menú */
+        display: block; /* Mostrar el título del grupo */
+        font-size: 13px; /* Tamaño de fuente del título */
+        margin-left:  5px; /* Añade espacio entre el contenido del grupo y el siguiente */
+        margin-bottom: 10px; /* Añade espacio entre el título y el contenido */
+        padding: 0px; /* Elimina el espacio interno del panel */
+        font-family: 'Century Gothic', Arial, sans-serif;
+    }
+
+    #menu ul { /* Estilo para el contenido del menú los grupos de informes */
+        list-style-type: none; /* Elimina la marca de lista */
+        margin-left:  20px; /* Añade espacio entre el contenido del grupo y el siguiente */
+        padding-left: 20px;  /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        margin-top: 0px; /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        padding-top: 10px;  /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        margin-bottom: 10px; /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        padding-bottom: 0px;  /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        padding: 0px;  /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        font-family: 'Century Gothic', Arial, sans-serif; /* Usa la fuente de estilo "Century Gothic" */
+        font-size: 12px; /* Tamaño de fuente del título */
+    }
+
+    #menu li { /* Estilo para los elementos del menú */
+        margin-bottom: 0px; /* Elimina el espacio entre los elementos del menú y el siguiente */
+        padding: 0px; /* Elimina el espacio interno del panel */
+        font-family: 'Century Gothic', Arial, sans-serif;
+    }
+
+    #menu li a { /* Estilo para el enlace del grupo */
+        display: block; /* Mostrar el enlace del grupo */
+        padding: 2px; /* Añade espacio interno al enlace */
+        border: 2px solid white; /* Agrega una línea de separación entre los enlaces */
+        border-radius: 0px; /* Agrega un borde redondeado al enlace */
+        text-decoration: none; /* Elimina el subrayado del enlace */
+        color: #000000; /* Color del texto del enlace */
+        background-color: #a2f9b571; /* Color de fondo del enlace */
+        transition: background-color 0.15s, color 0.15s; /* Suaviza la transición del color del enlace */
+    }
+
+    #menu li a:hover { /* Estilo para el enlace al pasar el ratón */
+        background-color: #16A038; /* Color de fondo del enlace al pasar el ratón */
+    }
+
+    #menu li a.active { /* Estilo para el enlace activo */
+        font-weight: bold; /* Hace que el texto del enlace sea negrita */
+        color: white; /* Color del texto del enlace */
+        background-color: #16A038; /* Color de fondo del enlace */
+        border-color: #16A038; /* Agrega un borde a la línea de separación del enlace */
+    }
+
+    #content { /* Estilo para el contenido */
+        width: 100%; /* Fija el ancho del contenido */
+        margin-left: 0px; /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        padding-left: 0px;  /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        float: left; /* Fija el contenido en la parte derecha de la ventana */  
+        padding: 0px; /* Elimina el espacio interno del contenido */
+    }
+
+    #default-report-frame,
+    #report-frame { /* Estilo para el iframe */
+        width: 100%; /* Fija el ancho del iframe */
+        height: 90vh; /* Fija el alto del iframe */
+        border: none; /* Elimina el borde del iframe */
+    }
+
+    #loading-message { /* Estilo para el mensaje de carga */
+        text-align: center; /* Alinea el texto centrado */
+        font-size: 36px; /* Tamaño de fuente del texto */
+        font-weight: bold; /* Hace que el texto sea negrita */
+        color: #25397A; /* Color del texto */
+        margin-bottom: 100px; /* Añade espacio entre el texto y el siguiente */
+    }
+
+.menu-hidden #content { /* Estilo para el contenido cuando el menú está oculto */
+    width: 100%;  /* Esto hace que el contenido ocupe todo el ancho cuando el menú está oculto */
+}
+
+/* Estilo para los botones de Mostrar/Ocultar Menú */
+/* Estilo para el botón Mostrar Menú */
+#show-menu {
+    position: fixed; /* Fija el botón en la pantalla */
+    top: 50px; /* Espaciado desde la parte superior */
+    left: 0px; /* Espaciado desde la parte izquierda */
+    z-index: 100; /* Asegura que el botón esté por encima de otros elementos */
+    padding: 5px 10px;
+    background-color: #D9D9D9; /* Color de fondo */
+    color: #000000; /* Color del texto */
+    font-weight: bold; /* Texto en negrilla por defecto */
+    border: none; /* Sin borde */
+    border-radius: 5px; /* Bordes redondeados */
+    cursor: pointer; /* Cambia el cursor al pasar por encima */
+    font-size: 14px; /* Tamaño de fuente */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.888); /* Sombra para destacar el botón */
+    display: none; /* Oculto por defecto, se muestra cuando el menú está oculto */
+}
+
+#hide-menu {
+    display: none;  /* Por defecto, ambos botones estarán ocultos */
+    margin-bottom: 10px; /* Elimina el espacio entre los botones */
+    padding: 5px 10px; /* Añade espacio interno al botón */
+    background-color: #D9D9D9; /* Color de fondo del botón */
+    color: #000000; /* Color del texto del botón */
+    font-weight: bold; /* Texto en negrilla por defecto */
+    border: none; /* Elimina el borde del botón */
+    border-radius: 5px; /* Bordes redondeados */
+    cursor: pointer; /* Cambia el cursor a un puntero para indicar clic */
+    font-size: 14px; /* Tamaño de fuente del botón */
+    box-shadow: 0 4px 6px rgba(6, 0, 0, 0.475); /* Sombra para destacar el botón */
+    margin-left: 2px; /* Añade espacio a la izquierda del botón */
+    top: 1; /* Fija el botón en la parte superior */
+    right: 1px; /* Lo aleja del borde derecho del panel */
+}
+
+#show-menu:hover,
+#hide-menu:hover,
+#show-menu:focus,
+#hide-menu:focus {
+    background-color: #25397A; /* Cambia el color del botón al pasar el ratón */
+    color: white; /* Cambia el color del texto a blanco */
+}
+
+#show-menu,
+#hide-menu {
+    color: black; /* Color de texto negro cuando no está seleccionado */
+    font-weight: bold; /* Texto en negrilla por defecto */
+}
+
+body:not(.menu-hidden) #show-menu{
+    display: block; /* Muestra el botón cuando el menú está oculto */
+}
+
+body.not.menu-hidden #hide-menu {
+    display: none; /* Oculta el botón cuando el menú está visible */
+}
+
+#menu a img {
+    transition: transform 0.2s; /* Efecto de transición al pasar el ratón */
+}
+
+#menu a img:hover {
+    transform: scale(1.1); /* Aumenta el tamaño al pasar el ratón */
+}
+
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () { // Agregar evento de carga de DOM
+        const principalImage = document.getElementById('principalbi-png');
+        const reportLinks = document.querySelectorAll("#menu a"); // Obtén todos los enlaces del menú
+        const defaultReportFrame = document.getElementById("default-report-frame"); // Informe inicial
+        const reportFrame = document.getElementById("report-frame"); // Informe seleccionado
+        const loadingMessage = document.getElementById("loading-message"); // Mensaje de carga
+        const reportNameSpan = document.getElementById("report-name"); // Nombre del informe
+        const showMenuButton = document.getElementById("show-menu"); // Obtén el botón Mostrar Menú
+        const hideMenuButton = document.getElementById("hide-menu"); // Obtén el botón Ocultar Menú
+        const body = document.body; // Obtén el cuerpo del documento
+
+        // Función para cargar un informe
+        function loadReport(link) { // Función para cargar un informe   
+            const reportUrl = link.getAttribute("data-report-url"); // Obtener la URL del informe
+            const urlParams = new URLSearchParams(reportUrl.split('?')[1]); // Obtener los parámetros de la URL
+            const reportName = urlParams.get("report") || "Informe desconocido"; // Obtener el nombre del informe
+
+            if (reportUrl) {
+                // Ocultar el informe predeterminado
+                defaultReportFrame.style.display = "none";
+
+                // Limpiar la clase "active" de todos los enlaces
+                reportLinks.forEach(link => link.classList.remove("active"));
+
+                // Marcar el enlace actual como activo
+                link.classList.add("active");
+
+                // Ocultar la imagen inicial y mostrar mensaje de carga
+                if (principalImage) {
+                    principalImage.style.display = "none"; // Ocultar la imagen inicial si existe
+                }
+                loadingMessage.style.display = "block"; // Mostrar mensaje de carga
+                reportNameSpan.textContent = reportName; // Actualizar el nombre del informe
+                reportFrame.style.display = "none"; // Ocultar el iframe temporalmente
+
+                // Cambiar la URL del iframe y ocultar el mensaje cuando se carga
+                reportFrame.src = reportUrl;
+                reportFrame.onload = () => { // Cuando el iframe se carga
+                    loadingMessage.style.display = "none"; // Ocultar mensaje de carga
+                    reportFrame.style.display = "block"; // Mostrar el iframe
+                };
+            } else {
+                console.error("URL del informe no definida en el enlace."); // Mostrar error en la consola
+            }
+        }
+
+        // Función para mostrar el menú
+        function showMenu() {
+            const menu = document.getElementById("menu"); // Obtén el elemento del menú
+            menu.style.display = "block"; // Muestra el menú configurando 'display' a 'block'
+            menu.style.width = "400px"; // Opcional: define un ancho para el menú
+        }
+
+        // Función para ocultar el menú
+        function hideMenu() {
+            const menu = document.getElementById("menu"); // Obtén el elemento del menú
+            menu.style.display = "none"; // Oculta el menú configurando 'display' a 'none'
+            menu.style.width = "400px"; // Opcional: establece el ancho en '0'
+        }
+
+        // Cerrar el menú al hacer clic fuera de él
+        document.addEventListener("click", function (event) {
+            if (
+                !menu.contains(event.target) && // Si el clic no está dentro del menú
+                event.target !== showMenuButton // Y no es el botón para abrir el menú
+            ) {
+                hideMenu();
+            }
+        });
+
+        // Cerrar el menú al seleccionar un informe
+        reportLinks.forEach(link => {
+            link.addEventListener("click", function () {
+                hideMenu();
+            });
+        });
+
+        // Agregar eventos de clic a los enlaces del menú
+        reportLinks.forEach(link => { // Iterar sobre todos los enlaces del menú
+            link.addEventListener("click", function (event) { // Agregar evento de clic al enlace
+                event.preventDefault(); // Evitar que se abra el enlace en una nueva pestaña
+                loadReport(this); // Cargar el informe
+            });
+        });
+
+        // Agregar eventos a los botones de mostrar/ocultar menú
+        showMenuButton.addEventListener("click", showMenu); // Agregar evento de clic al botón Mostrar Menú
+        hideMenuButton.addEventListener("click", hideMenu); // Agregar evento de clic al botón Ocultar Menú
+
+        // Inicializar el estado de los botones al cargar
+        showMenuButton.style.display = "block"; // Mostrar el botón Mostrar Menú
+        hideMenuButton.style.display = "block"; // Mostrar el botón Ocultar Menú
+    });
+</script>
+
 {% endblock %}

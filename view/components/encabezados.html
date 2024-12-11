@@ -3,10 +3,6 @@
   <nav class="navbar navbar-light bg-light" style="padding: 0;">
     <div class="container-fluid d-flex justify-content-end" style="padding: 0;">
       <ul class="navbar-nav" style="display: flex; flex-direction: row; align-items: center; margin: 0;">
-        <li class="nav-item" style="margin-right: 20px;">
-          <!-- Enlace modificado para abrir el modal de advertencia -->
-          <a class="nav-link" href="#" onclick="openModal()">Power BI</a>
-        </li>
         <li class="nav-item" style="margin-right: 40px;">
           <a class="nav-link" href="/logout">Cerrar Sesión</a>
         </li>
@@ -15,39 +11,5 @@
   </nav>
 </header>
 
-<!-- Modal de advertencia apertura Aplicaciones PowerBI -->
-<div id="modalIncognito" class="modal" style="display:none;">
-  <div class="modal-content" style="background-color: white; padding: 40px; border-radius: 20px; max-width: 550px; width: 80%; margin: auto">
-    <h4>¡Mensaje Importante!</h4>
-    <p>Debes abrir la plataforma Gestión Consorcio Express en <strong>Modo incógnito</strong> de tu navegador de lo contrario no podrás utilizar tu cuenta corporativa de Microsoft para el uso de correo, teams y demás aplicaciones.</p>
-    <ul>
-      <li>Haz clic en el <strong>menú</strong> de tres puntos en la esquina superior derecha de Chrome.</li>
-      <li>Selecciona <strong>"Nueva ventana de incógnito"</strong>.</li>
-      <li>También puedes usar el atajo de teclado: <strong>Ctrl + Shift + N (Windows) o Cmd + Shift + N (Mac)</strong>.</li>
-    </ul>
-    <div style="display: flex; justify-content: space-around; margin-top: 20px;">
-      <!-- Botón de confirmación -->
-      <button onclick="redirectPowerBI()" style="background-color: green; color: white; padding: 10px; border: none; border-radius: 5px;">Estoy en Modo Incógnito</button>
-      <!-- Botón de cancelación -->
-      <button onclick="redirectInicio()" style="background-color: red; color: white; padding: 10px; border: none; border-radius: 5px;">No estoy en Modo Incógnito</button>
-    </div>
-  </div>
-</div>
 
-<script>
-  // Función para mostrar el modal
-  function openModal() {
-    document.getElementById('modalIncognito').style.display = 'block';
-  }
-
-  // Función para redirigir a Power BI
-  function redirectPowerBI() {
-    window.location.href = '/powerbi';
-  }
-
-  // Función para redirigir a la página de inicio
-  function redirectInicio() {
-    window.location.href = '/inicio';
-  }
-</script>
 {% endblock %}

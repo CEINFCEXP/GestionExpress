@@ -1129,17 +1129,13 @@ async def crear_clausula(req: Request, control: str = Form(...), etapa: str = Fo
                          fin_cumplimiento: str = Form(...), observacion: str = Form(None), 
                          procesos_subprocesos: str = Form(...), 
                          responsable_entrega: str = Form(...), ruta_soporte: str = Form(None)):
-    try:
-        # Validar que todos los campos requeridos están presentes y no vacíos
-        campos_faltantes = []
-        for campo, valor in locals().items():
-            if valor == "":
-                campos_faltantes.append(campo)
-        
+    try:       
+        # Validar campos obligatorios
+        campos_faltantes = [campo for campo, valor in locals().items() if valor == ""]
         if campos_faltantes:
             raise ValueError(f"Faltan los siguientes campos: {', '.join(campos_faltantes)}")
 
-        # Si no faltan campos, procedemos con la creación de la cláusula
+        # Crear la cláusula en la base de datos
         nueva_clausula = {
             "control": control,
             "etapa": etapa,
@@ -1160,28 +1156,78 @@ async def crear_clausula(req: Request, control: str = Form(...), etapa: str = Fo
             "responsable_entrega": responsable_entrega,
             "ruta_soporte": ruta_soporte
         }
-
-        # Insertar la nueva cláusula en la base de datos usando GestionClausulas
+        
         gestion_clausulas = GestionClausulas()
         clausula_id = gestion_clausulas.crear_clausula(nueva_clausula)
+        #print("ID de la cláusula creada:", clausula_id)
 
-        # Procesar los procesos_subprocesos (recibidos como un JSON en el frontend)
-        procesos_subprocesos = json.loads(procesos_subprocesos)  # Convertir de JSON a lista
+        # Procesar procesos_subprocesos como lista JSON
+        procesos_subprocesos = json.loads(procesos_subprocesos)
+        #print("Procesos y subprocesos recibidos:", procesos_subprocesos)
 
-        # Recorrer y guardar cada combinación de proceso/subproceso en la tabla auxiliar
-        for ps in procesos_subprocesos:
-            proceso = ps['proceso']  # Obtener el nombre del proceso
-            subproceso = ps['subproceso']  # Obtener el nombre del subproceso
-            
-            # Obtener el id_proceso basado en proceso/subproceso desde la tabla de procesos
-            id_proceso = gestion_clausulas.obtener_id_proceso(proceso, subproceso)  # Ya tienes esta función en gestion_clausulas.py
-            
-            # Insertar en la tabla auxiliar clausula_proceso_subproceso
-            gestion_clausulas.registrar_clausula_proceso_subproceso(clausula_id, id_proceso)
+        # Registrar cada id_proceso en la tabla auxiliar
+        gestion_clausulas.registrar_clausula_proceso_subproceso(clausula_id, procesos_subprocesos)
 
-        # Responder con un mensaje de éxito en formato JSON
-        return JSONResponse(content={"success": True, "message": "Cláusula creada exitosamente"})
+        return JSONResponse(content={"success": True, "message": "Cláusula creada exitosamente", "id_clausula": clausula_id})
     
     except Exception as e:
-        # Responder con un mensaje de error en formato JSON
+        print(f"Error al crear la cláusula: {e}")
         return JSONResponse(content={"success": False, "message": f"Error al crear la cláusula: {str(e)}"}, status_code=400)
+    
+@app.get("/clausula/{id}", response_class=JSONResponse)
+async def obtener_clausula(id: int):
+    gestion_clausulas = GestionClausulas()
+    try:
+        clausula = gestion_clausulas.obtener_clausula_por_id(id)
+        if not clausula:
+            raise HTTPException(status_code=404, detail="Cláusula no encontrada")
+        
+        # Obtener procesos y subprocesos asociados
+        procesos_subprocesos = gestion_clausulas.obtener_procesos_subprocesos_por_clausula(id)
+        clausula["procesos_subprocesos"] = procesos_subprocesos
+        
+        return clausula
+    finally:
+        gestion_clausulas.close()
+        
+@app.post("/clausula/{id}/actualizar", response_class=JSONResponse)
+async def actualizar_clausula(id: int, request: Request):
+    form_data = await request.form()
+    clausula_data = {key: form_data.get(key) for key in form_data.keys()}
+
+    # Extraer procesos y subprocesos del formulario
+    procesos_subprocesos = clausula_data.pop("procesos_subprocesos", None)
+    if procesos_subprocesos:
+        procesos_subprocesos = json.loads(procesos_subprocesos)
+
+    gestion_clausulas = GestionClausulas()
+    try:
+        # Actualizar la cláusula principal en la tabla "clausulas"
+        gestion_clausulas.actualizar_clausula(id, clausula_data)
+
+        # Si se envían procesos/subprocesos, actualizarlos en la tabla "clausula_proceso_subproceso"
+        if procesos_subprocesos:
+            gestion_clausulas.actualizar_procesos_subprocesos(id, procesos_subprocesos)
+
+        return {"message": "Cláusula actualizada correctamente"}
+    except Exception as e:
+        return {"error": str(e)}, 500
+    finally:
+        gestion_clausulas.close()
+
+@app.get("/api/fechas_dinamicas/{clausula_id}")
+def obtener_fechas_dinamicas(clausula_id: int):
+    gestion_clausulas = GestionClausulas()
+    clausula = gestion_clausulas.obtener_clausula_por_id(clausula_id)
+    if not clausula:
+        raise HTTPException(status_code=404, detail="Cláusula no encontrada")
+
+    fechas = gestion_clausulas.calcular_fechas_dinamicas(
+        clausula["inicio_cumplimiento"],
+        clausula["fin_cumplimiento"],
+        clausula["frecuencia"],
+        clausula["periodo_control"], 
+    )
+    return JSONResponse(content=fechas)
+
+

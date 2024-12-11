@@ -9,8 +9,8 @@
             <input type="text" id="{{ modal }}_id_clausula" name="id_clausula" class="form-control" style="font-size: 14px; height: 35px;" readonly>
         </div>
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="control">Control</label>
-            <select id="control" name="control" class="form-select" style="font-size: 14px; height: 35px;" required>
+            <label for="{{ modal }}_control">Control</label>
+            <select id="{{ modal }}_control" name="control" class="form-select" style="font-size: 14px; height: 35px;" required>
                 <option value="" selected>Seleccionar...</option>
                 <option value="CONTRATO">CONTRATO</option>
                 <option value="MANUAL">MANUAL</option>    
@@ -20,12 +20,12 @@
     <div class="row" style="margin-bottom: 2px;">
         <!-- Cláusula y Etapa -->
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="clausula">Cláusula</label>
-            <input type="text" id="clausula" name="clausula" class="form-control" style="font-size: 14px; height: 35px;" required>
+            <label for="{{ modal }}_clausula">Cláusula</label>
+            <input type="text" id="{{ modal }}_clausula" name="clausula" class="form-control" style="font-size: 14px; height: 35px;" required>
         </div>
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="etapa">Etapa</label>
-            <select id="etapa" name="etapa" class="form-select" style="font-size: 14px; height: 35px;" required>
+            <label for="{{ modal }}_etapa">Etapa</label>
+            <select id="{{ modal }}_etapa" name="etapa" class="form-select" style="font-size: 14px; height: 35px;" required>
                 <option value="" selected>Seleccionar...</option>
                 {% for etapa in etapas %}
                 <option value="{{ etapa[0] }}">{{ etapa[0] }}</option>
@@ -36,8 +36,8 @@
     <div class="row" style="margin-bottom: 2px;">
         <!-- Contrato y Tipo -->
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="contrato">Contrato</label>
-            <select id="contrato" name="contrato" class="form-select" style="font-size: 14px; height: 35px;" required>
+            <label for="{{ modal }}_contrato">Contrato</label>
+            <select id="{{ modal }}_contrato" name="contrato" class="form-select" style="font-size: 14px; height: 35px;" required>
                 <option value="" selected>Seleccionar...</option>
                 {% for contrato in contratos %}
                 <option value="{{ contrato[0] }}">{{ contrato[0] }}</option>
@@ -45,8 +45,8 @@
             </select>
         </div>
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="tipo">Tipo</label>
-            <select id="tipo" name="tipo" class="form-select" style="font-size: 14px; height: 35px;" required>
+            <label for="{{ modal }}_tipo">Tipo</label>
+            <select id="{{ modal }}_tipo" name="tipo" class="form-select" style="font-size: 14px; height: 35px;" required>
                 <option value="" selected>Seleccionar...</option>
                 {% for tipo in tipos_clausula %}
                 <option value="{{ tipo[0] }}">{{ tipo[0] }}</option>
@@ -57,34 +57,34 @@
     <div class="row">
         <!-- Tema y Subtema -->
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="tema">Tema</label>
-            <input type="text" id="tema" name="tema" class="form-control" style="font-size: 14px; height: 35px;" required oninput="this.value = this.value.toUpperCase()">
+            <label for="{{ modal }}_tema">Tema</label>
+            <input type="text" id="{{ modal }}_tema" name="tema" class="form-control" style="font-size: 14px; height: 35px;" required oninput="this.value = this.value.toUpperCase()">
         </div>
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="subtema">Subtema</label>
-            <input type="text" id="subtema" name="subtema" class="form-control" style="font-size: 14px; height: 35px;" required oninput="this.value = this.value.toUpperCase()">
+            <label for="{{ modal }}_subtema">Subtema</label>
+            <input type="text" id="{{ modal }}_subtema" name="subtema" class="form-control" style="font-size: 14px; height: 35px;" required oninput="this.value = this.value.toUpperCase()">
         </div>
     </div>
     <div class="row">
         <!-- Descripción y Modificaciones -->
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="descripcion">Descripción de la Cláusula</label>
-            <textarea id="descripcion" name="descripcion" class="form-control" required></textarea>
+            <label for="{{ modal }}_descripcion">Descripción de la Cláusula</label>
+            <textarea id="{{ modal }}_descripcion" name="descripcion" class="form-control" required></textarea>
         </div>
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="modificaciones">Modificaciones</label>
-            <textarea id="modificaciones" name="modificaciones" class="form-control"></textarea>
+            <label for="{{ modal }}_modificaciones">Modificaciones</label>
+            <textarea id="{{ modal }}_modificaciones" name="modificaciones" class="form-control"></textarea>
         </div>
     </div>
     <div class="row">
         <!-- Norma Relacionada y Consecuencias -->
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="norma_relacionada">Norma Relacionada</label>
-            <textarea id="norma_relacionada" name="norma" class="form-control"></textarea>
+            <label for="{{ modal }}_norma_relacionada">Norma Relacionada</label>
+            <textarea id="{{ modal }}_norma_relacionada" name="norma" class="form-control"></textarea>
         </div>
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="consecuencias">Consecuencias Incumplimiento</label>
-            <textarea id="consecuencias" name="consecuencia" class="form-control"></textarea>
+            <label for="{{ modal }}_consecuencias">Consecuencias Incumplimiento</label>
+            <textarea id="{{ modal }}_consecuencias" name="consecuencia" class="form-control"></textarea>
         </div>
     </div>
     <!-- Proceso Responsable y Subproceso Responsable -->
@@ -142,19 +142,19 @@
     <div class="row">
         <!-- Inicio Cumplimiento y Fin Cumplimiento -->
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="inicio_cumplimiento">Inicio Cumplimiento</label>
-            <input type="date" id="inicio_cumplimiento" name="inicio_cumplimiento" class="form-control" style="font-size: 14px; height: 35px;" required>
+            <label for="{{ modal }}_inicio_cumplimiento">Inicio Cumplimiento</label>
+            <input type="date" id="{{ modal }}_inicio_cumplimiento" name="inicio_cumplimiento" class="form-control" style="font-size: 14px; height: 35px;" required>
         </div>
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="fin_cumplimiento">Fin Cumplimiento</label>
-            <input type="date" id="fin_cumplimiento" name="fin_cumplimiento" class="form-control" style="font-size: 14px; height: 35px;" required>
+            <label for="{{ modal }}_fin_cumplimiento">Fin Cumplimiento</label>
+            <input type="date" id="{{ modal }}_fin_cumplimiento" name="fin_cumplimiento" class="form-control" style="font-size: 14px; height: 35px;" required>
         </div>
     </div>
     <div class="row">
         <!-- Responsable de la Entrega y Ruta de Soportes -->
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="responsable_entrega">Responsable de la Entrega</label>
-            <select id="responsable_entrega" name="responsable_entrega" class="form-select" style="font-size: 14px; height: 35px;" required>
+            <label for="{{ modal }}_responsable_entrega">Responsable de la Entrega</label>
+            <select id="{{ modal }}_responsable_entrega" name="responsable_entrega" class="form-select" style="font-size: 14px; height: 35px;" required>
                 <option value="" selected>Seleccionar...</option>
                 {% for responsable in responsables %}
                 <option value="{{ responsable[0] }}">{{ responsable[0] }}</option>
@@ -162,14 +162,14 @@
             </select>
         </div>
         <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="ruta_soportes">Ruta de Soportes</label>
-            <input type="text" id="ruta_soportes" name="ruta_soporte" class="form-control">
+            <label for="{{ modal }}_ruta_soportes">Ruta de Soportes</label>
+            <input type="text" id="{{ modal }}_ruta_soportes" name="ruta_soporte" class="form-control">
         </div>
     </div>
     <!-- Observaciones de la Cláusula -->
     <div class="mb-3">
-        <label for="observaciones_clausula">Observaciones de la Cláusula</label>
-        <textarea id="observaciones_clausula" name="observacion" class="form-control"></textarea>
+        <label for="{{ modal }}_observaciones_clausula">Observaciones de la Cláusula</label>
+        <textarea id="{{ modal }}_observaciones_clausula" name="observacion" class="form-control"></textarea>
     </div>
 </div>
 
@@ -202,20 +202,14 @@
 
 <!-- FUNCIONALIDAD PARA AGREGAR Y ELIMINAR procesos/subprocesos -->
 <script>
-    // Objeto para manejar los sets de procesos/subprocesos agregados por modal
-    const procesosSubprocesosAgregados = {};
+    //const procesosSubprocesosAgregados = {};
 
     function actualizarSubprocesos(modal, proceso) {
         const subprocesoSelect = document.getElementById(`${modal}_subproceso_responsable`);
-        
-        // Limpiar las opciones de subprocesos
         subprocesoSelect.innerHTML = '<option selected>Seleccionar...</option>';
 
-        if (!proceso) {
-            return; // Si no se selecciona un proceso, no hace nada
-        }
+        if (!proceso) return;
 
-        // Hacer una petición para obtener los subprocesos
         fetch(`/obtener_subprocesos/${proceso}`)
             .then(response => response.json())
             .then(data => {
@@ -232,41 +226,38 @@
     function agregarProcesoSubproceso(modal) {
         const procesoSelect = document.getElementById(`${modal}_proceso_responsable`);
         const subprocesoSelect = document.getElementById(`${modal}_subproceso_responsable`);
-    
-        const proceso = procesoSelect.options[procesoSelect.selectedIndex].text;  // Obtenemos el nombre del proceso
-        const subproceso = subprocesoSelect.options[subprocesoSelect.selectedIndex].text;  // Nombre del subproceso (texto visible)
-    
+        const proceso = procesoSelect.options[procesoSelect.selectedIndex].text;
+        const subproceso = subprocesoSelect.options[subprocesoSelect.selectedIndex].text;
+
         if (proceso === 'Seleccionar...' || subproceso === 'Seleccionar...') {
             alert('Por favor, seleccione un proceso y un subproceso.');
             return;
         }
 
-        // Hacer una petición al backend para obtener el id_proceso basado en el proceso y subproceso
         fetch(`/obtener_id_proceso?proceso=${encodeURIComponent(proceso)}&subproceso=${encodeURIComponent(subproceso)}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const idProceso = data.id_proceso;  // Obtenemos el id_proceso retornado
-                    const claveUnica = `${idProceso}-${subproceso}`;  // Clave única para evitar duplicados
-    
-                    // Inicializa el set si no existe para este modal
+                    const idProceso = data.id_proceso;
+                    //console.log(`ID de proceso capturado: ${idProceso}`);
+                    const claveUnica = `${idProceso}-${subproceso}`;
+
                     if (!procesosSubprocesosAgregados[modal]) {
                         procesosSubprocesosAgregados[modal] = new Set();
                     }
-    
+
                     if (procesosSubprocesosAgregados[modal].has(claveUnica)) {
                         alert('Ya ha agregado este proceso y subproceso.');
                         return;
                     }
-    
+
                     // Mostrar el título cuando se agregue el primer proceso/subproceso
                     const titulo = document.getElementById(`${modal}_titulo_procesos_responsables`);
                     titulo.style.display = 'block'; // Mostrar el título
-    
-                    // Agregar la combinación al set para evitar repeticiones
+
                     procesosSubprocesosAgregados[modal].add(claveUnica);
-    
-                    // Crear el elemento en el contenedor
+                    //console.log("procesosSubprocesosAgregados después de agregar:", procesosSubprocesosAgregados);
+
                     const contenedor = document.getElementById(`${modal}_contenedor_procesos_subprocesos`);
                     const div = document.createElement('div');
                     div.classList.add('row');
@@ -293,60 +284,98 @@
                 }
             })
             .catch(error => console.error('Error al obtener id_proceso:', error));
-    }  
-    
-    function eliminarProcesoSubproceso(boton, claveUnica, modal) {
-        // Eliminar del set de procesos y subprocesos agregados para este modal
-        procesosSubprocesosAgregados[modal].delete(claveUnica);
+    }
 
-        // Eliminar el elemento del DOM
+    function eliminarProcesoSubproceso(boton, claveUnica, modal) {
+        if (procesosSubprocesosAgregados[modal]) {
+            procesosSubprocesosAgregados[modal].delete(claveUnica);
+            //console.log("procesosSubprocesosAgregados después de eliminar:", procesosSubprocesosAgregados);
+        }
+
         const row = boton.parentElement.parentElement;
         row.remove();
 
-        // Ocultar el título si ya no hay procesos en el contenedor
         const contenedor = document.getElementById(`${modal}_contenedor_procesos_subprocesos`);
         if (contenedor.children.length === 0) {
             const titulo = document.getElementById(`${modal}_titulo_procesos_responsables`);
-            titulo.style.display = 'none'; // Ocultar el título
-        }      
+            titulo.style.display = 'none';
+        }
     }
 
-    // Manejo del envío del formulario para crear cláusulas
+    // PERMITE EL REGISTRO Y GUARDADO DE UNA CLAUSULA NUEVA
     document.getElementById('form_crear_clausula').addEventListener('submit', async function (e) {
-        e.preventDefault(); 
+        e.preventDefault();
+        // Si el formulario ya se ha enviado, no ejecutar el resto del código
+        if (this.hasAttribute('data-submitted')) return;
+        this.setAttribute('data-submitted', 'true');
 
-        const formData = new FormData(this);
+        // Llamar a la función de validación para frecuencia ANUAL
+        if (!procesarPeriodoControlAnual('crear')) {
+            return; // Si falta día o mes, cancelar el envío
+        }
         
-        // Convertir procesosSubprocesosAgregados a JSON y añadir al formData
-        const procesosSubprocesos = Array.from(procesosSubprocesosAgregados['modalCrearClausula'] || []);
-        formData.append("procesos_subprocesos", JSON.stringify(procesosSubprocesos));
-
+        const formData = new FormData(this);
+        const modalId = 'crear';  // Aseguramos que coincida con la clave usada en procesosSubprocesosAgregados
+    
+        //console.log("Contenido de procesosSubprocesosAgregados al enviar:", procesosSubprocesosAgregados);
+        //console.log("Contenido de procesosSubprocesosAgregados[modalId] al enviar:", procesosSubprocesosAgregados[modalId]);
+        
+        // Convertir procesosSubprocesosAgregados[modalId] a un array de objetos { id_proceso }
+        const procesosSubprocesosArray = Array.from(procesosSubprocesosAgregados[modalId] || []).map(claveUnica => {
+            const [idProceso] = claveUnica.split('-');
+            return { id_proceso: idProceso };
+        });
+    
+        if (procesosSubprocesosArray.length === 0) {
+            alert("Por favor, agregue al menos un proceso y subproceso.");
+            return;
+        }
+    
+        formData.append("procesos_subprocesos", JSON.stringify(procesosSubprocesosArray));
+    
+        // Eliminar valores para el backend
+        formData.delete("id_clausula");
+        formData.delete("proceso");
+        formData.delete("subproceso");
+    
+        // Mostrar datos de formData antes de enviar
+        //console.log("Datos de la cláusula que se enviarán:");
+        //for (let pair of formData.entries()) {
+            //console.log(`${pair[0]}: ${pair[1]}`);
+        //}
+    
         try {
             const response = await fetch('/clausulas/nueva', {
                 method: 'POST',
                 body: formData
             });
-
-            if (!response.ok) {
-                throw new Error(`Error en la respuesta del servidor: ${response.status}`);
-            }
-
+    
+            if (!response.ok) throw new Error(`Error en la respuesta del servidor: ${response.status}`);
+    
             const result = await response.json();
             if (result.success) {
-                // Ocultar el modal al éxito
-                const modalElement = document.getElementById('modalCrearClausula');
-                const modal = bootstrap.Modal.getInstance(modalElement);
-                if (modal) {
-                    modal.hide();
-                }
-                alert("Cláusula creada exitosamente");
+                bootstrap.Modal.getInstance(document.getElementById('modalCrearClausula')).hide();
+                showGlobalMessage(result.message, 'success');
             } else {
-                alert(result.message);
+                showError(result.message || 'Error al crear la cláusula');
             }
         } catch (error) {
-            alert('Ocurrió un error inesperado: ' + error.message);
+            //console.error("Error en el envío:", error);
+            showError(`Ocurrió un error inesperado: ${error.message}`);
         }
     });
+    
+    function showError(message) {
+        const messageDiv = document.getElementById('message');
+        if (messageDiv) {
+            messageDiv.style.display = 'block';
+            messageDiv.classList.add('alert-danger');
+            messageDiv.innerText = message;
+        } else {
+            console.error('Error:', message);
+        }
+    }    
+
 </script>
 
 <!-- VALIDA QUE LA FECHA FIN NO SEA INFERIOR A LA FECHA INICIO -->
@@ -371,7 +400,7 @@
         
         // Limpiar el contenido actual
         periodoControlContainer.innerHTML = '';
-    
+
         if (frecuencia === 'ÚNICA VEZ') {
             // Permitir seleccionar una fecha fija
             periodoControlContainer.innerHTML = '<input type="date" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" required>';
@@ -404,31 +433,234 @@
             // Automáticamente establecer "NO APLICA" como el valor
             periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="NO APLICA" readonly required>';
         }
-    }    
-    // Al enviar el formulario, combinar día y mes si la frecuencia es ANUAL
-    document.getElementById('form_crear_clausula').addEventListener('submit', function (e) {
-        const frecuencia = document.getElementById('{{ modal }}_frecuencia_acreditacion').value;
+    }
+
+    // Función auxiliar para combinar día y mes si la frecuencia es ANUAL
+    function procesarPeriodoControlAnual(modal) {
+        const frecuencia = document.getElementById(`${modal}_frecuencia_acreditacion`).value;
 
         if (frecuencia === 'ANUAL') {
-            const dia = document.getElementById('{{ modal }}_periodo_control_dia').value;
-            const mes = document.getElementById('{{ modal }}_periodo_control_mes').value;
+            const dia = document.getElementById(`${modal}_periodo_control_dia`).value;
+            const mes = document.getElementById(`${modal}_periodo_control_mes`).value;
 
             if (dia && mes) {
                 // Combinar el día y mes en el formato "DD-MM"
                 const periodoControl = `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}`;
                 
-                // Establecer el valor combinado en un campo oculto
-                let hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'periodo_control';
-                hiddenInput.value = periodoControl;
-                this.appendChild(hiddenInput);
+                let hiddenInput = document.getElementById('hidden_periodo_control');
+            
+                if (!hiddenInput) {
+                    hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.id = 'hidden_periodo_control';
+                    hiddenInput.name = 'periodo_control';
+                    document.getElementById('form_crear_clausula').appendChild(hiddenInput);
+                }
+
+                hiddenInput.value = periodoControl;  // Asignar el valor combinado al campo oculto
+                return true;
             } else {
-                e.preventDefault();  // Evitar el envío del formulario si falta el día o mes
                 alert('Por favor, seleccione tanto el día como el mes.');
+                return false; // Indicar que falta algún valor
             }
         }
-    });
+        return true; // No es ANUAL, continuar sin problemas
+    }
+</script>
+
+<!-- OPCION "Ver" CARGA TODOS LOS DETALLES DE LA CLAUSULA EN EL MODAL (GESTIONAR). -->
+<script>
+    function abrirModalGestion(button) {
+        const id = button.getAttribute("data-id");
+
+        // Limpiar procesosSubprocesosAgregados para el modal de gestión
+        if (procesosSubprocesosAgregados['gestionar']) {
+            procesosSubprocesosAgregados['gestionar'].clear();
+        } else {
+            procesosSubprocesosAgregados['gestionar'] = new Set();
+        }
+
+        // Llamada AJAX para obtener los datos de la cláusula
+        fetch(`/clausula/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                // Cargar los datos de la cláusula en el formulario
+                document.getElementById('gestionar_id_clausula').value = data.id;
+                document.getElementById('gestionar_control').value = data.control;
+                document.getElementById('gestionar_etapa').value = data.etapa;
+                document.getElementById('gestionar_clausula').value = data.clausula;
+                document.getElementById('gestionar_contrato').value = data.contrato_concesion;
+                document.getElementById('gestionar_tema').value = data.tema;
+                document.getElementById('gestionar_subtema').value = data.subtema;
+                document.getElementById('gestionar_descripcion').value = data.descripcion_clausula;
+                document.getElementById('gestionar_tipo').value = data.tipo_clausula;
+                document.getElementById('gestionar_modificaciones').value = data.modificacion;
+                document.getElementById('gestionar_norma_relacionada').value = data.norma_relacionada;
+                document.getElementById('gestionar_consecuencias').value = data.consecuencia;
+                document.getElementById('gestionar_frecuencia_acreditacion').value = data.frecuencia;
+                document.getElementById('gestionar_inicio_cumplimiento').value = data.inicio_cumplimiento;
+                document.getElementById('gestionar_fin_cumplimiento').value = data.fin_cumplimiento;
+                document.getElementById('gestionar_observaciones_clausula').value = data.observacion;
+                document.getElementById('gestionar_responsable_entrega').value = data.responsable_entrega;
+                document.getElementById('gestionar_ruta_soportes').value = data.ruta_soporte;
+
+                // Actualizar el periodo control según la frecuencia
+                actualizarPeriodoControl('gestionar');
+
+                // Cargar el valor de periodo_control dependiendo de la frecuencia
+                const frecuencia = data.frecuencia;
+                if (frecuencia === 'ANUAL') {
+                    const [dia, mes] = (data.periodo_control || '').split('-');
+                    if (dia && mes) {
+                        document.getElementById('gestionar_periodo_control_dia').value = dia;
+                        document.getElementById('gestionar_periodo_control_mes').value = mes;
+                    }
+                } else if (['MENSUAL', 'BIMESTRAL', 'TRIMESTRAL', 'SEMESTRAL'].includes(frecuencia)) {
+                    document.getElementById('gestionar_periodo_control').value = data.periodo_control; // Día del mes
+                } else if (frecuencia === 'QUINCENAL') {
+                    document.getElementById('gestionar_periodo_control').value = data.periodo_control; // Día de la semana
+                } else if (frecuencia === 'ÚNICA VEZ') {
+                    document.getElementById('gestionar_periodo_control').value = data.periodo_control; // Fecha específica
+                } else if (frecuencia === 'DIARIO' || frecuencia === 'NO APLICA') {
+                    document.getElementById('gestionar_periodo_control').value = data.periodo_control;
+                }
+
+                // Cargar filas dinámicas en la tabla de gestión
+                cargarFilasGestion(data.id);
+
+                // Cargar los procesos y subprocesos asociados
+                const contenedorProcesos = document.getElementById('gestionar_contenedor_procesos_subprocesos');
+                contenedorProcesos.innerHTML = ''; // Limpiar contenedor
+
+                if (data.procesos_subprocesos.length > 0) {
+                    document.getElementById('gestionar_titulo_procesos_responsables').style.display = 'block';
+                    data.procesos_subprocesos.forEach(item => {
+                        const idProceso = item.id_proceso || "N/A";
+                        const proceso = item.proceso;
+                        const subproceso = item.subproceso;
+                        const claveUnica = `${idProceso}-${subproceso}`;
+
+                        if (!procesosSubprocesosAgregados['gestionar']) {
+                            procesosSubprocesosAgregados['gestionar'] = new Set();
+                        }
+
+                        if (procesosSubprocesosAgregados['gestionar'].has(claveUnica)) return;
+                        procesosSubprocesosAgregados['gestionar'].add(claveUnica);
+
+                        const div = document.createElement('div');
+                        div.classList.add('row');
+                        div.style.marginBottom = '0';
+                        div.innerHTML = `
+                            <div class="row g-0">
+                                <div class="col-md-2">
+                                    <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${idProceso}" readonly>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${proceso}" readonly>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${subproceso}" readonly>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-danger" style="font-size: 12px; height: 25px; width: 75px; text-align: center; line-height: 05px;" 
+                                        onclick="eliminarProcesoSubproceso(this, '${claveUnica}', 'gestionar')">Eliminar</button>
+                                </div>
+                            </div>
+                        `;
+                        contenedorProcesos.appendChild(div);
+                    });
+                } else {
+                    document.getElementById('gestionar_titulo_procesos_responsables').style.display = 'none';
+                }
+
+            })
+            .catch(error => console.error('Error al cargar la cláusula:', error));
+    }
+
+    // Confirmación al cerrar el modal
+    function confirmarCierreModal() {
+        if (confirm("¿Está seguro de que desea cerrar la ventana? Los cambios no guardados se perderán.")) {
+            const modalElement = document.getElementById('modalGestion');
+            const modalGestion = bootstrap.Modal.getInstance(modalElement);
+            modalGestion.hide(); // Usamos hide en lugar de dispose para que cierre correctamente
+        }
+    }
+</script>
+
+<!-- OPCION "Guardar" ACTUALIZA LA CLAUSULA EN EL MODAL (GESTIONAR). -->
+<script>
+    async function guardarClausula() {
+        const idClausula = document.getElementById("gestionar_id_clausula").value;
+    
+        // Recoger los datos del formulario
+        const formData = new FormData();
+        formData.append("control", document.getElementById("gestionar_control").value);
+        formData.append("etapa", document.getElementById("gestionar_etapa").value);
+        formData.append("clausula", document.getElementById("gestionar_clausula").value);
+        formData.append("contrato_concesion", document.getElementById("gestionar_contrato").value);
+        formData.append("tema", document.getElementById("gestionar_tema").value);
+        formData.append("subtema", document.getElementById("gestionar_subtema").value);
+        formData.append("descripcion", document.getElementById("gestionar_descripcion").value);
+        formData.append("tipo_clausula", document.getElementById("gestionar_tipo").value);
+        formData.append("modificacion", document.getElementById("gestionar_modificaciones").value);
+        formData.append("norma_relacionada", document.getElementById("gestionar_norma_relacionada").value);
+        formData.append("consecuencia", document.getElementById("gestionar_consecuencias").value);
+        formData.append("frecuencia", document.getElementById("gestionar_frecuencia_acreditacion").value);
+        formData.append("inicio_cumplimiento", document.getElementById("gestionar_inicio_cumplimiento").value);
+        formData.append("fin_cumplimiento", document.getElementById("gestionar_fin_cumplimiento").value);
+        formData.append("observacion", document.getElementById("gestionar_observaciones_clausula").value);
+
+        // Manejo del periodo_control según la frecuencia
+        const frecuencia = document.getElementById("gestionar_frecuencia_acreditacion").value;
+        if (frecuencia === "ANUAL") {
+            const dia = document.getElementById("gestionar_periodo_control_dia").value;
+            const mes = document.getElementById("gestionar_periodo_control_mes").value;
+
+            if (dia && mes) {
+                // Combinar día y mes en formato "DD-MM"
+                formData.append("periodo_control", `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}`);
+            } else {
+                alert("Por favor, seleccione tanto el día como el mes para el periodo de control.");
+                return; // Cancelar el envío si falta algún valor
+            }
+        } else {
+            // Para las demás frecuencias, usar el valor directo
+            formData.append("periodo_control", document.getElementById("gestionar_periodo_control").value);
+        }
+
+        formData.append("responsable_entrega", document.getElementById("gestionar_responsable_entrega").value);
+        formData.append("ruta_soporte", document.getElementById("gestionar_ruta_soportes").value);
+    
+        // Procesos/Subprocesos
+        const procesos = [];
+        document.querySelectorAll("#gestionar_contenedor_procesos_subprocesos .row").forEach(row => {
+            const input = row.querySelector("input"); // Intentar obtener el input
+            if (input && input.value) { // Asegurarse de que existe y tiene un valor
+                procesos.push({ id_proceso: input.value });
+            }
+        });
+        formData.append("procesos_subprocesos", JSON.stringify(procesos));
+    
+        try {
+            // Llamada al backend
+            const response = await fetch(`/clausula/${idClausula}/actualizar`, {
+                method: "POST",
+                body: formData,
+            });
+    
+            const result = await response.json();
+            if (response.ok) {
+                alert("Cláusula actualizada correctamente.");
+                location.reload(); // Recargar la página para reflejar los cambios
+            } else {
+                console.error("Error en el backend:", result);
+                alert("Error al actualizar la cláusula: " + result.error);
+            }
+        } catch (error) {
+            console.error("Error en la actualización:", error);
+            alert("Ocurrió un error inesperado. Por favor, inténtelo de nuevo.");
+        }
+    }    
 </script>
 
 {% endblock %}
