@@ -22,6 +22,7 @@ from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, conc
 from werkzeug.security import generate_password_hash
 from azure.storage.blob import BlobServiceClient, BlobClient
 from urllib.parse import unquote
+from datetime import datetime
 import psycopg2
 import json
 from typing import List, Optional
@@ -1230,4 +1231,49 @@ def obtener_fechas_dinamicas(clausula_id: int):
     )
     return JSONResponse(content=fechas)
 
+@app.post("/gestion_clausula/{id_clausula}")
+async def gestionar_filas_clausula(id_clausula: int, request: Request):
+    data = await request.json()
+    nuevas_filas = [fila for fila in data.get("filas", []) if not fila.get("id_gestion")]
+    filas_existentes = [fila for fila in data.get("filas", []) if fila.get("id_gestion")]
 
+    gestion = GestionClausulas()
+
+    # Insertar nuevas filas
+    if nuevas_filas:
+        gestion.insertar_filas_gestion_nuevas(id_clausula, nuevas_filas)
+
+    # Actualizar filas existentes
+    if filas_existentes:
+        gestion.actualizar_filas_gestion(filas_existentes)
+
+    # Retornar las filas insertadas o actualizadas para mantener sincronización
+    filas = gestion.obtener_filas_gestion_por_clausula(id_clausula)
+    return JSONResponse(content={"message": "Gestión de filas completada.", "filas": filas})
+
+@app.get("/gestion_clausula/{id_clausula}")
+def obtener_filas_clausula(id_clausula: int):
+    gestion = GestionClausulas()
+    try:
+        filas = gestion.obtener_filas_gestion_por_clausula(id_clausula)
+
+        # Identificar la fila con la fecha de entrega más reciente
+        if filas:
+            fila_mas_reciente = max(
+                filas, key=lambda x: datetime.strptime(x["fecha_entrega"], "%d/%m/%Y")
+            )
+            fecha_mas_reciente = fila_mas_reciente["fecha_entrega"]
+            estado_mas_reciente = fila_mas_reciente["estado"]
+        else:
+            fecha_mas_reciente = "Sin Fecha"
+            estado_mas_reciente = "Sin Estado"
+
+        return JSONResponse(
+            content={
+                "filas": filas,
+                "fecha_entrega_mas_reciente": fecha_mas_reciente,
+                "estado_mas_reciente": estado_mas_reciente,
+            }
+        )
+    finally:
+        gestion.close()

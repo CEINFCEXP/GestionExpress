@@ -381,6 +381,125 @@ class GestionClausulas:
 
         return fechas
 
+    def insertar_filas_gestion_nuevas(self, id_clausula, filas_gestion):
+        """
+        Inserta solo las filas de gestión nuevas si la fecha de entrega no existe ya en la base de datos.
+        """
+        query_check = """
+        SELECT 1 FROM clausulas_gestion 
+        WHERE id_clausula = %s AND fecha_entrega = %s;
+        """
+        query_insert = """
+        INSERT INTO clausulas_gestion (id_clausula, fecha_entrega, estado, registrado_por, fecha_creacion)
+        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+        RETURNING id_gestion;
+        """
+        with self.connection.cursor() as cursor:
+            for fila in filas_gestion:
+                # Convertir fecha al formato correcto
+                fecha_entrega = datetime.strptime(fila['fecha_entrega'], "%d/%m/%Y").strftime("%Y-%m-%d")
+
+                # Verificar si la fecha ya existe para esta cláusula
+                cursor.execute(query_check, (id_clausula, fecha_entrega))
+                existe = cursor.fetchone()
+
+                if not existe:  # Solo insertar si no existe
+                    cursor.execute(query_insert, (
+                        id_clausula,
+                        fecha_entrega,
+                        fila['estado'],
+                        fila['registrado_por'],
+                    ))
+                    fila['id_gestion'] = cursor.fetchone()[0]
+            self.connection.commit()
+        return filas_gestion
+    
+    def actualizar_filas_gestion(self, filas_gestion):
+        """
+        Actualiza las filas de gestión existentes en la base de datos.
+        Solo actualiza el campo `registrado_por` si hay cambios en los valores gestionados.
+        """
+        query_select = """
+        SELECT fecha_radicado, numero_radicado, plan_accion, observacion, estado, adjunto, registrado_por
+        FROM clausulas_gestion WHERE id_gestion = %s;
+        """
+        query_update = """
+        UPDATE clausulas_gestion
+        SET fecha_radicado = %s, numero_radicado = %s, plan_accion = %s, observacion = %s,
+            estado = %s, adjunto = %s, registrado_por = CASE 
+                WHEN %s THEN %s ELSE registrado_por END
+        WHERE id_gestion = %s;
+        """
+
+        with self.connection.cursor() as cursor:
+            for fila in filas_gestion:
+                # Obtener valores actuales
+                cursor.execute(query_select, (fila["id_gestion"],))
+                current_values = cursor.fetchone()
+
+                if not current_values:
+                    continue  # Saltar si no se encontró el registro
+
+                # Convertir fechas al mismo formato (YYYY-MM-DD)
+                current_fecha_radicado = (
+                    current_values[0].strftime("%Y-%m-%d") if current_values[0] else None
+                )
+                nueva_fecha_radicado = (
+                    datetime.strptime(fila["fecha_radicado"], "%Y-%m-%d").strftime("%Y-%m-%d")
+                    if fila["fecha_radicado"]
+                    else None
+                )
+
+                # Comparar valores actuales con los enviados
+                cambios_detectados = (
+                    current_fecha_radicado != nueva_fecha_radicado or
+                    current_values[1] != fila["numero_radicado"] or
+                    current_values[2] != fila["plan_accion"] or
+                    current_values[3] != fila["observacion"] or
+                    current_values[4] != fila["estado"] or
+                    current_values[5] != fila["adjunto"]
+                )
+
+                registrado_por_cambio = fila["registrado_por"] if cambios_detectados else None
+
+                # Ejecutar la actualización
+                cursor.execute(query_update, (
+                    nueva_fecha_radicado,
+                    fila["numero_radicado"],
+                    fila["plan_accion"],
+                    fila["observacion"],
+                    fila["estado"],
+                    fila["adjunto"],
+                    cambios_detectados,  # True si hay cambios
+                    registrado_por_cambio,  # Usuario actual si hay cambios
+                    fila["id_gestion"],
+                ))
+            self.connection.commit()
+        
+    def obtener_filas_gestion_por_clausula(self, id_clausula):
+        """
+        Obtiene todas las filas de gestión asociadas a una cláusula específica.
+        """
+        query = """
+        SELECT id_gestion, fecha_entrega, fecha_radicado, numero_radicado, plan_accion, observacion, 
+            estado, registrado_por, fecha_creacion
+        FROM clausulas_gestion
+        WHERE id_clausula = %s
+        ORDER BY fecha_entrega ASC;
+        """
+        with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query, (id_clausula,))
+            filas = cursor.fetchall()
+
+            # Convertir fechas a formato DD/MM/YYYY
+            for fila in filas:
+                if fila["fecha_entrega"]:
+                    fila["fecha_entrega"] = fila["fecha_entrega"].strftime("%d/%m/%Y")
+                if fila["fecha_radicado"]:
+                    fila["fecha_radicado"] = fila["fecha_radicado"].strftime("%d/%m/%Y")
+                if fila.get("fecha_creacion"):
+                    fila["fecha_creacion"] = fila["fecha_creacion"].strftime("%d/%m/%Y")
+        return filas
 
     def close(self):
         self.connection.close()

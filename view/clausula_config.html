@@ -592,7 +592,7 @@
     async function guardarClausula() {
         const idClausula = document.getElementById("gestionar_id_clausula").value;
     
-        // Recoger los datos del formulario
+        // 1. Recopilar datos de la sección izquierda
         const formData = new FormData();
         formData.append("control", document.getElementById("gestionar_control").value);
         formData.append("etapa", document.getElementById("gestionar_etapa").value);
@@ -642,25 +642,32 @@
         formData.append("procesos_subprocesos", JSON.stringify(procesos));
     
         try {
-            // Llamada al backend
+            // Llamada al backend // Guardar sección izquierda
             const response = await fetch(`/clausula/${idClausula}/actualizar`, {
                 method: "POST",
                 body: formData,
             });
     
-            const result = await response.json();
-            if (response.ok) {
-                alert("Cláusula actualizada correctamente.");
-                location.reload(); // Recargar la página para reflejar los cambios
-            } else {
-                console.error("Error en el backend:", result);
-                alert("Error al actualizar la cláusula: " + result.error);
+            if (!response.ok) {
+                const result = await response.json();
+                console.error("Error al guardar la cláusula:", result);
+                alert("Error al actualizar la cláusula.");
+                return;
             }
+    
+            console.log("Cláusula actualizada correctamente.");
+    
+            // Guardar sección derecha (filas gestionadas)
+            await guardarGestionClausula(idClausula);
+    
+            // Consolidar alerta única
+            alert("Cláusula y filas gestionadas actualizadas correctamente.");
+            location.reload();
         } catch (error) {
-            console.error("Error en la actualización:", error);
+            console.error("Error al guardar la cláusula o filas gestionadas:", error);
             alert("Ocurrió un error inesperado. Por favor, inténtelo de nuevo.");
         }
-    }    
+    }
 </script>
 
 {% endblock %}

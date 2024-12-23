@@ -21,9 +21,9 @@
         <h1 class="col-auto" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!</h1>
         <!-- Botón para abrir ventana flotante -->
         <div class="col-auto">
-            <a href="{{ url_for('descargar_plantilla_juridico') }}" class="btn btn-dark">Plantilla de Cargue</a>
-            <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click();">Cargue Parametros</button>
-            <input type="file" id="fileInput" style="display: none;" onchange="cargarArchivo(this.files[0])">
+            <!--<a href="{{ url_for('descargar_plantilla_juridico') }}" class="btn btn-dark">Plantilla de Cargue</a>-->
+            <!--<button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click();">Cargue Parametros</button>-->
+            <!--<input type="file" id="fileInput" style="display: none;" onchange="cargarArchivo(this.files[0])">-->
             <img src="/static/Consorcio.png" alt="Consorcio Icon" style="max-width: 100px; height: auto;">
         </div>
     </div>
@@ -97,15 +97,14 @@
                     <th style="width: 250px;">Descripción</th>
                     <th style="width: 20px;">Tipo de Cláusula</th>
                     <th style="width: 50px;">Frecuencia</th>
-                    <th style="width: 50px;">Proceso Responsable</th>
-                    <th style="width: 50px;">SubProceso Responsable</th>
-                    <th style="width: 50px;">Estado de Cumplimiento</th>
+                    <th style="width: 50px;">Entrega</th>
+                    <th style="width: 50px;">Estado</th>
                 </tr>
             </thead>
             <tbody>
                 <!-- Filas dinámicas aquí -->
                 {% for clausula in clausulas %}
-                <tr style="height: 70px; vertical-align: top;"> <!-- Definir el alto fijo -->
+                <tr data-id="{{ clausula.id }}" style="height: 70px; vertical-align: top;"> <!-- Definir el alto fijo -->
                     <td>
                         <!-- Botón en la tabla para llamar a la función de abrir modal de Edición o Gestión -->
                         <button type="button" class="btn btn-primary" data-id="{{ clausula.id }}" onclick="abrirModalGestion(this)" data-bs-toggle="modal" data-bs-target="#modalGestion" style="background-color: #ffffff; border-color: rgb(13, 15, 124);">
@@ -133,9 +132,8 @@
                     </td>
                     <td>{{ clausula.tipo_clausula }}</td>
                     <td>{{ clausula.frecuencia }}</td>
-                    <td>(-)</td>
-                    <td>(-)</td>
-                    <td>(-)</td>
+                    <td>{{ clausula.entrega }}</td>
+                    <td>{{ clausula.estado }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -396,42 +394,178 @@
 
 <!-- Crear dinámicamente filas en el modal de gestión según la frecuencia (GESTIONAR). -->
 <script>
-    function cargarFilasGestion(clausulaId) {
-        fetch(`/api/fechas_dinamicas/${clausulaId}`)
-            .then(response => response.json())
-            .then(data => {
-                const tabla = document.getElementById("tabla-gestion");
-                tabla.innerHTML = ""; // Limpiar filas existentes
-                data.forEach(item => {
-                    // Convertir fecha de entrega a formato DD/MM/YYYY
-                    const [year, month, day] = item.entrega.split("-");
-                    const entregaFormatted = `${day}/${month}/${year}`;
+    async function cargarFilasGestion(clausulaId) {
+        const tabla = document.getElementById("tabla-gestion");
+        const fechasExistentes = new Set(); // Almacena fechas ya cargadas para evitar duplicados
+        const filasNuevas = []; // Almacena filas nuevas a enviar al backend
+    
+        try {
+            // 1. Obtener filas existentes desde la base de datos
+            const responseExistentes = await fetch(`/gestion_clausula/${clausulaId}`);
+            const filasExistentes = await responseExistentes.json();
+    
+            // 2. Obtener fechas dinámicas (nuevas filas)
+            const responseFechas = await fetch(`/api/fechas_dinamicas/${clausulaId}`);
+            const fechasDinamicas = await responseFechas.json();
+    
+            tabla.innerHTML = ""; // Limpiar filas existentes en el DOM
 
-                    const fila = document.createElement("tr");
-                    fila.innerHTML = `
-                        <td>${entregaFormatted}</td>
-                        <td><input type="date" class="form-control fecha-radicado" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this)" /></td>
-                        <td><input type="text" class="form-control"></td>
-                        <td class="plan-accion" style="text-align: center;"></td>
-                        <td><textarea class="form-control"></textarea></td>
-                        <td><input type="file" class="form-control"></td>
-                        <td><select class="form-select"><option>Pendiente</option><option>Completado</option></select></td>
-                        <td>(Usuario Actual)</td>
-                    `;
-                    tabla.appendChild(fila);
+            let fechaMasReciente = null;
+            let estadoMasReciente = null;
+
+            // **Ordenar las filas existentes por fecha_entrega (más reciente primero)**
+            const filasOrdenadas = filasExistentes.filas.sort((a, b) => {
+                const fechaA = new Date(a.fecha_entrega.split("/").reverse().join("-"));
+                const fechaB = new Date(b.fecha_entrega.split("/").reverse().join("-"));
+                return fechaB - fechaA; // Orden descendente
+            });
+    
+            // 3. Renderizar filas existentes y recalcular reglas de negocio
+            filasExistentes.filas.forEach(fila => {
+                const entregaFormatted = fila.fecha_entrega; // Mantener el formato DD/MM/YYYY
+                fechasExistentes.add(entregaFormatted); // Agregar al conjunto de fechas existentes
+
+                // Convertir fecha_radicado a formato YYYY-MM-DD
+                let fechaRadicado = "";
+                if (fila.fecha_radicado) {
+                    const [day, month, year] = fila.fecha_radicado.split("/"); // Suponiendo que viene en DD/MM/YYYY
+                    fechaRadicado = `${year}-${month}-${day}`; // Convertir a formato compatible YYYY-MM-DD
+                }
+
+                // Validar si existe gestión por un usuario
+                const registradoPor = fila.fecha_radicado
+                ? fila.registrado_por || "Sin Gestionar"
+                : "Sin Gestionar";
+
+                // Actualizar fecha y estado más recientes
+                const fechaEntregaActual = new Date(entregaFormatted.split("/").reverse().join("-"));
+                if (!fechaMasReciente || fechaEntregaActual > fechaMasReciente) {
+                    fechaMasReciente = fechaEntregaActual;
+                    estadoMasReciente = fila.estado;
+                }
+    
+                 // Renderizar la fila
+                const filaElemento = document.createElement("tr");
+                filaElemento.innerHTML = `
+                    <td>${entregaFormatted}</td>
+                    <td><input type="date" class="form-control fecha-radicado" value="${fechaRadicado}" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" /></td>
+                    <td><input type="text" class="form-control numero-radicado" value="${fila.numero_radicado || ''}" /></td>
+                    <td class="plan-accion" style="text-align: center;">${fila.plan_accion || ''}</td>
+                    <td><textarea class="form-control observacion">${fila.observacion || ''}</textarea></td>
+                    <td><input type="file" class="form-control adjunto" /></td>
+                    <td class="estado" style="text-align: center;">${fila.estado || ''}</td>
+                    <td class="registrado-por">${registradoPor}</td>
+                `;
+                filaElemento.dataset.idGestion = fila.id_gestion; // Asignar ID de gestión
+                tabla.appendChild(filaElemento);
+
+                // **Recalcular reglas de negocio** al cargar filas existentes
+                const inputFechaRadicado = filaElemento.querySelector(".fecha-radicado");
+                evaluarEstado(inputFechaRadicado);
+                evaluarPlanAccion(inputFechaRadicado);
+            });
+
+            // Ordenar y Renderizar fechas dinámicas nuevas (excluyendo duplicadas)
+            const fechasDinamicasOrdenadas = fechasDinamicas.sort((a, b) => {
+                const fechaA = new Date(a.entrega.split("-").join("-")); // Formato YYYY-MM-DD
+                const fechaB = new Date(b.entrega.split("-").join("-")); // Formato YYYY-MM-DD
+                return fechaB - fechaA; // Orden descendente
+            });
+
+            // 4. Renderizar fechas dinámicas nuevas (excluyendo duplicadas)
+            fechasDinamicas.forEach(item => {
+                const [year, month, day] = item.entrega.split("-");
+                const entregaFormatted = `${day}/${month}/${year}`;
+    
+                // Si la fecha ya existe, evitar agregarla
+                if (fechasExistentes.has(entregaFormatted)) {
+                    return;
+                }
+    
+                const fila = document.createElement("tr");
+                fila.innerHTML = `
+                    <td>${entregaFormatted}</td>
+                    <td><input type="date" class="form-control fecha-radicado" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" /></td>
+                    <td><input type="text" class="form-control numero-radicado" /></td>
+                    <td class="plan-accion" style="text-align: center;"></td>
+                    <td><textarea class="form-control observacion"></textarea></td>
+                    <td><input type="file" class="form-control adjunto" /></td>
+                    <td class="estado" style="text-align: center;"></td>
+                    <td class="registrado-por">Sin Gestionar</td>
+                `;
+                tabla.appendChild(fila);
+    
+                // Calcular estado y plan de acción
+                const inputFechaRadicado = fila.querySelector(".fecha-radicado");
+                evaluarEstado(inputFechaRadicado);
+                evaluarPlanAccion(inputFechaRadicado);
+
+                // Actualizar fecha y estado más recientes
+                const fechaEntregaActual = new Date(entregaFormatted.split("/").reverse().join("-"));
+                if (!fechaMasReciente || fechaEntregaActual > fechaMasReciente) {
+                    fechaMasReciente = fechaEntregaActual;
+                    estadoMasReciente = fila.querySelector(".estado").textContent.trim();
+                }
+    
+                // Agregar al backend
+                filasNuevas.push({
+                    id_gestion: null,
+                    fecha_entrega: entregaFormatted,
+                    estado: fila.querySelector(".estado").textContent.trim(),
+                    registrado_por: "Sin Gestionar"
+                });
+            });
+    
+            /// 5. Enviar nuevas filas al backend
+            if (filasNuevas.length > 0) {
+                const resultado = await fetch(`/gestion_clausula/${clausulaId}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ filas: filasNuevas }),
                 });
 
-                // Asignar eventos de cambio en "Fecha Radicado"
-                const fechasRadicado = document.querySelectorAll(".fecha-radicado");
-                fechasRadicado.forEach(fecha => {
-                    fecha.addEventListener("change", function () {
-                        evaluarPlanAccion(this);
-                    });
-                });
-            })
-            .catch(error => console.error("Error al cargar filas:", error));
+                if (resultado.ok) {
+                    const data = await resultado.json();
+                    console.log("Filas nuevas insertadas correctamente.");
+
+                    // Validar que `data.filas` exista y contenga datos
+                    if (data.filas && Array.isArray(data.filas) && data.filas.length > 0) {
+                        actualizarIdsEnDOM(data.filas); // Actualizar IDs en el DOM
+                    } else {
+                        console.warn("No se retornaron filas nuevas desde el backend.");
+                    }
+                } else {
+                    throw new Error("Error al guardar filas nuevas.");
+                }
+            }
+            // Actualizar la tabla principal
+            if (fechaMasReciente) {
+                actualizarTablaPrincipal(clausulaId, fechaMasReciente.toLocaleDateString("es-ES"), estadoMasReciente);
+            }
+        } catch (error) {
+            console.error("Error al cargar o guardar filas de gestión:", error);
+        }
     }
 
+    // Función para actualizar IDs en el DOM
+    function actualizarIdsEnDOM(filasConIds) {
+        const filasDOM = document.querySelectorAll("#tabla-gestion tr");
+
+        filasDOM.forEach((filaDOM) => {
+            const fechaEntregaDOM = filaDOM.cells[0]?.innerText.trim(); // Fecha máxima de entrega en el DOM
+
+            // Buscar la fila en los datos retornados por el backend usando la fecha de entrega
+            const filaBackend = filasConIds.find(
+                (f) => f.fecha_entrega === fechaEntregaDOM
+            );
+
+            // Actualizar el ID de gestión si existe en el backend
+            if (filaBackend && !filaDOM.dataset.idGestion) {
+                filaDOM.dataset.idGestion = filaBackend.id_gestion;
+            }
+        });
+    }
+     
     // Crear la condición SI requiere o NO Plan de Acción de acuerdo al cumplimiento de las entregas.
     function evaluarPlanAccion(inputFecha) {
         try {    
@@ -482,8 +616,357 @@
             //console.error("Error evaluando plan de acción:", error);
         }
     }
+    
+    // Crear la condición de los estados de cumplimiento de cada gestión de la clausula.
+    function evaluarEstado(inputFecha) {
+        try {
+            // Obtener Fecha Radicado (formato YYYY-MM-DD desde el input)
+            const fechaRadicadoRaw = inputFecha.value;
+            let fechaRadicado = fechaRadicadoRaw
+                ? new Date(fechaRadicadoRaw.split("-").join("/")) // Convertir a formato YYYY/MM/DD
+                : null;
+            //console.log("Fecha Radicado (valor del input):", fechaRadicadoRaw);
+            //console.log("Fecha Radicado (objeto Date):", fechaRadicado);
+    
+            // Obtener Fecha Entrega desde el atributo data-entrega (formato DD/MM/YYYY)
+            const entregaParts = inputFecha.getAttribute("data-entrega").split("/");
+            const fechaEntrega = new Date(`${entregaParts[2]}/${entregaParts[1]}/${entregaParts[0]}`);
+            //console.log("Fecha Entrega (data-entrega):", inputFecha.getAttribute("data-entrega"));
+            //console.log("Fecha Entrega (objeto Date):", fechaEntrega);
+    
+            // Obtener fecha actual (hoy)
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0); // Normalizar a medianoche
+            //console.log("Fecha Actual (Hoy):", hoy);
+    
+            // Seleccionar la celda de "Estado" y la fila
+            const estadoCell = inputFecha.closest("tr").querySelector(".estado");
+            const fila = inputFecha.closest("tr");
+    
+            // Normalizar fechas
+            if (fechaRadicado) {
+                fechaRadicado = new Date(fechaRadicado.getFullYear(), fechaRadicado.getMonth(), fechaRadicado.getDate());
+            }
+            const fechaEntregaNormalizada = new Date(fechaEntrega.getFullYear(), fechaEntrega.getMonth(), fechaEntrega.getDate());
+            //console.log("Fecha Radicado (normalizada):", fechaRadicado);
+            //console.log("Fecha Entrega (normalizada):", fechaEntregaNormalizada);
+    
+            // Resetear estilos por defecto
+            fila.style.backgroundColor = "";
+            estadoCell.textContent = "";
+            estadoCell.style.color = "";
+            estadoCell.style.fontWeight = "";
+    
+            // Condiciones
+            if ((!fechaRadicadoRaw || fechaRadicadoRaw.trim() === "") && fechaEntregaNormalizada >= hoy) {
+                // Caso "A Tiempo"
+                estadoCell.textContent = "A Tiempo";
+                estadoCell.style.color = "black";
+                estadoCell.style.fontWeight = "bold";
+                fila.style.backgroundColor = "#FFFFFF"; // Blanco (sin fondo especial)
+            } else if ((!fechaRadicadoRaw || fechaRadicadoRaw.trim() === "") && fechaEntregaNormalizada < hoy) {
+                // Caso "Incumplida"
+                estadoCell.textContent = "Incumplida";
+                estadoCell.style.color = "red";
+                estadoCell.style.fontWeight = "bold";
+                fila.style.backgroundColor = "#FFCCCC"; // Rosa Claro
+            } else if (fechaRadicado && fechaRadicado > fechaEntregaNormalizada) {
+                // Caso "Extemporal"
+                estadoCell.textContent = "Extemporal";
+                estadoCell.style.color = "orange";
+                estadoCell.style.fontWeight = "bold";
+                fila.style.backgroundColor = "#FFE5CC"; // Naranja Claro
+            } else if (fechaRadicado && fechaRadicado <= fechaEntregaNormalizada) {
+                // Caso "Cumplida"
+                estadoCell.textContent = "Cumplida";
+                estadoCell.style.color = "green";
+                estadoCell.style.fontWeight = "bold";
+                fila.style.backgroundColor = "#CCFFCC"; // Verde Claro
+            }
+
+        } catch (error) {
+            //console.error("Error evaluando estado:", error);
+        }
+    }
+
+    // Envia las filas nuevas a la base de datos para que posteriormente sean gestionadas
+    function enviarFilasGestion(clausulaId) {
+        const tabla = document.getElementById("tabla-gestion");
+        if (!tabla) {
+            console.error("No se encontró la tabla con ID 'tabla-gestion'.");
+            return;
+        }
+    
+        const filasGestion = Array.from(tabla.querySelectorAll("tr")).map((fila, index) => {
+            const fechaEntregaCell = fila.querySelector("td:nth-child(1)");
+            const fechaRadicadoInput = fila.querySelector(".fecha-radicado");
+            const estadoCell = fila.querySelector(".estado");
+    
+            if (!fechaEntregaCell || !fechaEntregaCell.textContent.trim()) {
+                console.warn(`Fila en índice ${index} sin fecha de entrega, ignorada.`);
+                return null;
+            }
+    
+            const registradoPor = fechaRadicadoInput?.value
+                ? "{{ user_session.nombres }} {{ user_session.apellidos }}"
+                : "Sin Gestionar";
+    
+            return {
+                id_clausula: clausulaId,
+                fecha_entrega: fechaEntregaCell.textContent.trim(),
+                fecha_radicado: fechaRadicadoInput?.value || null,
+                estado: estadoCell ? estadoCell.textContent.trim() : "A Tiempo",
+                registrado_por: registradoPor
+            };
+        }).filter(fila => fila !== null);
+    
+        console.log("Datos enviados al servidor:", filasGestion);
+    
+        fetch(`/gestion_clausula/${clausulaId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filas: filasGestion })
+        })
+        .then(response => {
+            console.log("Respuesta del servidor (estado):", response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log("Respuesta del servidor (contenido):", data);
+            if (!data.success) {
+                alert("Error en el servidor: " + data.message);
+            } else {
+                console.log("Filas guardadas correctamente.");
+                alert("Filas guardadas correctamente.");
+            }
+        })
+        .catch(error => {
+            console.error("Error al enviar filas gestionadas:", error);
+            alert("Error al guardar las filas gestionadas.");
+        });
+    }      
+        
+    // Llamar esta función al abrir el modal
+    document.getElementById("modalGestion").addEventListener("show.bs.modal", async function (event) {
+        const clausulaId = event.relatedTarget.getAttribute("data-id");
+        if (!clausulaId) {
+            console.error("No se encontró un ID de cláusula válido en el botón que abrió el modal.");
+            return;
+        }
+    
+        //console.log("Abriendo modal para la cláusula ID:", clausulaId);
+    
+        try {
+            // Asegurar que las filas se carguen antes de enviar cualquier dato
+            await cargarFilasGestion(clausulaId);
+            //console.log("Filas cargadas correctamente.");
+    
+            // Ahora puedes procesar y enviar filas si es necesario
+            // Si deseas enviar filas automáticamente al abrir:
+            // await enviarFilasGestion(clausulaId);
+        } catch (error) {
+            console.error("Error al cargar o procesar filas de gestión:", error);
+        }
+    });     
+
+    async function cargarGestionClausula(id_clausula) {
+        const response = await fetch(`/gestion_clausula/${id_clausula}`);
+        const data = await response.json();
+    
+        if (data.filas.length > 0) {
+            const contenedor = document.getElementById("contenedor_filas_gestion");
+            contenedor.innerHTML = ""; // Limpiar el contenedor
+    
+            data.filas.forEach(fila => {
+                // Crear filas con los datos recibidos
+                agregarFilaGestion(fila);
+            });
+        }
+    }
+    
+    async function guardarGestionClausula(id_clausula) {
+        const filas = [];
+        const tabla = document.querySelectorAll("#tabla-gestion tr");
+    
+        tabla.forEach((row) => {
+            const idGestion = row.dataset.idGestion || null;
+    
+            // Convertir la fecha de radicado al formato YYYY-MM-DD
+            let fechaRadicadoRaw = row.querySelector(".fecha-radicado")?.value || null;
+            let fechaRadicado = null;
+            if (fechaRadicadoRaw) {
+                const [year, month, day] = fechaRadicadoRaw.split("-");
+                fechaRadicado = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
+            }
+    
+            const numeroRadicado = row.querySelector(".numero-radicado")?.value || null;
+            const planAccion = row.querySelector(".plan-accion")?.innerText.trim() || null;
+            const observacion = row.querySelector(".observacion")?.value || null;
+            const estado = row.querySelector(".estado")?.innerText.trim() || null;
+            const adjunto = row.querySelector(".adjunto")?.files[0]?.name || null;
+    
+            // Obtener valores originales y convertir fecha_radicado original al mismo formato
+            const originalValues = row.dataset.originalValues
+                ? JSON.parse(row.dataset.originalValues)
+                : {};
+    
+            let originalFechaRadicado = null;
+            if (originalValues.fecha_radicado) {
+                const [day, month, year] = originalValues.fecha_radicado.split("/"); // Convertir formato DD/MM/YYYY
+                originalFechaRadicado = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
+            }
+    
+            // Verificar si hubo cambios
+            const hayCambios =
+                fechaRadicado !== originalFechaRadicado || // Comparar fechas en el mismo formato
+                numeroRadicado !== originalValues.numero_radicado ||
+                planAccion !== originalValues.plan_accion ||
+                observacion !== originalValues.observacion ||
+                estado !== originalValues.estado ||
+                adjunto !== originalValues.adjunto;
+    
+            filas.push({
+                id_gestion: idGestion,
+                fecha_radicado: fechaRadicado,
+                numero_radicado: numeroRadicado,
+                plan_accion: planAccion,
+                observacion: observacion,
+                estado: estado,
+                adjunto: adjunto,
+                registrado_por: hayCambios
+                    ? "{{ user_session.nombres }} {{ user_session.apellidos }}" // Usuario actual si hay cambios
+                    : null, // Preservar el usuario registrado anterior si no hay cambios
+            });
+        });
+    
+        if (filas.length === 0) {
+            console.log("No se detectaron cambios en las filas.");
+            return; // No enviar solicitud si no hay cambios
+        }
+    
+        try {
+            const response = await fetch(`/gestion_clausula/${id_clausula}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ filas }),
+            });
+    
+            if (!response.ok) {
+                const result = await response.json();
+                console.error("Error al actualizar las filas:", result);
+                alert("Error al actualizar las filas gestionadas.");
+                return;
+            }
+    
+            console.log("Filas gestionadas actualizadas correctamente.");
+            alert("Gestión guardada exitosamente.");
+        } catch (error) {
+            console.error("Error en la actualización de filas gestionadas:", error);
+            alert("Error al guardar las filas gestionadas.");
+        }
+    }  
+    
+     // Trae a la tabla principal la ultima fecha a gestionar y el estado para esta fecha 
+     function actualizarTablaPrincipal(clausulaId, fechaMasReciente, estadoMasReciente) {
+        const filaPrincipal = document.querySelector(`tr[data-id='${clausulaId}']`);
+        if (filaPrincipal) {
+            const columnaFecha = filaPrincipal.querySelector("td:nth-child(11)");
+            const columnaEstado = filaPrincipal.querySelector("td:nth-child(12)");
+    
+            // Normalizar fechaMasReciente
+            let fechaNormalizada = "N/A";
+    
+            if (fechaMasReciente) {
+                if (fechaMasReciente instanceof Date && !isNaN(fechaMasReciente)) {
+                    // Si es un objeto Date válido
+                    fechaNormalizada = fechaMasReciente.toLocaleDateString("es-ES");
+                } else if (typeof fechaMasReciente === "string" && fechaMasReciente.includes("-")) {
+                    // Intentar convertir string YYYY-MM-DD a Date
+                    const [year, month, day] = fechaMasReciente.split("-");
+                    const fecha = new Date(year, month - 1, day); // Meses en Date son 0-indexed
+                    if (!isNaN(fecha)) {
+                        fechaNormalizada = fecha.toLocaleDateString("es-ES");
+                    }
+                } else {
+                    //console.warn("Formato no reconocido para fechaMasReciente:", fechaMasReciente);
+                }
+            }
+    
+            // Si columnaFecha ya tiene un valor, no sobrescribirlo con "N/A"
+            if (columnaFecha && fechaNormalizada !== "N/A") {
+                columnaFecha.textContent = fechaNormalizada;
+            }
+    
+            if (columnaEstado) {
+                columnaEstado.textContent = estadoMasReciente || "Sin Estado";
+                determinarColorEstado(columnaEstado, estadoMasReciente);
+            }
+        }
+    }
+    
+    // Incluye la colorimetria de la tabla principal de acuerdo al ultimo estado de la fecha mas reciente para gestionar
+    function determinarColorEstado(elemento, estado) {
+        elemento.style.color = "";
+        elemento.style.fontWeight = "normal";
+    
+        switch (estado) {
+            case "A Tiempo":
+                elemento.style.color = "black";
+                elemento.style.fontWeight = "bold";
+                break;
+            case "Incumplida":
+                elemento.style.color = "red";
+                elemento.style.fontWeight = "bold";
+                break;
+            case "Extemporal":
+                elemento.style.color = "orange";
+                elemento.style.fontWeight = "bold";
+                break;
+            case "Cumplida":
+                elemento.style.color = "green";
+                elemento.style.fontWeight = "bold";
+                break;
+            default:
+                elemento.style.color = "gray";
+                break;
+        }
+    }    
+    
+    // Diligencia Dinamicamente las columnas "Entrega" y "Estado" al abrir pantalla principal
+    document.addEventListener("DOMContentLoaded", async function () {
+        const filasClausulas = document.querySelectorAll("tbody tr");
+
+        for (const fila of filasClausulas) {
+            const columnaId = fila.querySelector("td:nth-child(2)"); // Ajusta al índice correcto
+            if (!columnaId) {
+                //console.warn("Fila sin columna ID encontrada:", fila);
+                continue; // Saltar filas mal formateadas
+            }
+    
+            const clausulaId = columnaId.innerText;
+            const columnaEntrega = fila.querySelector("td:nth-child(11)"); // Índice de la columna "Entrega"
+            const columnaEstado = fila.querySelector("td:nth-child(12)"); // Índice de la columna "Estado"
+    
+            try {
+                const response = await fetch(`/gestion_clausula/${clausulaId}`);
+                const data = await response.json();
+    
+                if (data.fecha_entrega_mas_reciente && columnaEntrega) {
+                    columnaEntrega.textContent = data.fecha_entrega_mas_reciente;
+                }
+    
+                if (data.estado_mas_reciente && columnaEstado) {
+                    columnaEstado.textContent = data.estado_mas_reciente;
+    
+                    // Aplicar colorimetría a la columna "Estado"
+                    determinarColorEstado(columnaEstado, data.estado_mas_reciente);
+                }
+            } catch (error) {
+                console.error(`Error al cargar datos para cláusula ID ${clausulaId}:`, error);
+            }
+        }
+    });    
+
 </script>
-
-
 
 {% endblock %}
