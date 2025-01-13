@@ -29,18 +29,18 @@
     </div>
 
     <!-- Filtros de Consulta -->
-    <div class="row mb-4">
-        <div class="col-md-2">
-            <label for="control">Control</label>
-            <select id="control" class="form-select" style="font-size: 14px; height: 35px; padding: 5px 10px;">
+    <div class="row mb-4 align-items-center g-1">
+        <div class="col-md-1">
+            <label for="control" class="form-label mb-1">Control</label>
+            <select id="control" class="form-select" style="font-size: 14px; height: 35px;">
                 <option selected>Seleccionar...</option>
                 <option value="CONTRATO">CONTRATO</option>
                 <option value="MANUAL">MANUAL</option>
             </select>
         </div>
         <div class="col-md-2">
-            <label for="etapa">Etapa</label>
-            <select id="etapa" class="form-select" style="font-size: 14px; height: 35px; padding: 5px 10px;">
+            <label for="etapa" class="form-label mb-1">Etapa</label>
+            <select id="etapa" class="form-select" style="font-size: 14px; height: 35px;">
                 <option selected>Seleccionar...</option>
                 {% for etapa in etapas %}
                     <option value="{{ etapa[0] }}">{{ etapa[0] }}</option>
@@ -48,8 +48,8 @@
             </select>
         </div>
         <div class="col-md-2">
-            <label for="clausula">Cláusula</label>
-            <select id="clausula" class="form-select" style="font-size: 14px; height: 35px; padding: 5px 10px;">
+            <label for="clausula" class="form-label mb-1">Cláusula</label>
+            <select id="clausula" class="form-select" style="font-size: 14px; height: 35px;">
                 <option selected>Seleccionar...</option>
                 {% for clausula in clausulas_lista %}
                     <option value="{{ clausula[0] }}">{{ clausula[0] }}</option>
@@ -57,8 +57,8 @@
             </select>
         </div>
         <div class="col-md-2">
-            <label for="concesion">Concesión</label>
-            <select id="concesion" class="form-select" style="font-size: 14px; height: 35px; padding: 5px 10px;">
+            <label for="concesion" class="form-label mb-1">Concesión</label>
+            <select id="concesion" class="form-select" style="font-size: 14px; height: 35px;">
                 <option selected>Seleccionar...</option>
                 {% for concesion in concesiones %}
                     <option value="{{ concesion[0] }}">{{ concesion[0] }}</option>
@@ -66,26 +66,38 @@
             </select>
         </div>
         <div class="col-md-2">
-            <label for="estado">Estado</label>
-            <select id="estado" class="form-select" style="font-size: 14px; height: 35px; padding: 5px 10px;">
+            <label for="estado" class="form-label mb-1">Estado</label>
+            <select id="estado" class="form-select" style="font-size: 14px; height: 35px;">
                 <option selected>Seleccionar...</option>
-                <!-- Opciones dinámicas -->
+                {% for estado in estados %}
+                    <option value="{{ estado }}">{{ estado }}</option>
+                {% endfor %}
             </select>
         </div>
-        <div class="col-md-3">
-            <label for="buscar">Buscar</label>
-            <input type="text" id="buscar" class="form-control" placeholder="Buscar en Tabla..." style="font-size: 14px; height: 35px; padding: 5px 10px;">
+        <div class="col-md-2">
+            <div>
+                <label for="responsable" class="form-label mb-1">Responsable</label>
+                <select id="responsable" class="form-select" style="font-size: 14px; height: 35px;">
+                    <option selected>Seleccionar...</option>
+                    {% for responsable in responsable_entrega %}
+                        <option value="{{ responsable }}">{{ responsable }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
-        <!-- Botón Limpiar -->
-        <div class="col-md-1 d-flex align-items-end">
-            <button type="button" class="btn btn-secondary" id="limpiar" style="margin-left: 10px;">Limpiar</button>
-        </div>
+        <div class="col-md-1 d-flex flex-column align-items-center">
+            <label for="limpiar" class="form-label mb-1" style="font-size: 14px; text-align: center;">Limpiar</label>
+            <button type="button" class="btn btn-link p-0" id="limpiar" 
+                style="height: 40px; width: 40px; border: 1px solid #727272; border-radius: 20%; display: flex; align-items: center; justify-content: center;">
+                <img src="/static/images/borrar.png" alt="Borrar" style="height: 70%; width: 70%;">
+            </button>
+        </div>                
     </div>
 
     <!-- Tabla Principal -->
     <div class="table-wrapper" style="max-height: 600px; overflow-y: auto; border: 1px solid rgb(104, 103, 103);">
         <table class="table table-bordered table-striped" style="font-size: 12px; width: 100%; margin-bottom: 0; border: 1px solid rgb(218, 212, 212);">
-            <thead class="table-responsive" style="background-color: #120b6e; color: #ffffff; position: sticky; top: 0; z-index: 100;">
+            <thead class="table-responsive" style="background-color: #120b6e; color: #ffffff; position: sticky; top: 0; z-index: 100; font-family: 'Century Gothic', Arial, sans-serif;">
                 <tr>
                     <th style="width: 10px;">Ver</th>
                     <th style="width: 15px;">Id</th>
@@ -95,7 +107,7 @@
                     <th style="width: 60px;">Contrato</th>
                     <th style="width: 80px;">Tema</th>
                     <th style="width: 250px;">Descripción</th>
-                    <th style="width: 20px;">Tipo de Cláusula</th>
+                    <th style="width: 20px;">Tipo</th>
                     <th style="width: 50px;">Frecuencia</th>
                     <th style="width: 50px;">Entrega</th>
                     <th style="width: 50px;">Estado</th>
@@ -104,36 +116,36 @@
             <tbody>
                 <!-- Filas dinámicas aquí -->
                 {% for clausula in clausulas %}
-                <tr data-id="{{ clausula.id }}" style="height: 70px; vertical-align: top;"> <!-- Definir el alto fijo -->
-                    <td>
+                <tr data-id="{{ clausula.id }}" style="height: 20px;"> <!-- Definir el alto fijo -->
+                    <td tyle="text-align: center; vertical-align: middle;  width: 40px;">
                         <!-- Botón en la tabla para llamar a la función de abrir modal de Edición o Gestión -->
-                        <button type="button" class="btn btn-primary" data-id="{{ clausula.id }}" onclick="abrirModalGestion(this)" data-bs-toggle="modal" data-bs-target="#modalGestion" style="background-color: #ffffff; border-color: rgb(13, 15, 124);">
+                        <button type="button" class="btn btn-primary d-flex align-items-center justify-content-center" data-id="{{ clausula.id }}" onclick="abrirModalGestion(this)" data-bs-toggle="modal" data-bs-target="#modalGestion" style="background-color: #ffffff; border-color: rgb(13, 15, 124); padding: 5px; height: 30px; width: 30px;">
                             <img src="/static/images/editar.png" alt="Editar" style="width: 20px; height: 20px;">
                         </button>                                              
                     </td>
-                    <td>{{ clausula.id }}</td>
-                    <td>{{ clausula.control }}</td>
-                    <td>{{ clausula.etapa }}</td>
-                    <td>{{ clausula.clausula }}</td>
-                    <td>{{ clausula.contrato_concesion }}</td>
+                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.id }}</td>
+                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.control }}</td>
+                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.etapa }}</td>
+                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.clausula }}</td>
+                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">{{ clausula.contrato_concesion }}</td>
                     <td class="description-cell" 
                         title="{{ clausula.tema }}" 
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top"
-                        style="overflow: hidden; text-overflow: ellipsis; white-space: normal; max-height: 100px;">
+                        style="text-align: justify; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">
                         {{ clausula.tema }}
                     </td>
                     <td class="description-cell" 
                         title="{{ clausula.descripcion_clausula }}" 
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top"
-                        style="overflow: hidden; text-overflow: ellipsis; white-space: normal; max-height: 100px; display: block; ">
+                        style="text-align: justify; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">
                         {{ clausula.descripcion_clausula }}
                     </td>
-                    <td>{{ clausula.tipo_clausula }}</td>
-                    <td>{{ clausula.frecuencia }}</td>
-                    <td>{{ clausula.entrega }}</td>
-                    <td>{{ clausula.estado }}</td>
+                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.tipo_clausula }}</td>
+                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.frecuencia }}</td>
+                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.fecha_entrega_mas_reciente or "Sin Fecha" }}</td>
+                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">{{ clausula.estado_mas_reciente or "Sin Estado" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -156,7 +168,7 @@
 
     <!-- Modal para Crear Cláusula -->
     <div class="modal fade" id="modalCrearClausula" tabindex="-1" aria-labelledby="modalCrearClausulaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog" style="max-width: 50%; height: 50%; max-height: 50;">
+        <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 80%; height: auto; overflow-y: auto;">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalCrearClausulaLabel">Crear Nueva Cláusula</h5>
@@ -186,44 +198,44 @@
 
     <!-- Modal de Gestión -->
     <div class="modal fade" id="modalGestion" tabindex="-1" aria-labelledby="modalGestionLabel" aria-hidden="true">
-        <div class="modal-dialog" style="max-width: 95%; height: 95%; max-height: 95%;">
+        <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 80%; height: auto; overflow-y: auto;">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalGestionLabel">Datos Generales de la Cláusula</h5>
+                    <h5 class="modal-title" id="modalGestionLabel" style="font-size: 16px; text-align: center; margin-bottom: 10px;">Datos Generales de la Cláusula</h5>
                     <button type="button" class="btn-close" onclick="confirmarCierreModal()" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row">
-                    <!-- Incluir el archivo clausula_config.html para la sección izquierda -->
-                    <div class="col-md-5" style="background-color: #d3d4e2; padding: 15px; border-radius: 5px;">
+                <div class="modal-body" style="padding: 10px; max-height: calc(100vh - 150px); overflow-y: auto;">
+                    <!-- Encabezado superior: Sección de Parametrización -->
+                    <div class="container-fluid" style="padding: 5;">
                         {% set modal = "gestionar" %}
                         {% include 'clausula_config.html' %}
                     </div>
 
-                    <!-- Sección derecha - Gestión de la Cláusula -->
-                    <div class="col-md-7">
-                        <!-- Tabla interna dentro del modal -->
-                        <div class="table-responsive">
-                            <h5 class="modal-title" id="modalGestionLabel">Gestión de Cláusula</h5>
-                            <table class="table table-bordered table-striped" style="font-size: 12px;">
-                                <thead class="table-responsive" style="background-color: #120b6e; color: #ffffff;">
-                                    <tr>
-                                        <th>Entrega Max</th>
-                                        <th>Fecha Radicado</th>
-                                        <th>N° Radicado</th>
-                                        <th>Plan</th>
-                                        <th>Observación</th>
-                                        <th>Adjunto</th>
-                                        <th>Estado</th>
-                                        <th>Registrado Por</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabla-gestion">
-                                    <tr>
-                                        <!-- Tabla se crea en el Script function cargarFilasGestion(clausulaId) -->
-                                    </tr>
-                                </tbody>
-                            </table>
+                     <!-- Sección inferior: Tabla de gestión -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="table-responsive" style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc; border-radius: 5px;">
+                                <h5 class="modal-title" id="modalGestionLabel" style="font-size: 14px; text-align: center; margin-bottom: 10px;">Gestión de la Cláusula</h5>
+                                <table class="table table-bordered table-striped" style="font-size: 12px;">
+                                    <thead class="table-responsive" style="background-color: #120b6e; color: #ffffff; position: sticky; top: 0; z-index: 2; font-family: 'Century Gothic', Arial, sans-serif;">
+                                        <tr>
+                                            <th style="width: 8%;">Entrega</th>
+                                            <th style="width: 8%;">Fecha Radicado</th>
+                                            <th style="width: 15%;">N° Radicado</th>
+                                            <th style="width: 5%;">Plan</th>
+                                            <th style="width: 29;">Observación</th>
+                                            <th style="width: 10%;">Adjunto</th>
+                                            <th style="width: 8;">Estado</th>
+                                            <th style="width: 17%;">Registrado Por</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabla-gestion">
+                                        <tr>
+                                            <!-- Tabla se crea en el Script function cargarFilasGestion(clausulaId) -->
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -244,7 +256,8 @@
             etapa: document.getElementById('etapa'),
             clausula: document.getElementById('clausula'),
             concesion: document.getElementById('concesion'),
-            buscar: document.getElementById('buscar')
+            estado: document.getElementById('estado'),
+            responsable: document.getElementById('responsable')
         };
 
         function filtrarClausulas() {
@@ -262,10 +275,14 @@
             if (filters.concesion.value !== 'Seleccionar...') {
                 queryParams.append('concesion', filters.concesion.value);
             }
-            if (filters.buscar.value !== '') {
-                queryParams.append('buscar', filters.buscar.value);
+            if (filters.estado.value !== 'Seleccionar...') { 
+                queryParams.append('estado', filters.estado.value);
             }
-
+            if (filters.responsable.value !== 'Seleccionar...') {
+                const responsable = filters.responsable.value.trim();
+                queryParams.append('responsable', responsable);
+            }
+            
             fetch(`/filtrar_clausulas?${queryParams.toString()}`)
                 .then(response => response.text())
                 .then(html => {
@@ -274,15 +291,47 @@
                     const doc = parser.parseFromString(html, 'text/html');
                     const newTable = doc.querySelector('.table-wrapper').innerHTML;
                     tableWrapper.innerHTML = newTable;
+
+                    // Actualizar dinámicamente las columnas "Entrega" y "Estado"
+                    actualizarColumnasEntregaEstado();
+
                 })
                 .catch(error => console.error('Error al filtrar las cláusulas:', error));
+        }
+
+        function actualizarColumnasEntregaEstado() {
+            fetch('/clausulas') // Endpoint para obtener las columnas dinámicas
+                .then(response => response.json())
+                .then(data => {
+                    const filas = document.querySelectorAll('.table-wrapper tbody tr');
+                    filas.forEach(fila => {
+                        const clausulaId = fila.querySelector('td:nth-child(2)')?.textContent.trim();
+                        const clausula = data.find(c => c.id === parseInt(clausulaId));
+        
+                        if (clausula) {
+                            // Actualizar columnas "Entrega" y "Estado"
+                            const entregaCell = fila.querySelector('td:nth-child(11)');
+                            const estadoCell = fila.querySelector('td:nth-child(12)');
+        
+                            if (entregaCell) {
+                                entregaCell.textContent = clausula.fecha_entrega_mas_reciente || 'Sin Fecha';
+                            }
+                            if (estadoCell) {
+                                estadoCell.textContent = clausula.estado_mas_reciente || 'Sin Estado';
+                                determinarColorEstado(estadoCell, clausula.estado_mas_reciente);
+                            }
+                        }
+                    });
+                })
+                .catch(error => console.error('Error al actualizar columnas dinámicas:', error));
         }
 
         filters.control.addEventListener('change', filtrarClausulas);
         filters.etapa.addEventListener('change', filtrarClausulas);
         filters.clausula.addEventListener('change', filtrarClausulas);
         filters.concesion.addEventListener('change', filtrarClausulas);
-        filters.buscar.addEventListener('input', filtrarClausulas);
+        filters.estado.addEventListener('change', filtrarClausulas);
+        filters.responsable.addEventListener('change', filtrarClausulas);
 
         // Agregar manejador para el botón "Limpiar"
         document.getElementById('limpiar').addEventListener('click', function () {
@@ -291,7 +340,8 @@
             filters.etapa.value = 'Seleccionar...';
             filters.clausula.value = 'Seleccionar...';
             filters.concesion.value = 'Seleccionar...';
-            filters.buscar.value = '';
+            filters.estado.value = 'Seleccionar...';
+            filters.responsable.value = 'Seleccionar...';
 
             // Recarga la tabla sin filtros
             filtrarClausulas();
@@ -394,8 +444,8 @@
 
 <!-- Crear dinámicamente filas en el modal de gestión según la frecuencia (GESTIONAR). -->
 <script>
-    async function cargarFilasGestion(clausulaId) {
-        const tabla = document.getElementById("tabla-gestion");
+    async function cargarFilasGestion(clausulaId, esMasivo = false) {
+        const tabla = esMasivo ? null : document.getElementById("tabla-gestion"); // Solo manipular el DOM si no es masivo
         const fechasExistentes = new Set(); // Almacena fechas ya cargadas para evitar duplicados
         const filasNuevas = []; // Almacena filas nuevas a enviar al backend
     
@@ -408,11 +458,13 @@
             const responseFechas = await fetch(`/api/fechas_dinamicas/${clausulaId}`);
             const fechasDinamicas = await responseFechas.json();
     
-            tabla.innerHTML = ""; // Limpiar filas existentes en el DOM
-
+            if (!esMasivo && tabla) {
+                tabla.innerHTML = ""; // Limpiar filas existentes en el DOM si no es masivo
+            }
+    
             let fechaMasReciente = null;
             let estadoMasReciente = null;
-
+    
             // **Ordenar las filas existentes por fecha_entrega (más reciente primero)**
             const filasOrdenadas = filasExistentes.filas.sort((a, b) => {
                 const fechaA = new Date(a.fecha_entrega.split("/").reverse().join("-"));
@@ -424,128 +476,118 @@
             filasExistentes.filas.forEach(fila => {
                 const entregaFormatted = fila.fecha_entrega; // Mantener el formato DD/MM/YYYY
                 fechasExistentes.add(entregaFormatted); // Agregar al conjunto de fechas existentes
-
-                // Convertir fecha_radicado a formato YYYY-MM-DD
+    
                 let fechaRadicado = "";
                 if (fila.fecha_radicado) {
-                    const [day, month, year] = fila.fecha_radicado.split("/"); // Suponiendo que viene en DD/MM/YYYY
+                    const [day, month, year] = fila.fecha_radicado.split("/");
                     fechaRadicado = `${year}-${month}-${day}`; // Convertir a formato compatible YYYY-MM-DD
                 }
-
-                // Validar si existe gestión por un usuario
+    
                 const registradoPor = fila.fecha_radicado
-                ? fila.registrado_por || "Sin Gestionar"
-                : "Sin Gestionar";
-
-                // Actualizar fecha y estado más recientes
+                    ? fila.registrado_por || "Sin Gestionar"
+                    : "Sin Gestionar";
+    
                 const fechaEntregaActual = new Date(entregaFormatted.split("/").reverse().join("-"));
                 if (!fechaMasReciente || fechaEntregaActual > fechaMasReciente) {
                     fechaMasReciente = fechaEntregaActual;
                     estadoMasReciente = fila.estado;
                 }
     
-                 // Renderizar la fila
-                const filaElemento = document.createElement("tr");
-                filaElemento.innerHTML = `
-                    <td>${entregaFormatted}</td>
-                    <td><input type="date" class="form-control fecha-radicado" value="${fechaRadicado}" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" /></td>
-                    <td><input type="text" class="form-control numero-radicado" value="${fila.numero_radicado || ''}" /></td>
-                    <td class="plan-accion" style="text-align: center;">${fila.plan_accion || ''}</td>
-                    <td><textarea class="form-control observacion">${fila.observacion || ''}</textarea></td>
-                    <td><input type="file" class="form-control adjunto" /></td>
-                    <td class="estado" style="text-align: center;">${fila.estado || ''}</td>
-                    <td class="registrado-por">${registradoPor}</td>
-                `;
-                filaElemento.dataset.idGestion = fila.id_gestion; // Asignar ID de gestión
-                tabla.appendChild(filaElemento);
-
-                // **Recalcular reglas de negocio** al cargar filas existentes
-                const inputFechaRadicado = filaElemento.querySelector(".fecha-radicado");
-                evaluarEstado(inputFechaRadicado);
-                evaluarPlanAccion(inputFechaRadicado);
+                if (!esMasivo && tabla) {
+                    const filaElemento = document.createElement("tr");
+                    filaElemento.innerHTML = `
+                        <td>${entregaFormatted}</td>
+                        <td><input type="date" class="form-control fecha-radicado" value="${fechaRadicado}" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" style="font-size: 12px; height: 30px;" /></td>
+                        <td><input type="text" class="form-control numero-radicado" value="${fila.numero_radicado || ''}" style="font-size: 12px; height: 30px;" /></td>
+                        <td class="plan-accion" style="text-align: center;">${fila.plan_accion || ''}</td>
+                        <td><textarea class="form-control observacion" style="font-size: 12px; height: 30px;">${fila.observacion || ''}</textarea></td>
+                        <td style="text-align: center; vertical-align: middle; position: relative;">
+                            <div style="display: flex; align-items: center;">
+                                <input type="file" class="form-control adjunto" style="display: none;" multiple onchange="adjuntarArchivos(this, document.getElementById('modalGestion').getAttribute('data-id-clausula'), this.closest('tr').querySelector('td:first-child').innerText.trim())">
+                                <img src="/static/images/adjunto.png" onclick="this.previousElementSibling.click();" style="cursor: pointer; height: 30px; width: 30px;">
+                                <ul class="lista-archivos" style="margin: 0 0 0 10px; padding: 0; list-style-type: none; text-align: justify; font-size: 10px; line-height: 1.2; max-width: 150px; overflow-wrap: break-word;"></ul>
+                            </div>
+                        </td>
+                        <td class="estado" style="text-align: center;">${fila.estado || ''}</td>
+                        <td class="registrado-por">${registradoPor}</td>
+                    `;
+                    filaElemento.dataset.idGestion = fila.id_gestion;
+                    tabla.appendChild(filaElemento);
+    
+                    const inputFechaRadicado = filaElemento.querySelector(".fecha-radicado");
+                    evaluarEstado(inputFechaRadicado);
+                    evaluarPlanAccion(inputFechaRadicado);
+                }
             });
-
-            // Ordenar y Renderizar fechas dinámicas nuevas (excluyendo duplicadas)
-            const fechasDinamicasOrdenadas = fechasDinamicas.sort((a, b) => {
-                const fechaA = new Date(a.entrega.split("-").join("-")); // Formato YYYY-MM-DD
-                const fechaB = new Date(b.entrega.split("-").join("-")); // Formato YYYY-MM-DD
-                return fechaB - fechaA; // Orden descendente
-            });
-
+    
             // 4. Renderizar fechas dinámicas nuevas (excluyendo duplicadas)
             fechasDinamicas.forEach(item => {
-                const [year, month, day] = item.entrega.split("-");
-                const entregaFormatted = `${day}/${month}/${year}`;
+                const entregaFormatted = item.entrega.split("-").reverse().join("/");
     
-                // Si la fecha ya existe, evitar agregarla
-                if (fechasExistentes.has(entregaFormatted)) {
-                    return;
+                if (!fechasExistentes.has(entregaFormatted)) {
+                    // Crear una fila temporal para evaluar el estado dinámicamente
+                    const filaTemporal = document.createElement("tr");
+                    filaTemporal.innerHTML = `
+                        <td>${entregaFormatted}</td>
+                        <td><input type="date" class="form-control fecha-radicado" data-entrega="${entregaFormatted}" /></td>
+                        <td class="estado"></td>
+                    `;
+    
+                    const inputFechaRadicadoTemp = filaTemporal.querySelector(".fecha-radicado");
+                    evaluarEstado(inputFechaRadicadoTemp);
+    
+                    const estadoEvaluado = filaTemporal.querySelector(".estado").textContent.trim();
+    
+                    filasNuevas.push({
+                        id_gestion: null,
+                        fecha_entrega: entregaFormatted,
+                        estado: estadoEvaluado || "A Tiempo",
+                        registrado_por: "Sin Gestionar"
+                    });
+    
+                    if (!esMasivo && tabla) {
+                        const fila = document.createElement("tr");
+                        fila.innerHTML = `
+                            <td>${entregaFormatted}</td>
+                            <td><input type="date" class="form-control fecha-radicado" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" style="font-size: 12px; height: 30px;" /></td>
+                            <td><input type="text" class="form-control numero-radicado" style="font-size: 12px; height: 30px;" /></td>
+                            <td class="plan-accion" style="text-align: center;"></td>
+                            <td><textarea class="form-control observacion" style="font-size: 12px; height: 30px;"></textarea></td>
+                            <td style="text-align: center; vertical-align: middle; position: relative;">
+                                <div style="display: flex; align-items: center;">
+                                    <input type="file" class="form-control adjunto" style="display: none;" multiple onchange="adjuntarArchivos(this, document.getElementById('modalGestion').getAttribute('data-id-clausula'), this.closest('tr').querySelector('td:first-child').innerText.trim())">
+                                    <img src="/static/images/adjunto.png" onclick="this.previousElementSibling.click();" style="cursor: pointer; height: 30px; width: 30px;">
+                                    <ul class="lista-archivos" style="margin: 0 0 0 10px; padding: 0; list-style-type: none; text-align: justify; font-size: 8px; line-height: 1.2; max-width: 150px; overflow-wrap: break-word;"></ul>
+                                </div>
+                            </td>
+                            <td class="estado" style="text-align: center;">${estadoEvaluado || "A Tiempo"}</td>
+                            <td class="registrado-por">Sin Gestionar</td>
+                        `;
+                        tabla.appendChild(fila);
+    
+                        const inputFechaRadicadoRender = fila.querySelector(".fecha-radicado");
+                        evaluarEstado(inputFechaRadicadoRender);
+                        evaluarPlanAccion(inputFechaRadicadoRender);
+                    }
                 }
-    
-                const fila = document.createElement("tr");
-                fila.innerHTML = `
-                    <td>${entregaFormatted}</td>
-                    <td><input type="date" class="form-control fecha-radicado" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" /></td>
-                    <td><input type="text" class="form-control numero-radicado" /></td>
-                    <td class="plan-accion" style="text-align: center;"></td>
-                    <td><textarea class="form-control observacion"></textarea></td>
-                    <td><input type="file" class="form-control adjunto" /></td>
-                    <td class="estado" style="text-align: center;"></td>
-                    <td class="registrado-por">Sin Gestionar</td>
-                `;
-                tabla.appendChild(fila);
-    
-                // Calcular estado y plan de acción
-                const inputFechaRadicado = fila.querySelector(".fecha-radicado");
-                evaluarEstado(inputFechaRadicado);
-                evaluarPlanAccion(inputFechaRadicado);
-
-                // Actualizar fecha y estado más recientes
-                const fechaEntregaActual = new Date(entregaFormatted.split("/").reverse().join("-"));
-                if (!fechaMasReciente || fechaEntregaActual > fechaMasReciente) {
-                    fechaMasReciente = fechaEntregaActual;
-                    estadoMasReciente = fila.querySelector(".estado").textContent.trim();
-                }
-    
-                // Agregar al backend
-                filasNuevas.push({
-                    id_gestion: null,
-                    fecha_entrega: entregaFormatted,
-                    estado: fila.querySelector(".estado").textContent.trim(),
-                    registrado_por: "Sin Gestionar"
-                });
             });
     
-            /// 5. Enviar nuevas filas al backend
+            // 5. Enviar nuevas filas al backend
             if (filasNuevas.length > 0) {
-                const resultado = await fetch(`/gestion_clausula/${clausulaId}`, {
+                await fetch(`/gestion_clausula/${clausulaId}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ filas: filasNuevas }),
                 });
-
-                if (resultado.ok) {
-                    const data = await resultado.json();
-                    console.log("Filas nuevas insertadas correctamente.");
-
-                    // Validar que `data.filas` exista y contenga datos
-                    if (data.filas && Array.isArray(data.filas) && data.filas.length > 0) {
-                        actualizarIdsEnDOM(data.filas); // Actualizar IDs en el DOM
-                    } else {
-                        console.warn("No se retornaron filas nuevas desde el backend.");
-                    }
-                } else {
-                    throw new Error("Error al guardar filas nuevas.");
-                }
             }
-            // Actualizar la tabla principal
-            if (fechaMasReciente) {
-                actualizarTablaPrincipal(clausulaId, fechaMasReciente.toLocaleDateString("es-ES"), estadoMasReciente);
+    
+            if (!esMasivo && fechaMasReciente) {
+                //console.log(`Fecha más reciente: ${fechaMasReciente}, Estado más reciente: ${estadoMasReciente}`);
             }
         } catch (error) {
-            console.error("Error al cargar o guardar filas de gestión:", error);
+            console.error(`Error al cargar filas de gestión para la cláusula ${clausulaId}:`, error);
         }
-    }
+    }     
 
     // Función para actualizar IDs en el DOM
     function actualizarIdsEnDOM(filasConIds) {
@@ -755,6 +797,9 @@
         }
     
         //console.log("Abriendo modal para la cláusula ID:", clausulaId);
+
+        // Establecer el ID de la cláusula en el modal
+        this.setAttribute("data-id-clausula", clausulaId);
     
         try {
             // Asegurar que las filas se carguen antes de enviar cualquier dato
@@ -768,6 +813,35 @@
             console.error("Error al cargar o procesar filas de gestión:", error);
         }
     });     
+
+    // Función al abrir pantalla principal JURIDICO actualiza todas las fechas de gestión de cláusulas
+    document.addEventListener("DOMContentLoaded", async function () {
+        try {
+            // 1. Seleccionar todas las filas en la tabla principal (identifica las cláusulas)
+            const filasClausulas = document.querySelectorAll("tbody tr");
+            const clausulaIds = [];
+    
+            filasClausulas.forEach((fila) => {
+                const columnaId = fila.querySelector("td:nth-child(2)"); // Ajusta al índice correcto para obtener el ID de cláusula
+                if (columnaId) {
+                    clausulaIds.push(columnaId.textContent.trim());
+                }
+            });
+    
+            // 2. Procesar cada cláusula de manera asincrónica utilizando cargarFilasGestion
+            await Promise.all(clausulaIds.map((clausulaId) => cargarFilasGestion(clausulaId, true)));
+    
+            //console.log("Actualización masiva de cláusulas completada.");
+        } catch (error) {
+            console.error("Error general al cargar las cláusulas:", error);
+        }
+    });    
+    
+    // Función para formatear la fecha al formato requerido
+    function formatFecha(fecha) {
+        const [year, month, day] = fecha.split("-");
+        return `${day}/${month}/${year}`; // Convertir de YYYY-MM-DD a DD/MM/YYYY
+    }
 
     async function cargarGestionClausula(id_clausula) {
         const response = await fetch(`/gestion_clausula/${id_clausula}`);
@@ -788,7 +862,7 @@
         const filas = [];
         const tabla = document.querySelectorAll("#tabla-gestion tr");
     
-        tabla.forEach((row) => {
+        for (const row of tabla) {
             const idGestion = row.dataset.idGestion || null;
     
             // Convertir la fecha de radicado al formato YYYY-MM-DD
@@ -803,44 +877,61 @@
             const planAccion = row.querySelector(".plan-accion")?.innerText.trim() || null;
             const observacion = row.querySelector(".observacion")?.value || null;
             const estado = row.querySelector(".estado")?.innerText.trim() || null;
-            const adjunto = row.querySelector(".adjunto")?.files[0]?.name || null;
     
-            // Obtener valores originales y convertir fecha_radicado original al mismo formato
+            // Manejo de adjuntos
+            const adjuntosInput = row.querySelector(".adjunto");
+            const archivos = adjuntosInput?.files || [];
+            //console.log("Adjuntos seleccionados:", archivos);
+            let nombresAdjuntos = "";
+    
+            if (archivos.length > 0) {
+                nombresAdjuntos = Array.from(archivos)
+                    .map((file) => file.name)
+                    .join(", ");
+            }
+    
+            // Obtener la fecha de entrega desde la primera columna
+            const fechaEntregaRaw = row.querySelector("td:first-child").textContent.trim();
+            const [day, month, year] = fechaEntregaRaw.split("/");
+            const fechaEntrega = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
+    
+            // Obtener valores originales para verificar cambios
             const originalValues = row.dataset.originalValues
                 ? JSON.parse(row.dataset.originalValues)
                 : {};
     
             let originalFechaRadicado = null;
             if (originalValues.fecha_radicado) {
-                const [day, month, year] = originalValues.fecha_radicado.split("/"); // Convertir formato DD/MM/YYYY
-                originalFechaRadicado = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
+                const [origDay, origMonth, origYear] = originalValues.fecha_radicado.split("/");
+                originalFechaRadicado = `${origYear}-${origMonth}-${origDay}`;
             }
     
             // Verificar si hubo cambios
             const hayCambios =
-                fechaRadicado !== originalFechaRadicado || // Comparar fechas en el mismo formato
+                fechaRadicado !== originalFechaRadicado ||
                 numeroRadicado !== originalValues.numero_radicado ||
                 planAccion !== originalValues.plan_accion ||
                 observacion !== originalValues.observacion ||
                 estado !== originalValues.estado ||
-                adjunto !== originalValues.adjunto;
+                nombresAdjuntos !== originalValues.adjunto;
     
             filas.push({
                 id_gestion: idGestion,
+                fecha_entrega: fechaEntrega,
                 fecha_radicado: fechaRadicado,
                 numero_radicado: numeroRadicado,
                 plan_accion: planAccion,
                 observacion: observacion,
                 estado: estado,
-                adjunto: adjunto,
+                adjunto: nombresAdjuntos, // Guardar los nombres de los adjuntos
                 registrado_por: hayCambios
                     ? "{{ user_session.nombres }} {{ user_session.apellidos }}" // Usuario actual si hay cambios
                     : null, // Preservar el usuario registrado anterior si no hay cambios
             });
-        });
+        }
     
         if (filas.length === 0) {
-            console.log("No se detectaron cambios en las filas.");
+            //console.log("No se detectaron cambios en las filas.");
             return; // No enviar solicitud si no hay cambios
         }
     
@@ -851,122 +942,154 @@
                 body: JSON.stringify({ filas }),
             });
     
-            if (!response.ok) {
+            if (response.ok) {
+                //console.log("Gestión de filas completada.");
+                alert("Gestión guardada exitosamente.");
+            } else {
                 const result = await response.json();
-                console.error("Error al actualizar las filas:", result);
+                //console.error("Error al actualizar las filas:", result);
                 alert("Error al actualizar las filas gestionadas.");
-                return;
             }
-    
-            console.log("Filas gestionadas actualizadas correctamente.");
-            alert("Gestión guardada exitosamente.");
         } catch (error) {
-            console.error("Error en la actualización de filas gestionadas:", error);
+            //console.error("Error en la gestión de filas:", error);
             alert("Error al guardar las filas gestionadas.");
         }
-    }  
+    }           
+        
+    // Incluye los valores de Estado y Fecha maxima de entrega en la tabla principal
+    document.addEventListener('DOMContentLoaded', async function () {
+        try {
+            const response = await fetch('/clausulas');
+            const data = await response.json();
+            //console.log("Datos cargados:", data); // Depuración en consola
     
-     // Trae a la tabla principal la ultima fecha a gestionar y el estado para esta fecha 
-     function actualizarTablaPrincipal(clausulaId, fechaMasReciente, estadoMasReciente) {
-        const filaPrincipal = document.querySelector(`tr[data-id='${clausulaId}']`);
-        if (filaPrincipal) {
-            const columnaFecha = filaPrincipal.querySelector("td:nth-child(11)");
-            const columnaEstado = filaPrincipal.querySelector("td:nth-child(12)");
-    
-            // Normalizar fechaMasReciente
-            let fechaNormalizada = "N/A";
-    
-            if (fechaMasReciente) {
-                if (fechaMasReciente instanceof Date && !isNaN(fechaMasReciente)) {
-                    // Si es un objeto Date válido
-                    fechaNormalizada = fechaMasReciente.toLocaleDateString("es-ES");
-                } else if (typeof fechaMasReciente === "string" && fechaMasReciente.includes("-")) {
-                    // Intentar convertir string YYYY-MM-DD a Date
-                    const [year, month, day] = fechaMasReciente.split("-");
-                    const fecha = new Date(year, month - 1, day); // Meses en Date son 0-indexed
-                    if (!isNaN(fecha)) {
-                        fechaNormalizada = fecha.toLocaleDateString("es-ES");
-                    }
-                } else {
-                    //console.warn("Formato no reconocido para fechaMasReciente:", fechaMasReciente);
-                }
+            // Renderizar la tabla
+            const tableBody = document.querySelector('#table-body');
+            if (!tableBody) {
+                //console.error("Elemento con ID 'table-body' no encontrado.");
+                return; // Salir si el elemento no existe
             }
-    
-            // Si columnaFecha ya tiene un valor, no sobrescribirlo con "N/A"
-            if (columnaFecha && fechaNormalizada !== "N/A") {
-                columnaFecha.textContent = fechaNormalizada;
-            }
-    
-            if (columnaEstado) {
-                columnaEstado.textContent = estadoMasReciente || "Sin Estado";
-                determinarColorEstado(columnaEstado, estadoMasReciente);
-            }
+
+            data.forEach(clausula => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${clausula.fecha_entrega_mas_reciente}</td>
+                    <td>${clausula.estado_mas_reciente}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        } catch (error) {
+            console.error("Error al cargar las cláusulas:", error);
         }
-    }
+    });
+
+    // Función para actualizar la tabla principal con la colorimetria del estado dinamicamente
+    document.addEventListener('DOMContentLoaded', function () {
+        const estadoCeldas = document.querySelectorAll("tbody tr td:nth-child(12)"); // Selecciona todas las celdas de la columna Estado
     
-    // Incluye la colorimetria de la tabla principal de acuerdo al ultimo estado de la fecha mas reciente para gestionar
-    function determinarColorEstado(elemento, estado) {
-        elemento.style.color = "";
-        elemento.style.fontWeight = "normal";
+        estadoCeldas.forEach(celda => {
+            const estado = celda.textContent.trim(); // Obtiene el texto del estado
+            determinarColorEstado(celda, estado); // Aplica el color según el estado
+        });
+    });
+    
+    // Función para determinar el color del estado
+    function determinarColorEstado(celda, estado) {
+        celda.style.color = ""; // Reinicia el estilo
+        celda.style.fontWeight = "normal"; // Reinicia el peso de la fuente
     
         switch (estado) {
             case "A Tiempo":
-                elemento.style.color = "black";
-                elemento.style.fontWeight = "bold";
+                celda.style.color = "black";
+                celda.style.fontWeight = "bold";
                 break;
             case "Incumplida":
-                elemento.style.color = "red";
-                elemento.style.fontWeight = "bold";
+                celda.style.color = "red";
+                celda.style.fontWeight = "bold";
                 break;
             case "Extemporal":
-                elemento.style.color = "orange";
-                elemento.style.fontWeight = "bold";
+                celda.style.color = "orange";
+                celda.style.fontWeight = "bold";
                 break;
             case "Cumplida":
-                elemento.style.color = "green";
-                elemento.style.fontWeight = "bold";
+                celda.style.color = "green";
+                celda.style.fontWeight = "bold";
                 break;
             default:
-                elemento.style.color = "gray";
+                celda.style.color = "gray";
                 break;
         }
     }    
-    
-    // Diligencia Dinamicamente las columnas "Entrega" y "Estado" al abrir pantalla principal
-    document.addEventListener("DOMContentLoaded", async function () {
-        const filasClausulas = document.querySelectorAll("tbody tr");
 
-        for (const fila of filasClausulas) {
-            const columnaId = fila.querySelector("td:nth-child(2)"); // Ajusta al índice correcto
-            if (!columnaId) {
-                //console.warn("Fila sin columna ID encontrada:", fila);
-                continue; // Saltar filas mal formateadas
-            }
+    // Función para manejar la selección y subida de archivos adjuntos
+    async function adjuntarArchivos(input, idClausula, fechaEntrega) {
+        //console.log("ID de la Cláusula:", idClausula);
+        //console.log("Fecha de Entrega:", fechaEntrega);
+        //console.log("Archivos Seleccionados:", input.files);
     
-            const clausulaId = columnaId.innerText;
-            const columnaEntrega = fila.querySelector("td:nth-child(11)"); // Índice de la columna "Entrega"
-            const columnaEstado = fila.querySelector("td:nth-child(12)"); // Índice de la columna "Estado"
-    
-            try {
-                const response = await fetch(`/gestion_clausula/${clausulaId}`);
-                const data = await response.json();
-    
-                if (data.fecha_entrega_mas_reciente && columnaEntrega) {
-                    columnaEntrega.textContent = data.fecha_entrega_mas_reciente;
-                }
-    
-                if (data.estado_mas_reciente && columnaEstado) {
-                    columnaEstado.textContent = data.estado_mas_reciente;
-    
-                    // Aplicar colorimetría a la columna "Estado"
-                    determinarColorEstado(columnaEstado, data.estado_mas_reciente);
-                }
-            } catch (error) {
-                console.error(`Error al cargar datos para cláusula ID ${clausulaId}:`, error);
-            }
+        if (!idClausula || !fechaEntrega) {
+            console.error("idClausula o fechaEntrega no están definidos:", idClausula, fechaEntrega);
+            return;
         }
-    });    
+    
+        const listaArchivos = input.parentElement.querySelector(".lista-archivos");
+        listaArchivos.innerHTML = ""; // Limpiar lista actual de archivos
+    
+        // Mostrar archivos seleccionados en el frontend
+        Array.from(input.files).forEach((file) => {
+            const li = document.createElement("li");
+            li.textContent = file.name;
+            li.style.color = "blue"; // Color para archivos seleccionados pero no confirmados
+            listaArchivos.appendChild(li);
+        });
+    
+        // Crear FormData para enviar los archivos al backend
+        const formData = new FormData();
+        Array.from(input.files).forEach((file) => {
+            formData.append("files", file);
+        });
 
+        // Agregar la fecha completa al FormData
+        formData.append("fecha_entrega", fechaEntrega);
+    
+        // Ajustar fecha para usar solo año y mes
+        const [day, month, year] = fechaEntrega.split("/");
+        const rutaFecha = `${year}/${month}`; // Formato esperado por el backend
+    
+        // Enviar archivos al backend
+        try {
+            const response = await fetch(`/clausulas/adjuntos/${idClausula}/${rutaFecha}`, {
+                method: "POST",
+                body: formData,
+            });
+    
+            if (!response.ok) {
+                throw new Error(`Error al cargar adjuntos: ${response.statusText}`);
+            }
+    
+            const data = await response.json();
+            if (data.success) {
+                console.log("Adjuntos cargados correctamente.");
+                // Marcar los archivos subidos como confirmados en verde
+                listaArchivos.querySelectorAll("li").forEach((li) => {
+                    li.style.color = "green";
+                });
+            } else {
+                console.error(`Error del servidor: ${data.message}`);
+                listaArchivos.querySelectorAll("li").forEach((li) => {
+                    li.style.color = "red";
+                });
+            }
+        } catch (error) {
+            console.error("Error al cargar adjuntos:", error);
+            alert("Error al cargar adjuntos. Intente nuevamente.");
+            // Mostrar error en rojo
+            listaArchivos.querySelectorAll("li").forEach((li) => {
+                li.style.color = "red";
+            });
+        }
+    }    
+    
 </script>
 
 {% endblock %}

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, Depends, File, UploadFile, HTTPException, Response, APIRouter
+from fastapi import FastAPI, Request, Form, Depends, File, UploadFile, HTTPException, Response, APIRouter, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,9 +29,12 @@ from typing import List, Optional
 from io import BytesIO 
 import shutil
 import os
+import re
 import msal
 import requests
 from dotenv import load_dotenv
+from apscheduler.schedulers.background import BackgroundScheduler
+from pytz import timezone
 
 # Cargar las variables de entorno desde .env
 load_dotenv()
@@ -46,6 +49,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 # Variables de entorno
 DATABASE_PATH = os.getenv("DATABASE_PATH")
 AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+CONTAINER_NAME = "5000-juridica-y-riesgos-juridica-clausulas"
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 TENANT_ID = os.getenv("TENANT_ID")
@@ -1055,6 +1059,12 @@ def control_clausulas(req: Request, user_session: dict = Depends(get_user_sessio
     # Obteniendo los datos desde la base de datos
     gestion = GestionClausulas()
     clausulas = gestion.obtener_clausulas()
+    clausulas_con_estado = gestion.obtener_clausulas_con_entrega_estado()
+    # Solo ajustamos las columnas "Entrega" y "Estado"
+    clausulas_dict = {clausula["id"]: clausula for clausula in clausulas_con_estado}
+    for clausula in clausulas:
+        clausula["fecha_entrega_mas_reciente"] = clausulas_dict.get(clausula["id"], {}).get("fecha_entrega_mas_reciente", "Sin Fecha")
+        clausula["estado_mas_reciente"] = clausulas_dict.get(clausula["id"], {}).get("estado_mas_reciente", "Sin Estado")
     etapas = gestion.obtener_opciones_etapas()
     clausulas_lista = gestion.obtener_opciones_clausulas()
     concesiones = gestion.obtener_opciones_concesion()
@@ -1063,6 +1073,8 @@ def control_clausulas(req: Request, user_session: dict = Depends(get_user_sessio
     procesos = gestion.obtener_opciones_procesos()
     frecuencias = gestion.obtener_opciones_frecuencias()
     responsables = gestion.obtener_opciones_responsables()
+    responsable_entrega = gestion.obtener_opciones_responsables_clausulas()
+    estados = gestion.obtener_opciones_estado()
     gestion.close()
 
     return templates.TemplateResponse("juridico.html", {
@@ -1076,7 +1088,9 @@ def control_clausulas(req: Request, user_session: dict = Depends(get_user_sessio
         "tipos_clausula": tipos_clausula,
         "procesos": procesos,
         "frecuencias": frecuencias,
-        "responsables": responsables
+        "responsables": responsables,
+        "responsable_entrega": responsable_entrega,
+        "estados": estados
     })
     
 @app.get("/obtener_subprocesos/{proceso}", response_class=JSONResponse)
@@ -1087,13 +1101,15 @@ def obtener_subprocesos(proceso: str):
     return subprocesos
       
 @app.get("/filtrar_clausulas", response_class=HTMLResponse)
-def filtrar_clausulas(req: Request, control: str = None, etapa: str = None, clausula: str = None, concesion: str = None, buscar: str = None, user_session: dict = Depends(get_user_session)):
+def filtrar_clausulas(req: Request, control: str = None, etapa: str = None, clausula: str = None, 
+                      concesion: str = None, estado: str = None,
+                      responsable: str = None, user_session: dict = Depends(get_user_session)):
+
     gestion = GestionClausulas()
     
     # Mapear concesión a contrato antes de aplicar el filtro
     contrato = None
     if concesion and concesion != "Seleccionar...":
-        # Obtener el contrato basado en la concesión seleccionada
         contrato = gestion.obtener_contrato_por_concesion(concesion)
     
     clausulas_filtradas = gestion.obtener_clausulas_filtradas(
@@ -1101,7 +1117,8 @@ def filtrar_clausulas(req: Request, control: str = None, etapa: str = None, clau
         etapa if etapa != "Seleccionar..." else None, 
         clausula if clausula != "Seleccionar..." else None, 
         contrato,
-        buscar if buscar != "" else None
+        estado if estado != "Seleccionar..." else None,
+        responsable if responsable != "Seleccionar..." else None 
     )
     gestion.close()
 
@@ -1132,6 +1149,7 @@ async def crear_clausula(req: Request, control: str = Form(...), etapa: str = Fo
                          responsable_entrega: str = Form(...), ruta_soporte: str = Form(None)):
     try:       
         # Validar campos obligatorios
+        #print(f"Datos del formulario recibidos: {locals()}")
         campos_faltantes = [campo for campo, valor in locals().items() if valor == ""]
         if campos_faltantes:
             raise ValueError(f"Faltan los siguientes campos: {', '.join(campos_faltantes)}")
@@ -1155,12 +1173,17 @@ async def crear_clausula(req: Request, control: str = Form(...), etapa: str = Fo
             "fin_cumplimiento": fin_cumplimiento,
             "observacion": observacion,
             "responsable_entrega": responsable_entrega,
-            "ruta_soporte": ruta_soporte
+            "ruta_soporte": None  
         }
         
         gestion_clausulas = GestionClausulas()
         clausula_id = gestion_clausulas.crear_clausula(nueva_clausula)
         #print("ID de la cláusula creada:", clausula_id)
+
+        # Generar y registrar la ruta soporte
+        ruta_soporte = f"5000-juridica-y-riesgos-juridica-clausulas/{clausula_id}-{clausula.replace(' ', '-')}-{contrato.replace(' ', '-')}"
+        gestion_clausulas.registrar_ruta_soporte(clausula_id, ruta_soporte)
+        #print(f"Ruta soporte registrada: {ruta_soporte}")
 
         # Procesar procesos_subprocesos como lista JSON
         procesos_subprocesos = json.loads(procesos_subprocesos)
@@ -1168,6 +1191,17 @@ async def crear_clausula(req: Request, control: str = Form(...), etapa: str = Fo
 
         # Registrar cada id_proceso en la tabla auxiliar
         gestion_clausulas.registrar_clausula_proceso_subproceso(clausula_id, procesos_subprocesos)
+
+        # Calcular fechas dinámicas y crear la estructura en Blob Storage
+        #print(f"Llamando a calcular_fechas_dinamicas con inicio: {inicio_cumplimiento}, fin: {fin_cumplimiento}, frecuencia: {frecuencia}, periodo_control: {periodo_control}")
+        fechas_entrega = gestion_clausulas.calcular_fechas_dinamicas(
+            inicio_cumplimiento, fin_cumplimiento, frecuencia, periodo_control
+        )
+        #print(f"Fechas generadas para la cláusula: {fechas_entrega}")
+        #print(f"Creando estructura en Blob Storage con fechas: {[f['entrega'] for f in fechas_entrega]}")
+        gestion_clausulas.crear_estructura_blob_storage(
+            clausula_id, clausula, contrato, [f["entrega"] for f in fechas_entrega]
+        )
 
         return JSONResponse(content={"success": True, "message": "Cláusula creada exitosamente", "id_clausula": clausula_id})
     
@@ -1238,18 +1272,80 @@ async def gestionar_filas_clausula(id_clausula: int, request: Request):
     filas_existentes = [fila for fila in data.get("filas", []) if fila.get("id_gestion")]
 
     gestion = GestionClausulas()
+    blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+    container_client = blob_service_client.get_container_client(CONTAINER_NAME)
 
-    # Insertar nuevas filas
-    if nuevas_filas:
-        gestion.insertar_filas_gestion_nuevas(id_clausula, nuevas_filas)
+    try:
+        # Obtener ruta ya existente
+        nombre_clausula = gestion.obtener_clausula_nombre(id_clausula)
+        contrato = gestion.obtener_clausula_contrato(id_clausula)
 
-    # Actualizar filas existentes
-    if filas_existentes:
-        gestion.actualizar_filas_gestion(filas_existentes)
+        def normalizar_nombre(nombre):
+            return re.sub(r"[^a-zA-Z0-9\-]", "", nombre.replace(" ", "-"))
 
-    # Retornar las filas insertadas o actualizadas para mantener sincronización
-    filas = gestion.obtener_filas_gestion_por_clausula(id_clausula)
-    return JSONResponse(content={"message": "Gestión de filas completada.", "filas": filas})
+        ruta_clausula = f"{normalizar_nombre(str(id_clausula))}-{normalizar_nombre(nombre_clausula)}-{normalizar_nombre(contrato)}"
+
+        # Procesar nuevas filas
+        for fila in nuevas_filas:
+            if "adjunto" in fila and fila["adjunto"]:  # Verificar si hay adjuntos
+                try:
+                    fecha_entrega = fila.get("fecha_entrega")
+                    if not fecha_entrega:
+                        raise ValueError("Fecha de entrega no encontrada en la fila.")
+
+                    anio, mes, _ = fecha_entrega.split("-")
+                    nombres_adjuntos = []
+
+                    for adjunto in fila["adjunto"].split(", "):  # Adjuntos separados por coma
+                        ruta_archivo = f"{ruta_clausula}/{anio}/{mes}/{adjunto}"
+                        blob_client = container_client.get_blob_client(ruta_archivo)
+                        blob_client.upload_blob(b"Contenido de prueba", overwrite=True)
+                        nombres_adjuntos.append(adjunto)
+
+                    fila["adjunto"] = ", ".join(nombres_adjuntos)
+
+                except Exception as e:
+                    print(f"Error al procesar adjuntos para la fila: {e}")
+                    fila["adjunto"] = None  # Si falla, no bloquear el resto del procesamiento
+
+        # Procesar filas existentes
+        for fila in filas_existentes:
+            if "adjunto" in fila and fila["adjunto"]:
+                try:
+                    fecha_entrega = fila.get("fecha_entrega")
+                    if not fecha_entrega:
+                        raise ValueError("Fecha de entrega no encontrada en la fila.")
+
+                    anio, mes, _ = fecha_entrega.split("-")
+                    nombres_adjuntos = []
+
+                    for adjunto in fila["adjunto"].split(", "):  # Adjuntos separados por coma
+                        ruta_archivo = f"{ruta_clausula}/{anio}/{mes}/{adjunto}"
+                        blob_client = container_client.get_blob_client(ruta_archivo)
+                        blob_client.upload_blob(b"Contenido de prueba", overwrite=True)
+                        nombres_adjuntos.append(adjunto)
+
+                    fila["adjunto"] = ", ".join(nombres_adjuntos)
+
+                except Exception as e:
+                    print(f"Error al procesar adjuntos para la fila existente: {e}")
+                    fila["adjunto"] = None  # Si falla, no bloquear el resto del procesamiento
+
+        # Insertar nuevas filas
+        if nuevas_filas:
+            gestion.insertar_filas_gestion_nuevas(id_clausula, nuevas_filas)
+
+        # Actualizar filas existentes
+        if filas_existentes:
+            gestion.actualizar_filas_gestion(filas_existentes)
+
+        # Retornar las filas insertadas o actualizadas para mantener sincronización
+        filas = gestion.obtener_filas_gestion_por_clausula(id_clausula)
+        return JSONResponse(content={"message": "Gestión de filas completada.", "filas": filas})
+
+    except Exception as e:
+        print(f"Error al gestionar filas: {e}")
+        return JSONResponse(content={"message": f"Error al gestionar filas: {e}"}, status_code=500)
 
 @app.get("/gestion_clausula/{id_clausula}")
 def obtener_filas_clausula(id_clausula: int):
@@ -1277,3 +1373,133 @@ def obtener_filas_clausula(id_clausula: int):
         )
     finally:
         gestion.close()
+
+@app.get("/clausulas")
+def obtener_clausulas_completas():
+    gestion = GestionClausulas()
+    try:
+        clausulas = gestion.obtener_clausulas_con_entrega_estado()
+        return JSONResponse(content=clausulas)
+    finally:
+        gestion.close()
+
+@app.post("/clausulas/adjuntos/{id_clausula}/{anio}/{mes}")
+async def cargar_adjuntos(id_clausula: int, anio: str, mes: str, files: List[UploadFile] = File(...), fecha_entrega: str = Form(...)):
+    try:
+        gestion_clausulas = GestionClausulas()
+
+        # Obtener los datos de la cláusula
+        nombre_clausula = gestion_clausulas.obtener_clausula_nombre(id_clausula)
+        contrato = gestion_clausulas.obtener_clausula_contrato(id_clausula)
+
+        # Normalizar la ruta dentro del contenedor
+        def normalizar_nombre(nombre):
+            return re.sub(r"[^a-zA-Z0-9\-]", "", nombre.replace(" ", "-"))
+
+        carpeta_principal = f"{normalizar_nombre(str(id_clausula))}-{normalizar_nombre(nombre_clausula)}-{normalizar_nombre(contrato)}"
+        ruta_carpeta = f"{carpeta_principal}/{anio}/{mes}/"
+
+        #print(f"Ruta destino de los adjuntos: {CONTAINER_NAME}/{ruta_carpeta}")
+
+        blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+        container_client = blob_service_client.get_container_client(CONTAINER_NAME)
+
+        # Subir cada archivo al Blob Storage
+        for file in files:
+            # Renombrar el archivo agregando la fecha completa
+            fecha_entrega_normalizada = fecha_entrega.replace("/", "-")  # Reemplazar "/" por "-" en la fecha
+            nombre_archivo = f"{fecha_entrega_normalizada}_{file.filename}"  # Prefijar la fecha al nombre del archivo
+            ruta_archivo = f"{ruta_carpeta}{nombre_archivo}" # Mantener la ruta original
+            
+            # Subir el archivo
+            blob_client = container_client.get_blob_client(ruta_archivo)
+            blob_client.upload_blob(await file.read(), overwrite=True)
+
+        return JSONResponse(content={"success": True, "message": "Adjuntos cargados correctamente"})
+    except Exception as e:
+        print(f"Error al cargar adjuntos: {e}")
+        return JSONResponse(content={"success": False, "message": str(e)}, status_code=500)
+    
+#########################################################################
+# NOTIFICACIONES RECORDATORIO POR CORREO Y TAREAS PROGRAMADAS - PANTALLA JURIDICO
+gestion = GestionClausulas()
+@app.get("/envio_correos_recordatorio")
+def envio_correos_recordatorio():
+    """
+    Prueba manual para enviar correos utilizando la consulta.
+    """
+    try:
+        print("Iniciando envío de correos...")
+        gestion.enviar_correos_recordatorio()
+        return {"message": "Correos enviados correctamente."}
+    except Exception as e:
+        print(f"Error en la prueba de envío de correos: {e}")
+        raise HTTPException(status_code=500, detail=f"Error en el envío de correos: {e}")
+
+@app.get("/reporte_clausulas")
+def generar_recordatorio():
+    """
+    Genera el reporte de recordatorios manualmente y lo descarga.
+    """
+    try:
+        file_path = gestion.generar_reporte_recordatorio()
+        return FileResponse(file_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=os.path.basename(file_path))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar el reporte: {e}")
+
+def tarea_diaria_recordatorio():
+    """
+    Realiza las tareas diarias en el siguiente orden:
+    1. Envía los correos de recordatorios.
+    2. Genera y sube el reporte de recordatorios a SharePoint.
+    """
+    try:
+        print("Iniciando envío automático de correos...")
+        gestion.enviar_correos_recordatorio()
+        print("Correos enviados exitosamente.")
+
+        print("Generando y subiendo reporte a SharePoint...")
+        gestion.generar_reporte_recordatorio()
+        print("Reporte cargado exitosamente.")
+    except Exception as e:
+        print(f"Error en la ejecución de la tarea diaria: {e}")
+
+# Configuración del programador de tareas
+scheduler = BackgroundScheduler(timezone="America/Bogota")
+scheduler.add_job(tarea_diaria_recordatorio, 'cron', hour=8, minute=0)  # Ejecuta la tarea diaria a las 8 AM
+scheduler.start()
+
+print("Programador de tareas configurado para las 8 AM.")
+
+@app.on_event("startup")
+async def iniciar_servidor():
+    """
+    Ejecuta acciones al iniciar el servidor.
+    """
+    print("Servidor iniciado y programador de tareas activo.")
+    
+#########################################################################
+# NOTIFICACIONES INCUMPLIMIENTOS POR CORREO Y TAREAS PROGRAMADAS - PANTALLA JURIDICO
+@app.get("/envio_correos_incumplimiento")
+def envio_correos_incumplimiento():
+    """
+    Prueba manual para enviar correos de incumplimiento utilizando la consulta.
+    """
+    try:
+        print("Iniciando envío de correos de incumplimiento...")
+        gestion.enviar_correos_incumplimiento()
+        return {"message": "Correos de incumplimiento enviados correctamente."}
+    except Exception as e:
+        print(f"Error en el envío de correos de incumplimiento: {e}")
+        raise HTTPException(status_code=500, detail=f"Error en el envío de correos de incumplimiento: {e}")
+    
+# Configuración del programador de tareas para envío de incumplimientos
+scheduler.add_job(
+    gestion.enviar_correos_incumplimiento,
+    'cron',
+    day_of_week='tue',  # Martes
+    hour=8,
+    minute=0,
+    timezone="America/Bogota"
+)
+print("Programador de tareas configurado para envío de correos de incumplimiento los martes a las 8 AM.")

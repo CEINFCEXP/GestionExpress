@@ -1,52 +1,52 @@
 {% block content %}
 
 <!-- clausula_config.html -->
-<div class="mb-3" style="background-color: #d3d4e2; padding: 15px; border-radius: 5px;">
-    <div class="row" style="margin-bottom: 2px;">
-        <!-- ID Clausula - Control -->
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_id_clausula">ID Clausula</label>
-            <input type="text" id="{{ modal }}_id_clausula" name="id_clausula" class="form-control" style="font-size: 14px; height: 35px;" readonly>
+<div class="row mb-3" style="background-color: #e9eaf0; padding: 8px; border-radius: 5px;">
+     <!-- Primera fila -->
+    <div class="row" style="margin-bottom: 0;">
+        <!-- ID Clausula -->
+        <div class="col-md-1" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_id_clausula" style="font-size: 12px;">ID</label>
+            <input type="text" id="{{ modal }}_id_clausula" name="id_clausula" class="form-control" style="font-size: 12px; height: 30px;" readonly>
         </div>
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_control">Control</label>
-            <select id="{{ modal }}_control" name="control" class="form-select" style="font-size: 14px; height: 35px;" required>
+        <!-- Control -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_control" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Control</label>
+            <select id="{{ modal }}_control" name="control" class="form-select" style="font-size: 12px; height: 30px;" required>
                 <option value="" selected>Seleccionar...</option>
                 <option value="CONTRATO">CONTRATO</option>
                 <option value="MANUAL">MANUAL</option>    
             </select>
         </div>
-    </div>
-    <div class="row" style="margin-bottom: 2px;">
-        <!-- Cláusula y Etapa -->
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_clausula">Cláusula</label>
-            <input type="text" id="{{ modal }}_clausula" name="clausula" class="form-control" style="font-size: 14px; height: 35px;" required>
+        <!-- Cláusula -->
+        <div class="col-md-3" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_clausula" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Cláusula</label>
+            <input type="text" id="{{ modal }}_clausula" name="clausula" class="form-control" style="font-size: 12px; height: 30px;" required>
         </div>
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_etapa">Etapa</label>
-            <select id="{{ modal }}_etapa" name="etapa" class="form-select" style="font-size: 14px; height: 35px;" required>
+        <!-- Etapa -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_etapa" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Etapa</label>
+            <select id="{{ modal }}_etapa" name="etapa" class="form-select" style="font-size: 12px; height: 30px;" required>
                 <option value="" selected>Seleccionar...</option>
                 {% for etapa in etapas %}
                 <option value="{{ etapa[0] }}">{{ etapa[0] }}</option>
                 {% endfor %}
             </select>
         </div>
-    </div>
-    <div class="row" style="margin-bottom: 2px;">
-        <!-- Contrato y Tipo -->
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_contrato">Contrato</label>
-            <select id="{{ modal }}_contrato" name="contrato" class="form-select" style="font-size: 14px; height: 35px;" required>
+        <!-- Contrato -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_contrato" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Contrato</label>
+            <select id="{{ modal }}_contrato" name="contrato" class="form-select" style="font-size: 12px; height: 30px;" required>
                 <option value="" selected>Seleccionar...</option>
                 {% for contrato in contratos %}
                 <option value="{{ contrato[0] }}">{{ contrato[0] }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_tipo">Tipo</label>
-            <select id="{{ modal }}_tipo" name="tipo" class="form-select" style="font-size: 14px; height: 35px;" required>
+        <!-- Tipo -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_tipo" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Tipo</label>
+            <select id="{{ modal }}_tipo" name="tipo" class="form-select" style="font-size: 12px; height: 30px;" required>
                 <option value="" selected>Seleccionar...</option>
                 {% for tipo in tipos_clausula %}
                 <option value="{{ tipo[0] }}">{{ tipo[0] }}</option>
@@ -54,45 +54,52 @@
             </select>
         </div>
     </div>
+
+    <!-- Segunda fila -->
     <div class="row">
-        <!-- Tema y Subtema -->
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_tema">Tema</label>
-            <input type="text" id="{{ modal }}_tema" name="tema" class="form-control" style="font-size: 14px; height: 35px;" required oninput="this.value = this.value.toUpperCase()">
+        <!-- Tema -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_tema" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Tema</label>
+            <input type="text" id="{{ modal }}_tema" name="tema" class="form-control" style="font-size: 12px; height: 30px;" required oninput="this.value = this.value.toUpperCase()">
         </div>
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_subtema">Subtema</label>
-            <input type="text" id="{{ modal }}_subtema" name="subtema" class="form-control" style="font-size: 14px; height: 35px;" required oninput="this.value = this.value.toUpperCase()">
+        <!-- Subtema -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_subtema" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Subtema</label>
+            <input type="text" id="{{ modal }}_subtema" name="subtema" class="form-control" style="font-size: 12px; height: 30px;" required oninput="this.value = this.value.toUpperCase()">
+        </div>
+        <!-- Descripción -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_descripcion" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Descripción de la Cláusula</label>
+            <textarea id="{{ modal }}_descripcion" name="descripcion" class="form-control" style="font-size: 12px; height: 30px;"required></textarea>
         </div>
     </div>
+
+    <!-- Tercera fila -->
     <div class="row">
-        <!-- Descripción y Modificaciones -->
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_descripcion">Descripción de la Cláusula</label>
-            <textarea id="{{ modal }}_descripcion" name="descripcion" class="form-control" required></textarea>
+        <!-- Modificaciones -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_modificaciones" style="font-size: 12px;">Modificaciones</label>
+            <textarea id="{{ modal }}_modificaciones" name="modificaciones" class="form-control" style="font-size: 12px; height: 30px;"></textarea>
         </div>
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_modificaciones">Modificaciones</label>
-            <textarea id="{{ modal }}_modificaciones" name="modificaciones" class="form-control"></textarea>
+        <!-- Norma Relacionada -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_norma_relacionada" style="font-size: 12px;">Norma Relacionada</label>
+            <textarea id="{{ modal }}_norma_relacionada" name="norma" class="form-control" style="font-size: 12px; height: 30px;"></textarea>
+        </div>
+        <!-- Consecuencias -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_consecuencias" style="font-size: 12px;">Consecuencias Incumplimiento</label>
+            <textarea id="{{ modal }}_consecuencias" name="consecuencia" class="form-control" style="font-size: 12px; height: 30px;"></textarea>
         </div>
     </div>
-    <div class="row">
-        <!-- Norma Relacionada y Consecuencias -->
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_norma_relacionada">Norma Relacionada</label>
-            <textarea id="{{ modal }}_norma_relacionada" name="norma" class="form-control"></textarea>
-        </div>
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_consecuencias">Consecuencias Incumplimiento</label>
-            <textarea id="{{ modal }}_consecuencias" name="consecuencia" class="form-control"></textarea>
-        </div>
-    </div>
-    <!-- Proceso Responsable y Subproceso Responsable -->
-    <div class="row">
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_proceso_responsable">Proceso Responsable</label>
+
+    <!-- Cuarta fila -->
+    <div class="row align-items-center">
+        <!-- Proceso Responsable -->
+        <div class="col-md-3" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_proceso_responsable" style="font-size: 12px;">Proceso Responsable</label>
             <div class="input-group">
-                <select id="{{ modal }}_proceso_responsable" name="proceso" class="form-select" style="font-size: 14px; height: 35px;" required onchange="actualizarSubprocesos('{{ modal }}', this.value)">
+                <select id="{{ modal }}_proceso_responsable" name="proceso" class="form-select" style="font-size: 12px; height: 30px;" required onchange="actualizarSubprocesos('{{ modal }}', this.value)">
                     <option value="" selected>Seleccionar...</option>
                     {% for proceso in procesos %}
                     <option value="{{ proceso[0] }}">{{ proceso[0] }}</option>
@@ -100,30 +107,38 @@
                 </select>
             </div>
         </div>
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_subproceso_responsable">Subproceso Responsable</label>
+        <!-- Subroceso Responsable -->
+        <div class="col-md-3" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_subproceso_responsable" style="font-size: 12px;">Subproceso Responsable</label>
             <div class="input-group">
-                <select id="{{ modal }}_subproceso_responsable" name="subproceso" class="form-select" style="font-size: 14px; height: 35px;" required>
+                <select id="{{ modal }}_subproceso_responsable" name="subproceso" class="form-select" style="font-size: 12px; height: 30px;" required>
                     <option value="" selected>Seleccionar...</option>
                     <!-- Subprocesos cargados dinámicamente -->
                 </select>
             </div>
         </div>
-        <div class="col-md-12" style="padding-bottom: 5px; text-align: right;">
-            <!-- Botón para agregar el proceso y subproceso al contenedor -->
+        <!-- Botón para agregar el proceso y subproceso al contenedor -->
+        <div class="col-md-1" style="padding-bottom: 3px;">
             <button type="button" class="btn btn-primary" style="font-size: 12px; height: 25px; width: 70px; text-align: center; line-height: 05px;" onclick="agregarProcesoSubproceso('{{ modal }}')">Agregar</button>
         </div>
+
+        <!-- Contenedor Procesos Responsables Agregados -->
+        <div class="col-md-5 ms-auto g-0" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_contenedor_procesos_subprocesos" style="font-size: 12px;" ><span style="color: red; font-weight: bold;">*</span> Procesos Responsables Agregados</label>
+            <div id="{{ modal }}_contenedor_procesos_subprocesos" style="border: 1px solid #ccc; border-radius: 5px; padding: 15px; max-height: 200px; overflow-y: auto; background-color: #f8f9fa; margin-top: 0;">
+                <!-- Aquí se renderizan dinámicamente los procesos y subprocesos agregados -->
+            </div>
+        </div>
     </div>
-    <!-- Título que será visible cuando se agreguen procesos responsables -->
-    <h5 id="{{ modal }}_titulo_procesos_responsables" style="font-size: 12px; display: none; margin-top: 2px;">Procesos Responsables Agregados</h5>
-    <!-- Contenedor donde se agregarán los procesos y subprocesos seleccionados -->
-    <div id="{{ modal }}_contenedor_procesos_subprocesos" style="margin-top: 10px;"></div>
-    
-    <div class="row">
-        <!-- Campo Frecuencia Acreditación -->
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_frecuencia_acreditacion">Frecuencia Acreditación</label>
-            <select id="{{ modal }}_frecuencia_acreditacion" name="frecuencia" class="form-select" style="font-size: 14px; height: 35px;" required onchange="actualizarPeriodoControl('{{ modal }}')">
+    <!-- Mantener título para visibilidad -->
+    <h5 id="{{ modal }}_titulo_procesos_responsables" style="font-size: 1px; display: none; position: absolute; visibility: hidden; height: 0; margin: 0; padding: 0;">Procesos Responsables Agregados</h5>
+        
+    <!-- Quinta fila -->
+    <div class="row align-items-center">
+        <!-- Frecuencia Acreditación -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_frecuencia_acreditacion" style="font-size: 12px;" ><span style="color: red; font-weight: bold;">*</span> Frecuencia Acreditación</label>
+            <select id="{{ modal }}_frecuencia_acreditacion" name="frecuencia" class="form-select" style="font-size: 12px; height: 30px;" required onchange="actualizarPeriodoControl('{{ modal }}')">
                 <option value="" selected>Seleccionar...</option>
                 {% for frecuencia in frecuencias %}
                 <option value="{{ frecuencia[0] }}">{{ frecuencia[0] }}</option>
@@ -132,44 +147,47 @@
         </div>
 
         <!-- Campo Periodo Control Max -->
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_periodo_control">Periodo Control Max.</label>
+        <div class="col-md-3" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_periodo_control" style="font-size: 12px;" ><span style="color: red; font-weight: bold;">*</span> Periodo Control Max.</label>
             <div id="{{ modal }}_periodo_control_container">
-                <input type="text" id="{{ modal }}_periodo_control" name="periodo_control" class="form-control" placeholder="Seleccionar periodo" readonly required>
+                <input type="text" id="{{ modal }}_periodo_control" name="periodo_control" class="form-control" placeholder="Seleccionar periodo" readonly required style="font-size: 12px;">
             </div>
         </div>
-    </div>
-    <div class="row">
-        <!-- Inicio Cumplimiento y Fin Cumplimiento -->
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_inicio_cumplimiento">Inicio Cumplimiento</label>
-            <input type="date" id="{{ modal }}_inicio_cumplimiento" name="inicio_cumplimiento" class="form-control" style="font-size: 14px; height: 35px;" required>
+        <!-- Inicio Cumplimiento -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_inicio_cumplimiento" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Inicio Cumplimiento</label>
+            <input type="date" id="{{ modal }}_inicio_cumplimiento" name="inicio_cumplimiento" class="form-control" style="font-size: 12px; height: 30px;" required>
         </div>
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_fin_cumplimiento">Fin Cumplimiento</label>
-            <input type="date" id="{{ modal }}_fin_cumplimiento" name="fin_cumplimiento" class="form-control" style="font-size: 14px; height: 35px;" required>
+        <!-- Fin Cumplimiento -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_fin_cumplimiento" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Fin Cumplimiento</label>
+            <input type="date" id="{{ modal }}_fin_cumplimiento" name="fin_cumplimiento" class="form-control" style="font-size: 12px; height: 30px;" required>
         </div>
-    </div>
-    <div class="row">
-        <!-- Responsable de la Entrega y Ruta de Soportes -->
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_responsable_entrega">Responsable de la Entrega</label>
-            <select id="{{ modal }}_responsable_entrega" name="responsable_entrega" class="form-select" style="font-size: 14px; height: 35px;" required>
+        <!-- Responsable de la Entrega -->
+        <div class="col-md-3" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_responsable_entrega" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Responsable de la Entrega</label>
+            <select id="{{ modal }}_responsable_entrega" name="responsable_entrega" class="form-select" style="font-size: 12px; height: 30px;" required>
                 <option value="" selected>Seleccionar...</option>
                 {% for responsable in responsables %}
                 <option value="{{ responsable[0] }}">{{ responsable[0] }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-6" style="padding-bottom: 5px;">
-            <label for="{{ modal }}_ruta_soportes">Ruta de Soportes</label>
-            <input type="text" id="{{ modal }}_ruta_soportes" name="ruta_soporte" class="form-control">
-        </div>
     </div>
-    <!-- Observaciones de la Cláusula -->
-    <div class="mb-3">
-        <label for="{{ modal }}_observaciones_clausula">Observaciones de la Cláusula</label>
-        <textarea id="{{ modal }}_observaciones_clausula" name="observacion" class="form-control"></textarea>
+
+    <!-- Sexta fila -->
+    <div class="row align-items-center">
+        <!-- Ruta de Soportes -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_ruta_soportes" style="font-size: 12px;">Soportes en: (Azure Blob Sotrage - Cento de Información)</label>
+            <input type="text" id="{{ modal }}_ruta_soportes" name="ruta_soporte" class="form-control" style="font-size: 12px;"readonly>
+        </div>
+    
+        <!-- Observaciones de la Cláusula -->
+        <div class="col-md-8" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_observaciones_clausula" style="font-size: 12px;">Observaciones de la Cláusula</label>
+            <textarea id="{{ modal }}_observaciones_clausula" name="observacion" class="form-control" style="font-size: 12px; height: 30px;"></textarea>
+        </div>
     </div>
 </div>
 
@@ -274,7 +292,7 @@
                                 <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${subproceso}" readonly>
                             </div>
                             <div class="col-md-2">
-                                <button type="button" class="btn btn-danger" style="font-size: 12px; height: 25px; width: 75px; text-align: center; line-height: 05px;" onclick="eliminarProcesoSubproceso(this, '${claveUnica}', '${modal}')">Eliminar</button>
+                                <button type="button" class="btn btn-danger" style="font-size: 12px; height: 25px; width: 70px; text-align: center; line-height: 05px;" onclick="eliminarProcesoSubproceso(this, '${claveUnica}', '${modal}')">Eliminar</button>
                             </div>
                         </div>
                     `;
@@ -356,6 +374,7 @@
             if (result.success) {
                 bootstrap.Modal.getInstance(document.getElementById('modalCrearClausula')).hide();
                 showGlobalMessage(result.message, 'success');
+                setTimeout(() => location.reload(), 2000); // Recargar página tras 2 segundos
             } else {
                 showError(result.message || 'Error al crear la cláusula');
             }
@@ -401,16 +420,16 @@
         // Limpiar el contenido actual
         periodoControlContainer.innerHTML = '';
 
-        if (frecuencia === 'ÚNICA VEZ') {
+        if (frecuencia === 'PERSONALIZADO') {
             // Permitir seleccionar una fecha fija
-            periodoControlContainer.innerHTML = '<input type="date" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" required>';
+            periodoControlContainer.innerHTML = '<input type="date" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" style="font-size: 12px;" required>';
         } else if (frecuencia === 'DIARIO') {
             // Automáticamente establecer "DIARIO" como el valor
-            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="DIARIO" readonly required>';
+            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="DIARIO" style="font-size: 12px;" readonly required>';
         } else if (frecuencia === 'QUINCENAL') {
             // Seleccionar el día de la semana
             periodoControlContainer.innerHTML = `
-                <select id="${modal}_periodo_control" name="periodo_control" class="form-select" required>
+                <select id="${modal}_periodo_control" name="periodo_control" class="form-select" style="font-size: 12px;" required>
                     <option value="LUNES">Lunes</option>
                     <option value="MARTES">Martes</option>
                     <option value="MIERCOLES">Miércoles</option>
@@ -422,16 +441,16 @@
             `;
         } else if (['MENSUAL', 'BIMESTRAL', 'TRIMESTRAL', 'SEMESTRAL'].includes(frecuencia)) {
             // Seleccionar el día del mes
-            periodoControlContainer.innerHTML = '<input type="number" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" placeholder="Día del mes" min="1" max="31" required>';
+            periodoControlContainer.innerHTML = '<input type="number" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" style="font-size: 12px;"" placeholder="Día del mes" min="1" max="31" required>';
         } else if (frecuencia === 'ANUAL') {
             // Seleccionar día y mes
             periodoControlContainer.innerHTML = `
-                <input type="number" id="${modal}_periodo_control_dia" name="periodo_control_dia" class="form-control" placeholder="Día" min="1" max="31" style="width: 49%; display: inline-block;" required>
-                <input type="number" id="${modal}_periodo_control_mes" name="periodo_control_mes" class="form-control" placeholder="Mes" min="1" max="12" style="width: 49%; display: inline-block;" required>
+                <input type="number" id="${modal}_periodo_control_dia" name="periodo_control_dia" class="form-control" placeholder="Día" min="1" max="31" style="font-size: 12px; width: 49%; display: inline-block;" required>
+                <input type="number" id="${modal}_periodo_control_mes" name="periodo_control_mes" class="form-control" placeholder="Mes" min="1" max="12" style="font-size: 12px; width: 49%; display: inline-block;" required>
             `;
         } else if (frecuencia === 'NO APLICA') {
             // Automáticamente establecer "NO APLICA" como el valor
-            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="NO APLICA" readonly required>';
+            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="NO APLICA" style="font-size: 12px;" readonly required>';
         }
     }
 
@@ -519,7 +538,7 @@
                     document.getElementById('gestionar_periodo_control').value = data.periodo_control; // Día del mes
                 } else if (frecuencia === 'QUINCENAL') {
                     document.getElementById('gestionar_periodo_control').value = data.periodo_control; // Día de la semana
-                } else if (frecuencia === 'ÚNICA VEZ') {
+                } else if (frecuencia === 'PERSONALIZADO') {
                     document.getElementById('gestionar_periodo_control').value = data.periodo_control; // Fecha específica
                 } else if (frecuencia === 'DIARIO' || frecuencia === 'NO APLICA') {
                     document.getElementById('gestionar_periodo_control').value = data.periodo_control;
@@ -562,7 +581,7 @@
                                     <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${subproceso}" readonly>
                                 </div>
                                 <div class="col-md-2">
-                                    <button type="button" class="btn btn-danger" style="font-size: 12px; height: 25px; width: 75px; text-align: center; line-height: 05px;" 
+                                    <button type="button" class="btn btn-danger" style="font-size: 12px; height: 25px; width: 70px; text-align: center; line-height: 05px;" 
                                         onclick="eliminarProcesoSubproceso(this, '${claveUnica}', 'gestionar')">Eliminar</button>
                                 </div>
                             </div>
