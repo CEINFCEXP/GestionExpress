@@ -25,8 +25,6 @@ jobs:
 
     - name: Set environment variables
       env:
-        USUARIO_CORREO_JURIDICO: ${{ secrets.USUARIO_CORREO_JURIDICO }}
-        CLAVE_CORREO_JURIDICO: ${{ secrets.CLAVE_CORREO_JURIDICO }}
         DATABASE_PATH: ${{ secrets.DATABASE_PATH }}
       run: echo "Environment variables set."
 
@@ -46,5 +44,7 @@ jobs:
         "
 
     - name: Ejecutar cálculo de fechas dinámicas
+      env:
+        DATABASE_PATH: ${{ secrets.DATABASE_PATH }}
       run: |
         python -c "from model.job import TareasProgramadasJuridico; TareasProgramadasJuridico().calcular_y_actualizar_fechas_dinamicas()"
