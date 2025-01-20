@@ -3,6 +3,7 @@ name: Sincronización de Estados
 on:
   schedule:
     - cron: '0 3 * * *' # Ejecutar a las 3:00 AM todos los días
+  workflow_dispatch: # Habilita la ejecución manual
 
 jobs:
   sincronizar-estados:
