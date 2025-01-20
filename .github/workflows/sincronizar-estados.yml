@@ -1,9 +1,9 @@
-name: Sincronización de Estados
+name: Sincronizar Estados
 
 on:
   schedule:
-    - cron: '0 3 * * *' # Ejecutar a las 3:00 AM todos los días
-  workflow_dispatch: # Habilita la ejecución manual
+    - cron: '0 3 * * *' # Todos los días a las 3:00 AM
+  workflow_dispatch: # Habilita ejecución manual
 
 jobs:
   sincronizar-estados:
@@ -32,4 +32,4 @@ jobs:
 
     - name: Ejecutar sincronización de estados
       run: |
-        python -c "from jobs import TareasProgramadasJuridico; TareasProgramadasJuridico().sincronizar_estados_filas_gestion()"
+        python -c "from model.job import TareasProgramadasJuridico; TareasProgramadasJuridico().sincronizar_estados_filas_gestion()"
