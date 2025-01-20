@@ -3,6 +3,7 @@ name: Cálculo de Fechas Dinámicas
 on:
   schedule:
     - cron: '0 2 * * *' # Ejecutar a las 2:00 AM todos los días
+  workflow_dispatch: # Habilita la ejecución manual
 
 jobs:
   calcular-fechas:
