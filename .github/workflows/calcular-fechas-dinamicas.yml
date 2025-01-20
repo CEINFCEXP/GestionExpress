@@ -30,6 +30,21 @@ jobs:
         DATABASE_PATH: ${{ secrets.DATABASE_PATH }}
       run: echo "Environment variables set."
 
+    - name: Verificar conexión a la base de datos
+      env:
+        DATABASE_PATH: ${{ secrets.DATABASE_PATH }}
+      run: |
+        python -c "
+        import psycopg2
+        try:
+            conn = psycopg2.connect('${{ secrets.DATABASE_PATH }}')
+            print('Conexión a la base de datos exitosa')
+            conn.close()
+        except Exception as e:
+            print(f'Error al conectar a la base de datos: {e}')
+            raise e
+        "
+
     - name: Ejecutar cálculo de fechas dinámicas
       run: |
         python -c "from model.job import TareasProgramadasJuridico; TareasProgramadasJuridico().calcular_y_actualizar_fechas_dinamicas()"
