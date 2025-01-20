@@ -2,11 +2,11 @@ name: Enviar Correos de Incumplimiento
 
 on:
   schedule:
-    - cron: '0 8 * * TUE' # Ejecutar los martes a las 8:00 AM
-  workflow_dispatch: # Habilita la ejecución manual
+    - cron: '0 8 * * TUE' # Martes a las 8:00 AM
+  workflow_dispatch: # Habilita ejecución manual
 
 jobs:
-  correos-incumplimiento:
+  enviar-correos-incumplimiento:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,6 +30,6 @@ jobs:
         DATABASE_PATH: ${{ secrets.DATABASE_PATH }}
       run: echo "Environment variables set."
 
-    - name: Enviar correos de incumplimiento
+    - name: Ejecutar correos de incumplimiento
       run: |
-        python -c "from jobs import TareasProgramadasJuridico; TareasProgramadasJuridico().tarea_semanal_incumplimientos()"
+        python -c "from model.job import TareasProgramadasJuridico; TareasProgramadasJuridico().tarea_semanal_incumplimientos()"
