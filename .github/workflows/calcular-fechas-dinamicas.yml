@@ -32,4 +32,4 @@ jobs:
 
     - name: Ejecutar cálculo de fechas dinámicas
       run: |
-        python -c "from jobs import TareasProgramadasJuridico; TareasProgramadasJuridico().calcular_y_actualizar_fechas_dinamicas()"
+        python -c "from model.job import TareasProgramadasJuridico; TareasProgramadasJuridico().calcular_y_actualizar_fechas_dinamicas()"
