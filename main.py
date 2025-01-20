@@ -17,6 +17,7 @@ from model.gestionar_db import HandleDB
 from model.gestionar_db import Cargue_Roles_Blob_Storage
 from model.consultas_db import Reporte_Asignaciones
 from model.gestion_clausulas import GestionClausulas
+from model.job import TareasProgramadasJuridico
 from model.containerModel import ContainerModel
 from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, concesion, control, rutas, turnos, hora_inicio, hora_fin
 from werkzeug.security import generate_password_hash
@@ -33,8 +34,6 @@ import re
 import msal
 import requests
 from dotenv import load_dotenv
-from apscheduler.schedulers.background import BackgroundScheduler
-from pytz import timezone
 
 # Cargar las variables de entorno desde .env
 load_dotenv()
@@ -1420,86 +1419,76 @@ async def cargar_adjuntos(id_clausula: int, anio: str, mes: str, files: List[Upl
         print(f"Error al cargar adjuntos: {e}")
         return JSONResponse(content={"success": False, "message": str(e)}, status_code=500)
     
-#########################################################################
+############################# TAREAS PROGRAMADAS DE ACTUALIZACIÓN #################################
+###################################################################################################
+# Instancia de la clase para las tareas programadas
+tareas_juridico = TareasProgramadasJuridico()
+tareas_juridico.iniciar_scheduler()
+
+@app.get("/jobs/calcular_fechas", response_class=JSONResponse)
+def ejecutar_calculo_fechas():
+    """
+    Ejecuta manualmente el cálculo y actualización de fechas dinámicas.
+    """
+    try:
+        print("Iniciando job de cálculo de fechas dinámicas.")
+        tareas_juridico.calcular_y_actualizar_fechas_dinamicas()
+        return {"message": "Cálculo y actualización de fechas dinámicas ejecutado exitosamente."}
+    except Exception as e:
+        print(f"Error al ejecutar el job: {e}")
+        return JSONResponse(status_code=500, content={"message": f"Error: {str(e)}"})
+
+@app.get("/jobs/sincronizar_estados", response_class=JSONResponse)
+def ejecutar_sincronizacion_estados():
+    """
+    Ejecuta manualmente la sincronización de estados dinámicos de las filas.
+    """
+    try:
+        tareas_juridico.sincronizar_estados_filas_gestion()
+        return {"message": "Sincronización de estados ejecutada exitosamente."}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": f"Error: {str(e)}"})
+
+############################### CORREOS AUTOMATICOS #################################
 # NOTIFICACIONES RECORDATORIO POR CORREO Y TAREAS PROGRAMADAS - PANTALLA JURIDICO
 gestion = GestionClausulas()
-@app.get("/envio_correos_recordatorio")
+@app.get("/jobs/envio_correos_recordatorio", response_class=JSONResponse)
 def envio_correos_recordatorio():
     """
-    Prueba manual para enviar correos utilizando la consulta.
+    Prueba manual para enviar correos de recordatorios.
     """
     try:
-        print("Iniciando envío de correos...")
-        gestion.enviar_correos_recordatorio()
-        return {"message": "Correos enviados correctamente."}
+        tareas_juridico.tarea_diaria_recordatorio()
+        return {"message": "Correos de recordatorio enviados correctamente."}
     except Exception as e:
-        print(f"Error en la prueba de envío de correos: {e}")
-        raise HTTPException(status_code=500, detail=f"Error en el envío de correos: {e}")
+        return JSONResponse(status_code=500, content={"message": f"Error: {str(e)}"})
 
-@app.get("/reporte_clausulas")
-def generar_recordatorio():
-    """
-    Genera el reporte de recordatorios manualmente y lo descarga.
-    """
-    try:
-        file_path = gestion.generar_reporte_recordatorio()
-        return FileResponse(file_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=os.path.basename(file_path))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al generar el reporte: {e}")
-
-def tarea_diaria_recordatorio():
-    """
-    Realiza las tareas diarias en el siguiente orden:
-    1. Envía los correos de recordatorios.
-    2. Genera y sube el reporte de recordatorios a SharePoint.
-    """
-    try:
-        print("Iniciando envío automático de correos...")
-        gestion.enviar_correos_recordatorio()
-        print("Correos enviados exitosamente.")
-
-        print("Generando y subiendo reporte a SharePoint...")
-        gestion.generar_reporte_recordatorio()
-        print("Reporte cargado exitosamente.")
-    except Exception as e:
-        print(f"Error en la ejecución de la tarea diaria: {e}")
-
-# Configuración del programador de tareas
-scheduler = BackgroundScheduler(timezone="America/Bogota")
-scheduler.add_job(tarea_diaria_recordatorio, 'cron', hour=8, minute=0)  # Ejecuta la tarea diaria a las 8 AM
-scheduler.start()
-
-print("Programador de tareas configurado para las 8 AM.")
-
-@app.on_event("startup")
-async def iniciar_servidor():
-    """
-    Ejecuta acciones al iniciar el servidor.
-    """
-    print("Servidor iniciado y programador de tareas activo.")
-    
-#########################################################################
-# NOTIFICACIONES INCUMPLIMIENTOS POR CORREO Y TAREAS PROGRAMADAS - PANTALLA JURIDICO
-@app.get("/envio_correos_incumplimiento")
+@app.get("/jobs/envio_correos_incumplimiento", response_class=JSONResponse)
 def envio_correos_incumplimiento():
     """
-    Prueba manual para enviar correos de incumplimiento utilizando la consulta.
+    Prueba manual para enviar correos de incumplimiento.
     """
     try:
-        print("Iniciando envío de correos de incumplimiento...")
-        gestion.enviar_correos_incumplimiento()
+        tareas_juridico.tarea_semanal_incumplimientos()
         return {"message": "Correos de incumplimiento enviados correctamente."}
     except Exception as e:
-        print(f"Error en el envío de correos de incumplimiento: {e}")
-        raise HTTPException(status_code=500, detail=f"Error en el envío de correos de incumplimiento: {e}")
+        return JSONResponse(status_code=500, content={"message": f"Error: {str(e)}"})
+
+@app.get("/jobs", response_class=JSONResponse)
+def listar_jobs():
+    """
+    Lista todos los jobs programados en el scheduler.
+    """
+    try:
+        jobs = [
+            {
+                "id": job.id,
+                "name": job.name,
+                "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None
+            } for job in tareas_juridico.scheduler.get_jobs()
+        ]
+        return {"jobs": jobs}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": f"Error: {str(e)}"})
+
     
-# Configuración del programador de tareas para envío de incumplimientos
-scheduler.add_job(
-    gestion.enviar_correos_incumplimiento,
-    'cron',
-    day_of_week='tue',  # Martes
-    hour=8,
-    minute=0,
-    timezone="America/Bogota"
-)
-print("Programador de tareas configurado para envío de correos de incumplimiento los martes a las 8 AM.")

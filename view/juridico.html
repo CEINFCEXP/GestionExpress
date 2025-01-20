@@ -788,7 +788,7 @@
         });
     }      
         
-    // Llamar esta función al abrir el modal
+    // Llamar esta función al abrir el modal de Gestionar Cláusula
     document.getElementById("modalGestion").addEventListener("show.bs.modal", async function (event) {
         const clausulaId = event.relatedTarget.getAttribute("data-id");
         if (!clausulaId) {
@@ -812,30 +812,7 @@
         } catch (error) {
             console.error("Error al cargar o procesar filas de gestión:", error);
         }
-    });     
-
-    // Función al abrir pantalla principal JURIDICO actualiza todas las fechas de gestión de cláusulas
-    document.addEventListener("DOMContentLoaded", async function () {
-        try {
-            // 1. Seleccionar todas las filas en la tabla principal (identifica las cláusulas)
-            const filasClausulas = document.querySelectorAll("tbody tr");
-            const clausulaIds = [];
-    
-            filasClausulas.forEach((fila) => {
-                const columnaId = fila.querySelector("td:nth-child(2)"); // Ajusta al índice correcto para obtener el ID de cláusula
-                if (columnaId) {
-                    clausulaIds.push(columnaId.textContent.trim());
-                }
-            });
-    
-            // 2. Procesar cada cláusula de manera asincrónica utilizando cargarFilasGestion
-            await Promise.all(clausulaIds.map((clausulaId) => cargarFilasGestion(clausulaId, true)));
-    
-            //console.log("Actualización masiva de cláusulas completada.");
-        } catch (error) {
-            console.error("Error general al cargar las cláusulas:", error);
-        }
-    });    
+    });         
     
     // Función para formatear la fecha al formato requerido
     function formatFecha(fecha) {

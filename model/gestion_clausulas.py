@@ -670,6 +670,80 @@ class GestionClausulas:
             print(f"Error creando la estructura en Blob Storage: {e}")
             raise
 
+# JOBS DE ACTUALIZACIÓN ASINCRONICA PARA LAS FILAS DE GESTIÓN DINAMICAS Y EL ESTADO DE GESTIÓN DE CADA FILA
+    def obtener_clausulas_job(self):
+        """
+        Retorna las cláusulas necesarias para calcular fechas dinámicas.
+        """
+        query = """
+        SELECT id, inicio_cumplimiento, fin_cumplimiento, frecuencia, periodo_control
+        FROM clausulas;
+        """
+        with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query)
+            return cursor.fetchall()
+
+    def actualizar_fechas_dinamicas(self, id_clausula, fechas_dinamicas):
+        """
+        Actualiza las fechas dinámicas de una cláusula en la base de datos sin eliminar filas existentes.
+        """
+        query_select = "SELECT fecha_entrega FROM clausulas_gestion WHERE id_clausula = %s;"
+        query_insert = """
+        INSERT INTO clausulas_gestion (id_clausula, fecha_entrega, estado)
+        VALUES (%s, %s, 'A Tiempo');
+        """
+        with self.connection.cursor() as cursor:
+            # Obtener fechas ya registradas
+            cursor.execute(query_select, (id_clausula,))
+            fechas_existentes = {row[0] for row in cursor.fetchall()}
+
+            # Insertar solo las nuevas fechas
+            for fecha in fechas_dinamicas:
+                if fecha['entrega'] not in fechas_existentes:
+                    cursor.execute(query_insert, (id_clausula, fecha['entrega']))
+
+            self.connection.commit()
+
+    def obtener_todas_filas_gestion(self):
+        """
+        Retorna todas las filas de gestión para sincronizar estados.
+        """
+        query = """
+        SELECT id_gestion, fecha_entrega, fecha_radicado, estado
+        FROM clausulas_gestion;
+        """
+        with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query)
+            return cursor.fetchall()
+
+    def actualizar_estado_fila(self, id_gestion, nuevo_estado):
+        """
+        Actualiza el estado de una fila de gestión en la base de datos.
+        """
+        query = """
+        UPDATE clausulas_gestion
+        SET estado = %s
+        WHERE id_gestion = %s;
+        """
+        with self.connection.cursor() as cursor:
+            cursor.execute(query, (nuevo_estado, id_gestion))
+            self.connection.commit()
+
+    def calcular_estado(self, fecha_entrega, fecha_radicado, fecha_actual):
+        """
+        Calcula el estado de una fila según las fechas de entrega, radicado y actual.
+        """
+        if not fecha_radicado and fecha_entrega >= fecha_actual:
+            return "A Tiempo"
+        elif not fecha_radicado and fecha_entrega < fecha_actual:
+            return "Incumplida"
+        elif fecha_radicado > fecha_entrega:
+            return "Extemporal"
+        elif fecha_radicado <= fecha_entrega:
+            return "Cumplida"
+        else:
+            return "Desconocido"
+
 # REPORTES Y NOTIFICACIONES
 # Recordatorio de Notificaciones
     def validar_conexion(self):
@@ -784,67 +858,6 @@ class GestionClausulas:
         except Exception as e:
             print(f"Error al generar los datos del reporte: {e}")
             raise
-        
-    def generar_reporte_recordatorio(self, output_path="temp"):
-        """
-        Genera el reporte de recordatorios y lo guarda en SharePoint.
-        """
-        self.validar_conexion()  # Asegurar que la conexión esté activa
-        try:
-            # Generar los datos
-            data = self.generar_datos_recordatorio()
-
-            # Crear el DataFrame
-            df = pd.DataFrame(data)
-
-            # Ruta temporal local
-            os.makedirs(output_path, exist_ok=True)
-            file_name = f"Notifica_Recordatorios_{datetime.now().strftime('%Y%m%d')}.xlsx"
-            local_file_path = os.path.join(output_path, file_name)
-
-            # Guardar el archivo Excel localmente
-            df.to_excel(local_file_path, index=False)
-
-            # Guardar en SharePoint
-            sharepoint_folder = "5- Archivos Base/9- Jurídica y Seguros/Notifica_Recordatorios"
-            self.guardar_en_sharepoint(local_file_path, sharepoint_folder, file_name)
-
-            # Eliminar el archivo local después de subirlo
-            os.remove(local_file_path)
-
-        except Exception as e:
-            print(f"Error al generar el reporte de recordatorios: {e}")
-            raise
-
-    def guardar_en_sharepoint(self, local_file_path, sharepoint_folder, file_name):
-        """
-        Sube un archivo a SharePoint usando autenticación de usuario y lo sobrescribe si ya existe.
-        """        
-        if not username or not password:
-            raise Exception("Las credenciales de SharePoint no están configuradas correctamente.")
-
-        try:
-            # Autenticación con usuario y contraseña
-            auth_context = AuthenticationContext(site_url)
-            if not auth_context.acquire_token_for_user(username, password):
-                raise Exception("Autenticación fallida: " + auth_context.get_last_error())
-
-            # Conectar al sitio de SharePoint
-            ctx = ClientContext(site_url, auth_context)
-
-            # Ruta completa en SharePoint
-            folder_url = f"Documentos compartidos/{sharepoint_folder}"
-            target_file_url = f"{folder_url}/{file_name}"
-
-            # Subir el archivo y sobrescribir si ya existe
-            with open(local_file_path, "rb") as file_content:
-                target_folder = ctx.web.get_folder_by_server_relative_url(folder_url)
-                target_folder.upload_file(file_name, file_content).execute_query()
-
-            #print(f"Archivo guardado en SharePoint: {target_file_url}")
-        except Exception as e:
-            print(f"Error al guardar el archivo en SharePoint: {e}")
-            raise
 
     def enviar_correos_recordatorio(self):
         """
@@ -887,11 +900,11 @@ class GestionClausulas:
                     fecha_entrega_formateada = recordatorio["Fecha Entrega"]
 
                 destinatario = recordatorio["Correo"]
-                asunto = f"Recordatorio: {recordatorio['ID']} - {recordatorio['Clausula']} (Contrato: {recordatorio['Contrato Concesion']}) - Entrega el {fecha_entrega_formateada}"
+                asunto = f"Recordatorio: {recordatorio['ID']} - {recordatorio['Clausula']} (Contrato: {recordatorio['Contrato Concesion']}) - Entrega Maxima {fecha_entrega_formateada}"
                 
                 cuerpo = (
                     f"<div style='background-color: #004080; color: white; padding: 10px; text-align: center; border-radius: 8px;'>"
-                    f"<h2 style='margin: 0; font-size: 20px;'>Recordatorio del Cumplimiento de Obligaciones Jurídicas</h2>"
+                    f"<h2 style='margin: 0; font-size: 20px;'>Acreditación del cumplimiento de clausula {recordatorio['Clausula']} </h2>"
                     f"<p style='margin: 5px 0; font-size: 16px; font-style: italic; font-weight: bold;'>Consorcio Express S.A.S</p>"
                     f"</div>"
                     f"<div style='font-size: 14px; background-color: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px;'>"
