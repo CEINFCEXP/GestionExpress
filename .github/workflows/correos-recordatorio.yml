@@ -2,11 +2,11 @@ name: Enviar Correos de Recordatorio
 
 on:
   schedule:
-    - cron: '30 7 * * *' # Ejecutar a las 7:30 AM todos los días
-  workflow_dispatch: # Habilita la ejecución manual
+    - cron: '30 7 * * *' # Todos los días a las 7:30 AM
+  workflow_dispatch: # Habilita ejecución manual
 
 jobs:
-  correos-recordatorio:
+  enviar-correos-recordatorio:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,6 +30,6 @@ jobs:
         DATABASE_PATH: ${{ secrets.DATABASE_PATH }}
       run: echo "Environment variables set."
 
-    - name: Enviar correos de recordatorio
+    - name: Ejecutar correos de recordatorio
       run: |
-        python -c "from jobs import TareasProgramadasJuridico; TareasProgramadasJuridico().tarea_diaria_recordatorio()"
+        python -c "from model.job import TareasProgramadasJuridico; TareasProgramadasJuridico().tarea_diaria_recordatorio()"
