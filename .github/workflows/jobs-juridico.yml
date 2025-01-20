@@ -1,0 +1,58 @@
+name: Ejecutar Jobs Jurídico
+
+on:
+  schedule:
+    # Ejecuta los jobs según la configuración definida
+    - cron: '0 2 * * *' # Cálculo de fechas dinámicas (diario a las 2:00 AM)
+    - cron: '0 3 * * *' # Sincronización de estados (diario a las 3:00 AM)
+    - cron: '30 7 * * *' # Correos de recordatorio (diario a las 7:30 AM)
+    - cron: '0 8 * * TUE' # Correos de incumplimientos (martes a las 8:00 AM)
+
+jobs:
+  ejecutar-jobs-juridico:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Configura el entorno
+    - name: Check out the repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python environment
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.9'
+
+    # Instalar dependencias
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    # Configurar variables de entorno
+    - name: Set environment variables
+      env:
+        USUARIO_CORREO_JURIDICO: ${{ secrets.USUARIO_CORREO_JURIDICO }}
+        CLAVE_CORREO_JURIDICO: ${{ secrets.CLAVE_CORREO_JURIDICO }}
+        DATABASE_PATH: ${{ secrets.DATABASE_PATH }}
+
+    # Ejecutar los jobs en función del contexto
+    - name: Ejecutar cálculo de fechas dinámicas
+      if: ${{ github.event.schedule == '0 2 * * *' }}
+      run: |
+        python -c "from jobs import TareasProgramadasJuridico; TareasProgramadasJuridico().calcular_y_actualizar_fechas_dinamicas()"
+
+    - name: Ejecutar sincronización de estados
+      if: ${{ github.event.schedule == '0 3 * * *' }}
+      run: |
+        python -c "from jobs import TareasProgramadasJuridico; TareasProgramadasJuridico().sincronizar_estados_filas_gestion()"
+
+    - name: Enviar correos de recordatorio
+      if: ${{ github.event.schedule == '30 7 * * *' }}
+      run: |
+        python -c "from jobs import TareasProgramadasJuridico; TareasProgramadasJuridico().tarea_diaria_recordatorio()"
+
+    - name: Enviar correos de incumplimiento
+      if: ${{ github.event.schedule == '0 8 * * TUE' }}
+      run: |
+        python -c "from jobs import TareasProgramadasJuridico; TareasProgramadasJuridico().tarea_semanal_incumplimientos()"
+
