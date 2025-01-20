@@ -2,8 +2,8 @@ name: Enviar Correos de Incumplimiento
 
 on:
   schedule:
-    - cron: '0 8 * * TUE' # Martes a las 8:00 AM
-  workflow_dispatch: # Habilita ejecución manual
+    - cron: '0 8 * * TUE' # Ejecutar los martes a las 8:00 AM
+  workflow_dispatch: # Habilita la ejecución manual
 
 jobs:
   enviar-correos-incumplimiento:
@@ -23,13 +23,25 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Set environment variables
+    - name: Verificar conexión a la base de datos
       env:
+        DATABASE_PATH: ${{ secrets.DATABASE_PATH }}
+      run: |
+        python -c "
+        import psycopg2
+        try:
+            conn = psycopg2.connect('${{ secrets.DATABASE_PATH }}')
+            print('Conexión a la base de datos exitosa')
+            conn.close()
+        except Exception as e:
+            print(f'Error al conectar a la base de datos: {e}')
+            raise e
+        "
+
+    - name: Enviar correos de incumplimiento
+      env:
+        DATABASE_PATH: ${{ secrets.DATABASE_PATH }}
         USUARIO_CORREO_JURIDICO: ${{ secrets.USUARIO_CORREO_JURIDICO }}
         CLAVE_CORREO_JURIDICO: ${{ secrets.CLAVE_CORREO_JURIDICO }}
-        DATABASE_PATH: ${{ secrets.DATABASE_PATH }}
-      run: echo "Environment variables set."
-
-    - name: Ejecutar correos de incumplimiento
       run: |
         python -c "from model.job import TareasProgramadasJuridico; TareasProgramadasJuridico().tarea_semanal_incumplimientos()"
