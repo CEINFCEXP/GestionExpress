@@ -3,6 +3,7 @@ name: Enviar Correos de Recordatorio
 on:
   schedule:
     - cron: '30 7 * * *' # Ejecutar a las 7:30 AM todos los días
+  workflow_dispatch: # Habilita la ejecución manual
 
 jobs:
   correos-recordatorio:
