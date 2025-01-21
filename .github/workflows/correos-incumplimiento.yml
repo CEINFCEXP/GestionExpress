@@ -2,7 +2,7 @@ name: Enviar Correos de Incumplimiento
 
 on:
   schedule:
-    - cron: '0 8 * * TUE' # Ejecutar los martes a las 8:00 AM
+    - cron: '0 13 * * TUE' # 8:00 AM Bogotá (1:00 PM UTC, solo los martes)
   workflow_dispatch: # Habilita la ejecución manual
 
 jobs:
