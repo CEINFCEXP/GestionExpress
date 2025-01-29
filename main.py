@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, Depends, File, UploadFile, HTTPException, Response, APIRouter, BackgroundTasks
+from fastapi import FastAPI, Request, Form, Depends, File, UploadFile, HTTPException, Query, Response, APIRouter, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +19,7 @@ from model.consultas_db import Reporte_Asignaciones
 from model.gestion_clausulas import GestionClausulas
 from model.job import TareasProgramadasJuridico
 from model.containerModel import ContainerModel
+from model.gestion_reportbi import ReportBIGestion
 from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, concesion, control, rutas, turnos, hora_inicio, hora_fin
 from werkzeug.security import generate_password_hash
 from azure.storage.blob import BlobServiceClient, BlobClient
@@ -614,7 +615,7 @@ async def buscar_asignaciones(request: Request):
         nombre_supervisor_enlace=filtros.get('nombreSupervisorEnlace')
     )
     # Depuración para verificar la salida
-    print(asignaciones)
+    #print(asignaciones)
     # Devolver las asignaciones como JSON para que el frontend las maneje
     return JSONResponse(content=asignaciones)
 
@@ -756,6 +757,7 @@ def generar_pdf_asignaciones(request: PDFRequest):
 ############### SECCIÓN POWER_BI EMBEBIDO #################
 AUTHORITY_URL = f"https://login.microsoftonline.com/{TENANT_ID}"
 SCOPE = ["https://analysis.windows.net/powerbi/api/.default"]
+report_handler = ReportBIGestion()# Instanciar el manejador de reportes
 
 # Función para obtener el token de acceso
 def get_access_token():
@@ -803,20 +805,26 @@ def get_powerbi(req: Request, user_session: dict = Depends(get_user_session)):
                             FROM licencias_bi 
                             WHERE cedula = %s"""
     result = db.fetch_one(query=licencias_bi_query, values=(cedula,))
-    
+
+    # Instanciar el manejador de reportes Model. ReportBIGestion
+    report_handler = ReportBIGestion()
+
+    # Obtener los datos dinámicos de la tabla 'reportbi'
+    report_data = report_handler.obtener_reportes()
+
+    # Validar estructura del objeto report_data
+    #if not report_data:
+        #print("No se encontraron datos en 'report_data'")
+    #else:
+        #print(f"Datos cargados: {report_data}")
+
     if result:
-        # Obtener el token de acceso para Power BI
-        access_token = get_access_token()
-
-        # Obtener la lista de informes disponibles
-        available_reports = get_available_reports(access_token)
-
         return templates.TemplateResponse("powerbi.html", {
             "request": req,
             "user_session": user_session,
             "licencia_bi": result[0],
             "contraseña_licencia": result[1],
-            "available_reports": available_reports,
+            "report_data": report_data,  # Asegurar que se envíen los datos dinámicos
             "error_message": None
         })
     else:
@@ -825,8 +833,19 @@ def get_powerbi(req: Request, user_session: dict = Depends(get_user_session)):
             "user_session": user_session,
             "licencia_bi": None,
             "contraseña_licencia": None,
+            "report_data": report_data,  # Asegurar que siempre se envíen los datos dinámicos
             "error_message": "No se encontraron licencias para el usuario."
         })
+
+@app.get("/api/get_report_url")
+def get_report_url(report_id: str = Query(..., title="Report ID")):
+    report_handler = ReportBIGestion()
+    report_url = report_handler.obtener_url_bi(report_id)
+
+    if report_url and report_url.strip() != "" and report_url != "NaN":
+        return JSONResponse(content={"url": report_url})
+    else:
+        return JSONResponse(content={"error": "No existe enlace para este informe."}, status_code=404)
 
 @app.post("/cargar_licencias")
 async def cargar_licencias(file: UploadFile = File(...)):
@@ -1075,6 +1094,9 @@ def control_clausulas(req: Request, user_session: dict = Depends(get_user_sessio
     responsable_entrega = gestion.obtener_opciones_responsables_clausulas()
     estados = gestion.obtener_opciones_estado()
     gestion.close()
+    
+    # Permisos de edición de la parametrización Juridica solo para el Rol " 1- Administrador y 3- Jurídico"
+    es_editable = user_session.get("rol") in [1, 3]
 
     return templates.TemplateResponse("juridico.html", {
         "request": req, 
@@ -1089,7 +1111,8 @@ def control_clausulas(req: Request, user_session: dict = Depends(get_user_sessio
         "frecuencias": frecuencias,
         "responsables": responsables,
         "responsable_entrega": responsable_entrega,
-        "estados": estados
+        "estados": estados,
+        "es_editable": es_editable
     })
     
 @app.get("/obtener_subprocesos/{proceso}", response_class=JSONResponse)
@@ -1418,7 +1441,42 @@ async def cargar_adjuntos(id_clausula: int, anio: str, mes: str, files: List[Upl
     except Exception as e:
         print(f"Error al cargar adjuntos: {e}")
         return JSONResponse(content={"success": False, "message": str(e)}, status_code=500)
+
+@app.get("/obtener_responsables", response_class=JSONResponse)
+async def obtener_responsables(req: Request):
+    gestion = GestionClausulas()
+    try:
+        responsables = gestion.obtener_responsables()
+        return {"responsables": responsables}
+    finally:
+        gestion.close()
     
+@app.get("/clausula/{id_clausula}/copia", response_class=JSONResponse) #Obtener Correos configurados para copia
+async def obtener_copia(req: Request, id_clausula: int):
+    gestion = GestionClausulas()
+    try:
+        copia = gestion.obtener_copia_correos(id_clausula)
+        return copia
+    finally:
+        gestion.close()
+
+@app.post("/clausula/{id_clausula}/copia", response_class=JSONResponse)
+async def actualizar_copia(req: Request, id_clausula: int):
+    data = await req.json()
+    responsables_copia = data.get("responsables_copia", [])
+    if not responsables_copia:
+        return {"success": False, "message": "No se enviaron responsables válidos."}, 400
+    #print(f"Datos recibidos para actualizar_copia_correos: {responsables_copia}")  # LOG IMPORTANTE
+    gestion = GestionClausulas()
+    try:
+        gestion.actualizar_copia_correos(id_clausula, responsables_copia)
+        return {"success": True, "message": "Responsables en copia actualizados correctamente."}
+    except ValueError as e:
+        print(f"Error al actualizar responsables en copia: {str(e)}")  # LOG DE ERRORES
+        return {"success": False, "message": str(e)}, 400
+    finally:
+        gestion.close()
+
 ############################# TAREAS PROGRAMADAS DE ACTUALIZACIÓN #################################
 ###################################################################################################
 # Instancia de la clase para las tareas programadas
@@ -1490,5 +1548,4 @@ def listar_jobs():
         return {"jobs": jobs}
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Error: {str(e)}"})
-
-    
+ 

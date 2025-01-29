@@ -1,7 +1,7 @@
 {% block content %}
 
 <!-- clausula_config.html -->
-<div class="row mb-3" style="background-color: #e9eaf0; padding: 8px; border-radius: 5px;">
+<div class="row mb-3" style="background-color: #f1f3fc; padding: 8px; border-radius: 5px;">
      <!-- Primera fila -->
     <div class="row" style="margin-bottom: 0;">
         <!-- ID Clausula -->
@@ -12,7 +12,7 @@
         <!-- Control -->
         <div class="col-md-2" style="padding-bottom: 3px;">
             <label for="{{ modal }}_control" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Control</label>
-            <select id="{{ modal }}_control" name="control" class="form-select" style="font-size: 12px; height: 30px;" required>
+            <select id="{{ modal }}_control" name="control" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
                 <option value="" selected>Seleccionar...</option>
                 <option value="CONTRATO">CONTRATO</option>
                 <option value="MANUAL">MANUAL</option>    
@@ -21,12 +21,12 @@
         <!-- Cláusula -->
         <div class="col-md-3" style="padding-bottom: 3px;">
             <label for="{{ modal }}_clausula" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Cláusula</label>
-            <input type="text" id="{{ modal }}_clausula" name="clausula" class="form-control" style="font-size: 12px; height: 30px;" required>
+            <input type="text" id="{{ modal }}_clausula" name="clausula" class="form-control" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
         </div>
         <!-- Etapa -->
         <div class="col-md-2" style="padding-bottom: 3px;">
             <label for="{{ modal }}_etapa" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Etapa</label>
-            <select id="{{ modal }}_etapa" name="etapa" class="form-select" style="font-size: 12px; height: 30px;" required>
+            <select id="{{ modal }}_etapa" name="etapa" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
                 <option value="" selected>Seleccionar...</option>
                 {% for etapa in etapas %}
                 <option value="{{ etapa[0] }}">{{ etapa[0] }}</option>
@@ -36,7 +36,7 @@
         <!-- Contrato -->
         <div class="col-md-2" style="padding-bottom: 3px;">
             <label for="{{ modal }}_contrato" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Contrato</label>
-            <select id="{{ modal }}_contrato" name="contrato" class="form-select" style="font-size: 12px; height: 30px;" required>
+            <select id="{{ modal }}_contrato" name="contrato" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
                 <option value="" selected>Seleccionar...</option>
                 {% for contrato in contratos %}
                 <option value="{{ contrato[0] }}">{{ contrato[0] }}</option>
@@ -46,7 +46,7 @@
         <!-- Tipo -->
         <div class="col-md-2" style="padding-bottom: 3px;">
             <label for="{{ modal }}_tipo" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Tipo</label>
-            <select id="{{ modal }}_tipo" name="tipo" class="form-select" style="font-size: 12px; height: 30px;" required>
+            <select id="{{ modal }}_tipo" name="tipo" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
                 <option value="" selected>Seleccionar...</option>
                 {% for tipo in tipos_clausula %}
                 <option value="{{ tipo[0] }}">{{ tipo[0] }}</option>
@@ -60,17 +60,17 @@
         <!-- Tema -->
         <div class="col-md-4" style="padding-bottom: 3px;">
             <label for="{{ modal }}_tema" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Tema</label>
-            <input type="text" id="{{ modal }}_tema" name="tema" class="form-control" style="font-size: 12px; height: 30px;" required oninput="this.value = this.value.toUpperCase()">
+            <input type="text" id="{{ modal }}_tema" name="tema" class="form-control" style="font-size: 12px; height: 30px;" required oninput="this.value = this.value.toUpperCase()" {% if not es_editable %} disabled {% endif %}>
         </div>
         <!-- Subtema -->
         <div class="col-md-4" style="padding-bottom: 3px;">
             <label for="{{ modal }}_subtema" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Subtema</label>
-            <input type="text" id="{{ modal }}_subtema" name="subtema" class="form-control" style="font-size: 12px; height: 30px;" required oninput="this.value = this.value.toUpperCase()">
+            <input type="text" id="{{ modal }}_subtema" name="subtema" class="form-control" style="font-size: 12px; height: 30px;" required oninput="this.value = this.value.toUpperCase()" {% if not es_editable %} disabled {% endif %}>
         </div>
         <!-- Descripción -->
         <div class="col-md-4" style="padding-bottom: 3px;">
             <label for="{{ modal }}_descripcion" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Descripción de la Cláusula</label>
-            <textarea id="{{ modal }}_descripcion" name="descripcion" class="form-control" style="font-size: 12px; height: 30px;"required></textarea>
+            <textarea id="{{ modal }}_descripcion" name="descripcion" class="form-control" style="font-size: 12px; height: 30px;"required {% if not es_editable %} disabled {% endif %}></textarea>
         </div>
     </div>
 
@@ -79,17 +79,17 @@
         <!-- Modificaciones -->
         <div class="col-md-4" style="padding-bottom: 3px;">
             <label for="{{ modal }}_modificaciones" style="font-size: 12px;">Modificaciones</label>
-            <textarea id="{{ modal }}_modificaciones" name="modificaciones" class="form-control" style="font-size: 12px; height: 30px;"></textarea>
+            <textarea id="{{ modal }}_modificaciones" name="modificaciones" class="form-control" style="font-size: 12px; height: 30px;" {% if not es_editable %} disabled {% endif %}></textarea>
         </div>
         <!-- Norma Relacionada -->
         <div class="col-md-4" style="padding-bottom: 3px;">
             <label for="{{ modal }}_norma_relacionada" style="font-size: 12px;">Norma Relacionada</label>
-            <textarea id="{{ modal }}_norma_relacionada" name="norma" class="form-control" style="font-size: 12px; height: 30px;"></textarea>
+            <textarea id="{{ modal }}_norma_relacionada" name="norma" class="form-control" style="font-size: 12px; height: 30px;" {% if not es_editable %} disabled {% endif %}></textarea>
         </div>
         <!-- Consecuencias -->
         <div class="col-md-4" style="padding-bottom: 3px;">
             <label for="{{ modal }}_consecuencias" style="font-size: 12px;">Consecuencias Incumplimiento</label>
-            <textarea id="{{ modal }}_consecuencias" name="consecuencia" class="form-control" style="font-size: 12px; height: 30px;"></textarea>
+            <textarea id="{{ modal }}_consecuencias" name="consecuencia" class="form-control" style="font-size: 12px; height: 30px;" {% if not es_editable %} disabled {% endif %}></textarea>
         </div>
     </div>
 
@@ -99,7 +99,7 @@
         <div class="col-md-3" style="padding-bottom: 3px;">
             <label for="{{ modal }}_proceso_responsable" style="font-size: 12px;">Proceso Responsable</label>
             <div class="input-group">
-                <select id="{{ modal }}_proceso_responsable" name="proceso" class="form-select" style="font-size: 12px; height: 30px;" required onchange="actualizarSubprocesos('{{ modal }}', this.value)">
+                <select id="{{ modal }}_proceso_responsable" name="proceso" class="form-select" style="font-size: 12px; height: 30px;" required onchange="actualizarSubprocesos('{{ modal }}', this.value)" {% if not es_editable %} disabled {% endif %}>
                     <option value="" selected>Seleccionar...</option>
                     {% for proceso in procesos %}
                     <option value="{{ proceso[0] }}">{{ proceso[0] }}</option>
@@ -111,21 +111,23 @@
         <div class="col-md-3" style="padding-bottom: 3px;">
             <label for="{{ modal }}_subproceso_responsable" style="font-size: 12px;">Subproceso Responsable</label>
             <div class="input-group">
-                <select id="{{ modal }}_subproceso_responsable" name="subproceso" class="form-select" style="font-size: 12px; height: 30px;" required>
+                <select id="{{ modal }}_subproceso_responsable" name="subproceso" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
                     <option value="" selected>Seleccionar...</option>
                     <!-- Subprocesos cargados dinámicamente -->
                 </select>
             </div>
         </div>
         <!-- Botón para agregar el proceso y subproceso al contenedor -->
+        {% if es_editable %}
         <div class="col-md-1" style="padding-bottom: 3px;">
             <button type="button" class="btn btn-primary" style="font-size: 12px; height: 25px; width: 70px; text-align: center; line-height: 05px;" onclick="agregarProcesoSubproceso('{{ modal }}')">Agregar</button>
         </div>
+        {% endif %}
 
         <!-- Contenedor Procesos Responsables Agregados -->
         <div class="col-md-5 ms-auto g-0" style="padding-bottom: 3px;">
             <label for="{{ modal }}_contenedor_procesos_subprocesos" style="font-size: 12px;" ><span style="color: red; font-weight: bold;">*</span> Procesos Responsables Agregados</label>
-            <div id="{{ modal }}_contenedor_procesos_subprocesos" style="border: 1px solid #ccc; border-radius: 5px; padding: 15px; max-height: 200px; overflow-y: auto; background-color: #f8f9fa; margin-top: 0;">
+            <div id="{{ modal }}_contenedor_procesos_subprocesos" data-es-editable="{{ 'true' if es_editable else 'false' }}" style="border: 1px solid #ccc; border-radius: 5px; padding: 15px; max-height: 200px; overflow-y: auto; background-color: #f8f9fa; margin-top: 0;">
                 <!-- Aquí se renderizan dinámicamente los procesos y subprocesos agregados -->
             </div>
         </div>
@@ -138,7 +140,7 @@
         <!-- Frecuencia Acreditación -->
         <div class="col-md-2" style="padding-bottom: 3px;">
             <label for="{{ modal }}_frecuencia_acreditacion" style="font-size: 12px;" ><span style="color: red; font-weight: bold;">*</span> Frecuencia Acreditación</label>
-            <select id="{{ modal }}_frecuencia_acreditacion" name="frecuencia" class="form-select" style="font-size: 12px; height: 30px;" required onchange="actualizarPeriodoControl('{{ modal }}')">
+            <select id="{{ modal }}_frecuencia_acreditacion" name="frecuencia" class="form-select" style="font-size: 12px; height: 30px;" required onchange="actualizarPeriodoControl('{{ modal }}')" {% if not es_editable %} disabled {% endif %}>
                 <option value="" selected>Seleccionar...</option>
                 {% for frecuencia in frecuencias %}
                 <option value="{{ frecuencia[0] }}">{{ frecuencia[0] }}</option>
@@ -150,23 +152,23 @@
         <div class="col-md-3" style="padding-bottom: 3px;">
             <label for="{{ modal }}_periodo_control" style="font-size: 12px;" ><span style="color: red; font-weight: bold;">*</span> Periodo Control Max.</label>
             <div id="{{ modal }}_periodo_control_container">
-                <input type="text" id="{{ modal }}_periodo_control" name="periodo_control" class="form-control" placeholder="Seleccionar periodo" readonly required style="font-size: 12px;">
+                <input type="text" id="{{ modal }}_periodo_control" name="periodo_control" class="form-control" placeholder="Seleccionar periodo" readonly required {% if not es_editable %} disabled {% endif %} style="font-size: 12px;">
             </div>
         </div>
         <!-- Inicio Cumplimiento -->
         <div class="col-md-2" style="padding-bottom: 3px;">
             <label for="{{ modal }}_inicio_cumplimiento" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Inicio Cumplimiento</label>
-            <input type="date" id="{{ modal }}_inicio_cumplimiento" name="inicio_cumplimiento" class="form-control" style="font-size: 12px; height: 30px;" required>
+            <input type="date" id="{{ modal }}_inicio_cumplimiento" name="inicio_cumplimiento" class="form-control" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
         </div>
         <!-- Fin Cumplimiento -->
         <div class="col-md-2" style="padding-bottom: 3px;">
             <label for="{{ modal }}_fin_cumplimiento" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Fin Cumplimiento</label>
-            <input type="date" id="{{ modal }}_fin_cumplimiento" name="fin_cumplimiento" class="form-control" style="font-size: 12px; height: 30px;" required>
+            <input type="date" id="{{ modal }}_fin_cumplimiento" name="fin_cumplimiento" class="form-control" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
         </div>
         <!-- Responsable de la Entrega -->
         <div class="col-md-3" style="padding-bottom: 3px;">
             <label for="{{ modal }}_responsable_entrega" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Responsable de la Entrega</label>
-            <select id="{{ modal }}_responsable_entrega" name="responsable_entrega" class="form-select" style="font-size: 12px; height: 30px;" required>
+            <select id="{{ modal }}_responsable_entrega" name="responsable_entrega" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
                 <option value="" selected>Seleccionar...</option>
                 {% for responsable in responsables %}
                 <option value="{{ responsable[0] }}">{{ responsable[0] }}</option>
@@ -184,9 +186,64 @@
         </div>
     
         <!-- Observaciones de la Cláusula -->
-        <div class="col-md-8" style="padding-bottom: 3px;">
+        <div class="col-md-6" style="padding-bottom: 3px;">
             <label for="{{ modal }}_observaciones_clausula" style="font-size: 12px;">Observaciones de la Cláusula</label>
-            <textarea id="{{ modal }}_observaciones_clausula" name="observacion" class="form-control" style="font-size: 12px; height: 30px;"></textarea>
+            <textarea id="{{ modal }}_observaciones_clausula" name="observacion" class="form-control" style="font-size: 12px; height: 30px;" {% if not es_editable %} disabled {% endif %}></textarea>
+        </div>
+        <!-- Botón para abrir el modal de responsables en copia -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_correos_clausula" style="font-size: 12px;">Admin Correos</label>
+            <button class="btn btn-secondary" onclick="abrirModalCorreos('{{ modal }}')" style="font-size: 12px; height: 30px; width: 90px; text-align: center; line-height: 05px;">
+                CC Correos
+            </button>
+        </div>               
+    </div>
+</div>
+
+<!-- Modal para gestionar responsables en copia (Notificaciones de Correo)-->
+<div class="modal fade" id="{{ modal }}_modalCopiaCorreos" tabindex="-1" aria-labelledby="{{ modal }}_modalCopiaCorreosLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="{{ modal }}_modalCopiaCorreosLabel" style="font-size: 16px; text-align: center; margin-bottom: 10px;">Administrador de Correos para la Notificación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="container">
+                    <!-- Selección de responsables -->
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label for="{{ modal }}_responsables_copia" class="form-label">Seleccione responsables en (Notificaciones)</label>
+                            <select id="{{ modal }}_responsables_copia" class="form-select" style="font-size: 12px; height: 30px;">
+                                <option value="" selected>Seleccionar...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button id="{{ modal }}_btnAgregarResponsable" class="btn btn-primary" onclick="agregarResponsable('{{ modal }}')" style="font-size: 12px; height: 30px; width: 70px; text-align: center; line-height: 05px;">Agregar</button>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de responsables -->
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc; border-radius: 5px;">
+                        <table class="table table-bordered table-striped" style="font-size: 12px;">
+                            <thead class="table-responsive" style="background-color: #120b6e; color: #ffffff; position: sticky; top: 0; z-index: 2; font-family: 'Century Gothic', Arial, sans-serif;">
+                                <tr>
+                                    <th>Responsable</th>
+                                    <th>Correo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="{{ modal }}_tablaCopiaCorreos">
+                                <!-- Responsables dinámicos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cerrarModalCorreos('{{ modal }}')">Cerrar</button>
+                <button id="{{ modal }}_guardarCopiaCorreos" type="button" class="btn btn-primary" onclick="guardarResponsables('{{ modal }}')">Guardar</button>
+            </div>
         </div>
     </div>
 </div>
@@ -416,20 +473,23 @@
     function actualizarPeriodoControl(modal) {
         const frecuencia = document.getElementById(`${modal}_frecuencia_acreditacion`).value;
         const periodoControlContainer = document.getElementById(`${modal}_periodo_control_container`);
+        const esEditable = !document.getElementById(`${modal}_frecuencia_acreditacion`).disabled; // Verificar si el campo es editable
         
         // Limpiar el contenido actual
         periodoControlContainer.innerHTML = '';
 
         if (frecuencia === 'PERSONALIZADO') {
             // Permitir seleccionar una fecha fija
-            periodoControlContainer.innerHTML = '<input type="date" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" style="font-size: 12px;" required>';
+            periodoControlContainer.innerHTML = '<input type="date" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" style="font-size: 12px;" required ' + 
+            (esEditable ? '' : 'disabled') + '>';
         } else if (frecuencia === 'DIARIO') {
             // Automáticamente establecer "DIARIO" como el valor
-            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="DIARIO" style="font-size: 12px;" readonly required>';
+            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="DIARIO" style="font-size: 12px;" readonly required ' + 
+            (esEditable ? '' : 'disabled') + '>';
         } else if (frecuencia === 'QUINCENAL') {
             // Seleccionar el día de la semana
             periodoControlContainer.innerHTML = `
-                <select id="${modal}_periodo_control" name="periodo_control" class="form-select" style="font-size: 12px;" required>
+                <select id="${modal}_periodo_control" name="periodo_control" class="form-select" style="font-size: 12px;" required ${esEditable ? '' : 'disabled'}>
                     <option value="LUNES">Lunes</option>
                     <option value="MARTES">Martes</option>
                     <option value="MIERCOLES">Miércoles</option>
@@ -441,16 +501,18 @@
             `;
         } else if (['MENSUAL', 'BIMESTRAL', 'TRIMESTRAL', 'SEMESTRAL'].includes(frecuencia)) {
             // Seleccionar el día del mes
-            periodoControlContainer.innerHTML = '<input type="number" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" style="font-size: 12px;"" placeholder="Día del mes" min="1" max="31" required>';
+            periodoControlContainer.innerHTML = '<input type="number" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" style="font-size: 12px;"" placeholder="Día del mes" min="1" max="31" required ' + 
+            (esEditable ? '' : 'disabled') + '>';
         } else if (frecuencia === 'ANUAL') {
             // Seleccionar día y mes
             periodoControlContainer.innerHTML = `
-                <input type="number" id="${modal}_periodo_control_dia" name="periodo_control_dia" class="form-control" placeholder="Día" min="1" max="31" style="font-size: 12px; width: 49%; display: inline-block;" required>
-                <input type="number" id="${modal}_periodo_control_mes" name="periodo_control_mes" class="form-control" placeholder="Mes" min="1" max="12" style="font-size: 12px; width: 49%; display: inline-block;" required>
+                <input type="number" id="${modal}_periodo_control_dia" name="periodo_control_dia" class="form-control" placeholder="Día" min="1" max="31" style="font-size: 12px; width: 49%; display: inline-block;" required ${esEditable ? '' : 'disabled'}>
+                <input type="number" id="${modal}_periodo_control_mes" name="periodo_control_mes" class="form-control" placeholder="Mes" min="1" max="12" style="font-size: 12px; width: 49%; display: inline-block;" required ${esEditable ? '' : 'disabled'}>
             `;
         } else if (frecuencia === 'NO APLICA') {
             // Automáticamente establecer "NO APLICA" como el valor
-            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="NO APLICA" style="font-size: 12px;" readonly required>';
+            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="NO APLICA" style="font-size: 12px;" readonly required ' + 
+            (esEditable ? '' : 'disabled') + '>';
         }
     }
 
@@ -551,6 +613,8 @@
                 const contenedorProcesos = document.getElementById('gestionar_contenedor_procesos_subprocesos');
                 contenedorProcesos.innerHTML = ''; // Limpiar contenedor
 
+                const esEditable = contenedorProcesos.getAttribute('data-es-editable') === 'true'; // Verificar permisos
+
                 if (data.procesos_subprocesos.length > 0) {
                     document.getElementById('gestionar_titulo_procesos_responsables').style.display = 'block';
                     data.procesos_subprocesos.forEach(item => {
@@ -580,10 +644,11 @@
                                 <div class="col-md-4">
                                     <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${subproceso}" readonly>
                                 </div>
+                                ${esEditable ? `
                                 <div class="col-md-2">
                                     <button type="button" class="btn btn-danger" style="font-size: 12px; height: 25px; width: 70px; text-align: center; line-height: 05px;" 
                                         onclick="eliminarProcesoSubproceso(this, '${claveUnica}', 'gestionar')">Eliminar</button>
-                                </div>
+                                </div>` : ''}
                             </div>
                         `;
                         contenedorProcesos.appendChild(div);
@@ -687,6 +752,318 @@
             alert("Ocurrió un error inesperado. Por favor, inténtelo de nuevo.");
         }
     }
+</script>
+
+<!-- ADMINISTRADOR DE RESPONSABLES POR CLAUSULA PARA LA COPIA DE NOTIFICACIONES POR CORREO -->
+<script>
+    // Variables globales para mantener los responsables temporales
+    window.temporalResponsables = {};
+
+    // Apertura del modal dinámico
+    function abrirModalCorreos(modal) {
+        try {
+            const modalCopiaCorreos = document.getElementById(`${modal}_modalCopiaCorreos`);
+            if (!modalCopiaCorreos) {
+                console.error(`No se encontró el modal con ID: ${modal}_modalCopiaCorreos`);
+                return;
+            }
+    
+            // Obtener el ID de cláusula
+            const idClausulaInput = document.getElementById(`${modal}_id_clausula`);
+            const idClausula = idClausulaInput ? idClausulaInput.value : null;
+    
+            // Si no hay datos temporales, limpiar y cargar desde cero
+            if (!window.temporalResponsables[modal]) {
+                limpiarModalCorreos(modal);
+            }
+    
+            // Cargar responsables dinámicamente
+            cargarResponsables(modal);
+    
+            // Si la cláusula ya existe, cargar los responsables guardados
+            if (idClausula) {
+                cargarResponsablesGuardados(modal, idClausula);
+            } else {
+                // Si no existe, cargar desde la memoria temporal
+                cargarResponsablesTemporales(modal);
+            }
+    
+            // Mostrar el modal
+            const modalInstance = new bootstrap.Modal(modalCopiaCorreos, {
+                backdrop: "static",
+                keyboard: false,
+            });
+            modalInstance.show();
+        } catch (error) {
+            console.error("Error al abrir el modal de copia de correos:", error);
+        }
+    }
+    
+    // Limpia el contenido del modal
+    function limpiarModalCorreos(modal) {
+        try {
+            const select = document.getElementById(`${modal}_responsables_copia`);
+            if (select) {
+                select.value = "";
+                select.innerHTML = '<option value="" selected>Seleccionar...</option>';
+            }
+    
+            const table = document.getElementById(`${modal}_tablaCopiaCorreos`);
+            if (table) {
+                table.innerHTML = "";
+            }
+        } catch (error) {
+            console.error("Error al limpiar el contenido del modal:", error);
+        }
+    }
+    
+    // Cargar responsables temporales en el modal
+    function cargarResponsablesTemporales(modal) {
+        const responsablesTemporales = window.temporalResponsables?.[modal] || [];
+        const table = document.getElementById(`${modal}_tablaCopiaCorreos`);
+        responsablesTemporales.forEach(responsable => {
+            const row = document.createElement('tr');
+            row.setAttribute('data-id-responsable', responsable.id_responsable);
+            row.innerHTML = `
+                <td>${responsable.responsable}</td>
+                <td>${responsable.correo}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()" style="font-size: 12px; height: 22px; width: 70px; text-align: center; line-height: 05px;">Eliminar</button>
+                </td>
+            `;
+            table.appendChild(row);
+        });
+    }
+
+    // Función para cargar responsables dinámicamente desde el endpoint
+    async function cargarResponsables(modal) {
+        try {
+            const select = document.getElementById(`${modal}_responsables_copia`);
+            if (!select) {
+                console.error(`No se encontró el select con ID: ${modal}_responsables_copia`);
+                return;
+            }
+
+            select.innerHTML = '<option value="" selected>Seleccionar...</option>'; // Limpiar el select antes de cargar
+
+            const response = await fetch('/obtener_responsables');
+            if (!response.ok) {
+                console.error('Error al obtener responsables:', response.status);
+                return;
+            }
+
+            const data = await response.json();
+            const responsables = data.responsables || [];
+            
+            // Agregar cada responsable como opción en el select
+            responsables.forEach(responsable => {
+                const option = document.createElement('option');
+                option.value = responsable.id_responsable; // ID del responsable
+                option.textContent = responsable.responsable; // Nombre del responsable
+                option.setAttribute('data-correo', responsable.correo); // Correo como atributo adicional
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error al cargar responsables:', error);
+        }
+    }
+
+    // Agregar un responsable a la tabla
+    function agregarResponsable(modal) {
+        const select = document.getElementById(`${modal}_responsables_copia`);
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (!selectedOption || !selectedOption.value) {
+            alert('Por favor, seleccione un responsable válido.');
+            return;
+        }
+    
+        const responsableNombre = selectedOption.textContent;
+        const responsableCorreo = selectedOption.getAttribute('data-correo');
+        const responsableId = selectedOption.value;
+    
+        const table = document.getElementById(`${modal}_tablaCopiaCorreos`);
+    
+        // Verificar que no se agregue duplicado
+        if ([...table.rows].some(row => row.getAttribute('data-id-responsable') === responsableId)) {
+            alert('Este responsable ya ha sido agregado.');
+            return;
+        }
+    
+        // Crear nueva fila en la tabla con el atributo data-id-responsable
+        const row = document.createElement('tr');
+        row.setAttribute('data-id-responsable', responsableId); // Asigna el ID como atributo de la fila
+        row.innerHTML = `
+            <td>${responsableNombre}</td>
+            <td>${responsableCorreo}</td>
+            <td>
+                <button class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()" style="font-size: 12px; height: 22px; width: 70px; text-align: center; line-height: 05px;">Eliminar</button>
+            </td>
+        `;
+        table.appendChild(row);
+    
+        // Limpiar el select después de agregar
+        select.value = '';
+    }          
+
+    // Cargar responsables temporales en el modal
+    function cargarResponsablesTemporales(modal) {
+        const responsablesTemporales = window.temporalResponsables?.[modal] || [];
+        const table = document.getElementById(`${modal}_tablaCopiaCorreos`);
+        responsablesTemporales.forEach(responsable => {
+            const row = document.createElement('tr');
+            row.setAttribute('data-id-responsable', responsable.id_responsable); // Asignar ID del responsable a la fila
+            row.innerHTML = `
+                <td>${responsable.responsable}</td>
+                <td>${responsable.correo}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()" style="font-size: 12px; height: 22px; width: 70px; text-align: center; line-height: 05px;">Eliminar</button>
+                </td>
+            `;
+            table.appendChild(row);
+        });
+    }
+
+    // Función para guardar responsables
+    async function guardarResponsables(modal) {
+        try {
+            const table = document.getElementById(`${modal}_tablaCopiaCorreos`);
+            const idClausula = document.getElementById(`${modal}_id_clausula`)?.value;
+    
+            // Validar si hay responsables en la tabla
+            if (!table || table.rows.length === 0) {
+                alert("No hay responsables en copia para guardar.");
+                return;
+            }
+    
+            // Recopilar los responsables desde la tabla
+            const responsables = Array.from(table.querySelectorAll("tr"))
+                .map(row => {
+                    const idResponsable = row.getAttribute('data-id-responsable');
+                    const responsableNombre = row.querySelector('td:first-child')?.textContent || '';
+                    const responsableCorreo = row.querySelector('td:nth-child(2)')?.textContent || '';
+                    if (!idResponsable) {
+                        console.error("Fila sin id_responsable:", row);
+                        return null;
+                    }
+                    return {
+                        id_responsable: idResponsable,
+                        responsable: responsableNombre,
+                        correo: responsableCorreo,
+                    };
+                })
+                .filter(Boolean);
+    
+            if (responsables.length === 0) {
+                alert("No hay responsables válidos en la tabla.");
+                return;
+            }
+    
+            // Caso 1: Si la cláusula ya existe
+            if (idClausula) {
+                const response = await fetch(`/clausula/${idClausula}/copia`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ responsables_copia: responsables }),
+                });
+    
+                if (response.ok) {
+                    alert("Responsables en copia guardados correctamente.");
+                } else {
+                    const result = await response.json();
+                    alert(result.message || "Error al guardar los responsables en copia.");
+                }
+            } else {
+                // Caso 2: Si es una cláusula nueva, guardar en memoria temporal
+                window.temporalResponsables[modal] = responsables;
+                alert("Responsables guardados temporalmente. Se asociarán al guardar la cláusula.");
+            }
+    
+            // Cerrar el modal
+            const modalCopiaCorreos = document.getElementById(`${modal}_modalCopiaCorreos`);
+            const modalInstance = bootstrap.Modal.getInstance(modalCopiaCorreos);
+            modalInstance.hide();
+        } catch (error) {
+            console.error("Error al guardar responsables:", error);
+            alert("Error al guardar los responsables. Intente nuevamente.");
+        }
+    }                    
+
+    // Función para manejar responsables temporales después de guardar la cláusula
+    async function guardarResponsablesTemporales(modal, idClausula) {
+        try {
+            const responsables = window.temporalResponsables?.[modal];
+            if (!responsables || responsables.length === 0) return;
+
+            const response = await fetch(`/clausula/${idClausula}/copia`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ responsables_copia: responsables }),
+            });
+
+            if (response.ok) {
+                alert("Responsables temporales asociados correctamente.");
+                delete window.temporalResponsables[modal]; // Eliminar datos temporales
+            } else {
+                const result = await response.json();
+                alert(result.message || "Error al asociar responsables temporales.");
+            }
+        } catch (error) {
+            console.error("Error al asociar responsables temporales:", error);
+            alert("Error al asociar responsables. Intente nuevamente.");
+        }
+    }
+
+    // Llamar a esta función después de guardar una cláusula nueva
+    async function manejarGuardadoClausula(idClausula, modal) {
+        if (!idClausula) {
+            alert("Error: No se proporcionó un ID de cláusula para asociar responsables.");
+            return;
+        }
+
+        await guardarResponsablesTemporales(modal, idClausula);
+    }
+
+    // Cargar responsables guardados para una cláusula
+    async function cargarResponsablesGuardados(modal, idClausula) {
+        try {
+            const response = await fetch(`/clausula/${idClausula}/copia`);
+            if (!response.ok) {
+                console.error('Error al obtener responsables guardados:', response.status);
+                return;
+            }
+
+            const responsablesGuardados = await response.json();
+            const table = document.getElementById(`${modal}_tablaCopiaCorreos`);
+
+            // Limpiar la tabla antes de cargar nuevos datos
+            table.innerHTML = "";
+
+            // Poblar la tabla con los responsables obtenidos
+            responsablesGuardados.forEach(responsable => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-id-responsable', responsable.id_responsable); // Asignar ID del responsable a la fila
+                row.innerHTML = `
+                    <td>${responsable.responsable}</td>
+                    <td>${responsable.correo}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()" style="font-size: 12px; height: 22px; width: 70px; text-align: center; line-height: 05px;">Eliminar</button>
+                    </td>
+                `;
+                table.appendChild(row);
+            });
+        } catch (error) {
+            console.error("Error al cargar responsables guardados:", error);
+        }
+    }
+
+    // Cerrar el modal de copia de correos
+    function cerrarModalCorreos(modal) {
+        const modalCopiaCorreos = document.getElementById(`${modal}_modalCopiaCorreos`);
+        const modalInstance = bootstrap.Modal.getInstance(modalCopiaCorreos);
+        modalInstance.hide(); // Solo cierra el modal sin realizar ninguna acción adicional
+    }
+    
 </script>
 
 {% endblock %}

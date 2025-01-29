@@ -30,7 +30,12 @@ smtp_port = 587
 
 class GestionClausulas:
     def __init__(self):
-        self.connection = psycopg2.connect(DATABASE_PATH)
+        try:
+            self.connection = psycopg2.connect(DATABASE_PATH)
+            #print("Conexión a la base de datos establecida.")
+        except psycopg2.OperationalError as e:
+            print(f"Error al conectar a la base de datos: {e}")
+            raise e
     
     def obtener_clausulas(self):
         with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -58,7 +63,7 @@ class GestionClausulas:
 
     def obtener_opciones_concesion(self):
         with self.connection.cursor() as cursor:
-            cursor.execute("SELECT DISTINCT concesion FROM concesion;")
+            cursor.execute("SELECT DISTINCT concesion FROM concesion ORDER BY concesion ASC;")
             concesiones = cursor.fetchall()
         return concesiones
     
@@ -495,13 +500,13 @@ class GestionClausulas:
         Solo actualiza el campo `registrado_por` si hay cambios en los valores gestionados.
         """
         query_select = """
-        SELECT fecha_radicado, numero_radicado, plan_accion, observacion, estado, adjunto, registrado_por
+        SELECT fecha_radicado, numero_radicado, radicado_cexp, plan_accion, observacion, estado, registrado_por
         FROM clausulas_gestion WHERE id_gestion = %s;
         """
         query_update = """
         UPDATE clausulas_gestion
-        SET fecha_radicado = %s, numero_radicado = %s, plan_accion = %s, observacion = %s,
-            estado = %s, adjunto = %s, registrado_por = CASE 
+        SET fecha_radicado = %s, numero_radicado = %s, radicado_cexp = %s, plan_accion = %s, observacion = %s,
+            estado = %s, registrado_por = CASE 
                 WHEN %s THEN %s ELSE registrado_por END
         WHERE id_gestion = %s;
         """
@@ -529,10 +534,10 @@ class GestionClausulas:
                 cambios_detectados = (
                     current_fecha_radicado != nueva_fecha_radicado or
                     current_values[1] != fila["numero_radicado"] or
-                    current_values[2] != fila["plan_accion"] or
-                    current_values[3] != fila["observacion"] or
-                    current_values[4] != fila["estado"] or
-                    current_values[5] != fila["adjunto"]
+                    current_values[2] != fila["radicado_cexp"] or  # Incluye radicado_cexp
+                    current_values[3] != fila["plan_accion"] or
+                    current_values[4] != fila["observacion"] or
+                    current_values[5] != fila["estado"]
                 )
 
                 registrado_por_cambio = fila["registrado_por"] if cambios_detectados else None
@@ -541,10 +546,10 @@ class GestionClausulas:
                 cursor.execute(query_update, (
                     nueva_fecha_radicado,
                     fila["numero_radicado"],
+                    fila["radicado_cexp"],
                     fila["plan_accion"],
                     fila["observacion"],
                     fila["estado"],
-                    fila["adjunto"],
                     cambios_detectados,  # True si hay cambios
                     registrado_por_cambio,  # Usuario actual si hay cambios
                     fila["id_gestion"],
@@ -556,7 +561,7 @@ class GestionClausulas:
         Obtiene todas las filas de gestión asociadas a una cláusula específica.
         """
         query = """
-        SELECT id_gestion, fecha_entrega, fecha_radicado, numero_radicado, plan_accion, observacion, 
+        SELECT id_gestion, fecha_entrega, fecha_radicado, numero_radicado, radicado_cexp, plan_accion, observacion, 
             estado, registrado_por, fecha_creacion
         FROM clausulas_gestion
         WHERE id_clausula = %s
@@ -669,6 +674,67 @@ class GestionClausulas:
         except Exception as e:
             print(f"Error creando la estructura en Blob Storage: {e}")
             raise
+
+# Administrar los correos de copia para notificaciones de recordatorio e incumplimiento
+    def obtener_responsables(self):
+        query = """
+        SELECT id_responsable, responsable, correo
+        FROM responsable
+        ORDER BY responsable;
+        """
+        with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query)
+            return cursor.fetchall()
+
+    def actualizar_copia_correos(self, id_clausula, responsables_copia):
+        """
+        Actualiza los responsables en copia asociados a una cláusula.
+        - Elimina los responsables no incluidos en la lista.
+        - Inserta los nuevos responsables.
+        """
+        query_delete = """
+        DELETE FROM clausula_responsables_copia
+        WHERE id_clausula = %s AND id_responsable NOT IN %s;
+        """
+        query_insert = """
+        INSERT INTO clausula_responsables_copia (id_clausula, id_responsable)
+        VALUES (%s, %s)
+        ON CONFLICT (id_clausula, id_responsable) DO NOTHING;
+        """
+        try:
+            with self.connection.cursor() as cursor:
+                # Validar que la lista de responsables no esté vacía
+                ids_responsables = tuple(r['id_responsable'] for r in responsables_copia if r.get('id_responsable'))
+                if not ids_responsables:
+                    # Si no hay responsables válidos, simplemente eliminamos todos los registros asociados
+                    cursor.execute("DELETE FROM clausula_responsables_copia WHERE id_clausula = %s;", (id_clausula,))
+                else:
+                    # Eliminar responsables que ya no están en la lista
+                    cursor.execute(query_delete, (id_clausula, ids_responsables))
+
+                    # Insertar nuevos responsables
+                    for responsable in responsables_copia:
+                        if responsable.get('id_responsable'):
+                            cursor.execute(query_insert, (id_clausula, responsable['id_responsable']))
+
+                self.connection.commit()
+        except Exception as e:
+            self.connection.rollback()
+            raise ValueError(f"Error al actualizar responsables en copia: {str(e)}")
+
+    def obtener_copia_correos(self, id_clausula):
+        """
+        Obtiene los responsables en copia asociados a una cláusula.
+        """
+        query = """
+        SELECT r.id_responsable, r.responsable, r.correo
+        FROM clausula_responsables_copia crc
+        JOIN responsable r ON crc.id_responsable = r.id_responsable
+        WHERE crc.id_clausula = %s;
+        """
+        with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query, (id_clausula,))
+            return cursor.fetchall()
 
 # JOBS DE ACTUALIZACIÓN ASINCRONICA PARA LAS FILAS DE GESTIÓN DINAMICAS Y EL ESTADO DE GESTIÓN DE CADA FILA
     def obtener_clausulas_job(self):

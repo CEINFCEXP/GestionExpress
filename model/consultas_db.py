@@ -18,7 +18,7 @@ class Reporte_Asignaciones:
         self.db_path = os.getenv("DATABASE_PATH")
 
     def obtener_asignaciones(self, fecha_inicio, fecha_fin, cedula=None, nombre=None, turno=None, concesion=None, control=None, ruta=None, linea=None, cop=None, registrado_por=None, nombre_supervisor_enlace=None):
-        print(f"Filtros recibidos: {fecha_inicio}, {fecha_fin}, {cedula}, {nombre}, {turno}, {concesion}, {control}, {ruta}, {linea}, {cop}, {registrado_por}, {nombre_supervisor_enlace}")
+        #print(f"Filtros recibidos: {fecha_inicio}, {fecha_fin}, {cedula}, {nombre}, {turno}, {concesion}, {control}, {ruta}, {linea}, {cop}, {registrado_por}, {nombre_supervisor_enlace}")
         query = """
             SELECT fecha, cedula, nombre, turno, h_inicio, h_fin, concesion, control, ruta, linea, cop, observaciones, registrado_por, fecha_hora_registro, cedula_enlace, nombre_supervisor_enlace
             FROM asignaciones

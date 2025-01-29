@@ -208,7 +208,7 @@
                     <!-- Encabezado superior: Sección de Parametrización -->
                     <div class="container-fluid" style="padding: 5;">
                         {% set modal = "gestionar" %}
-                        {% include 'clausula_config.html' %}
+                        {% include 'clausula_config.html' with context %}
                     </div>
 
                      <!-- Sección inferior: Tabla de gestión -->
@@ -221,7 +221,8 @@
                                         <tr>
                                             <th style="width: 8%;">Entrega</th>
                                             <th style="width: 8%;">Fecha Radicado</th>
-                                            <th style="width: 15%;">N° Radicado</th>
+                                            <th style="width: 15%;">N° Rad TMSA</th>
+                                            <th style="width: 15%;">N° Rad CEXP</th>
                                             <th style="width: 5%;">Plan</th>
                                             <th style="width: 29;">Observación</th>
                                             <th style="width: 10%;">Adjunto</th>
@@ -245,8 +246,7 @@
                 </div>
             </div>
         </div>
-    </div>
-
+    </div>   
     
 <!-- Actualiza las listas desplegables de filtros de acuerdo a gestion_clausulas.py -->
 <script>
@@ -394,17 +394,15 @@
 <!-- Declaración global para almacenar los procesos y subprocesos agregados -->
 <script>
     const procesosSubprocesosAgregados = { modalCrearClausula: new Set() };
-
+    //Apertura del Modal de Creación de Cláusula
     document.addEventListener('DOMContentLoaded', function () {
         const modalCrearClausula = document.getElementById('modalCrearClausula');
         const formCrearClausula = document.getElementById('form_crear_clausula');
 
-        // Función para limpiar el modal completamente cada vez que se abre
+        // Función para limpiar el modal completamente cuando es necesario
         function resetModal() {
             // Limpiar todos los campos de entrada de texto y listas desplegables en el formulario
-            const formCrearClausula = document.getElementById('form_crear_clausula');
             if (formCrearClausula) {
-                // Limpiar manualmente cada campo de texto y lista desplegable en el formulario
                 const inputs = formCrearClausula.querySelectorAll('input, select, textarea');
                 inputs.forEach(input => {
                     if (input.type === 'checkbox' || input.type === 'radio') {
@@ -416,18 +414,18 @@
                     }
                 });
             }
-        
+
             // Limpiar el contenedor visual de los procesos y subprocesos agregados
             const contenedor = document.getElementById('modalCrearClausula_contenedor_procesos_subprocesos');
             if (contenedor) {
-                contenedor.innerHTML = ''; // Vacía el contenedor visual al abrir el modal
+                contenedor.innerHTML = ''; // Vaciar el contenedor visual
             }
-        
+
             // Limpiar el conjunto de procesos/subprocesos agregados
             if (procesosSubprocesosAgregados.modalCrearClausula) {
                 procesosSubprocesosAgregados.modalCrearClausula.clear();
             }
-        
+
             // Ocultar el título de "Procesos Responsables Agregados"
             const titulo = document.getElementById('modalCrearClausula_titulo_procesos_responsables');
             if (titulo) {
@@ -435,11 +433,20 @@
             }
         }
 
-        // Asegurarse de llamar a resetModal antes de que el modal se muestre
+        // Configurar el comportamiento del modal de creación
         if (modalCrearClausula) {
-            modalCrearClausula.addEventListener('show.bs.modal', resetModal);
+            modalCrearClausula.addEventListener('show.bs.modal', function () {
+                // Verificar si el formulario ya contiene datos
+                const inputs = formCrearClausula.querySelectorAll('input, select, textarea');
+                const tieneDatos = Array.from(inputs).some(input => input.value.trim() !== '' && input.type !== 'hidden');
+                
+                // Si no hay datos ingresados, limpiar el modal
+                if (!tieneDatos) {
+                    resetModal();
+                }
+            });
         }
-    }); 
+    });
 </script>
 
 <!-- Crear dinámicamente filas en el modal de gestión según la frecuencia (GESTIONAR). -->
@@ -499,6 +506,7 @@
                         <td>${entregaFormatted}</td>
                         <td><input type="date" class="form-control fecha-radicado" value="${fechaRadicado}" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" style="font-size: 12px; height: 30px;" /></td>
                         <td><input type="text" class="form-control numero-radicado" value="${fila.numero_radicado || ''}" style="font-size: 12px; height: 30px;" /></td>
+                        <td><input type="text" class="form-control radicado-cexp" value="${fila.radicado_cexp || ''}" style="font-size: 12px; height: 30px;" /></td>
                         <td class="plan-accion" style="text-align: center;">${fila.plan_accion || ''}</td>
                         <td><textarea class="form-control observacion" style="font-size: 12px; height: 30px;">${fila.observacion || ''}</textarea></td>
                         <td style="text-align: center; vertical-align: middle; position: relative;">
@@ -551,6 +559,7 @@
                             <td>${entregaFormatted}</td>
                             <td><input type="date" class="form-control fecha-radicado" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" style="font-size: 12px; height: 30px;" /></td>
                             <td><input type="text" class="form-control numero-radicado" style="font-size: 12px; height: 30px;" /></td>
+                            <td><input type="text" class="form-control radicado-cexp" style="font-size: 12px; height: 30px;" /></td>
                             <td class="plan-accion" style="text-align: center;"></td>
                             <td><textarea class="form-control observacion" style="font-size: 12px; height: 30px;"></textarea></td>
                             <td style="text-align: center; vertical-align: middle; position: relative;">
@@ -850,23 +859,13 @@
                 fechaRadicado = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
             }
     
+            // Obtener valores de la fila
             const numeroRadicado = row.querySelector(".numero-radicado")?.value || null;
+            const radicadoCexp = row.querySelector(".radicado-cexp")?.value || null;
             const planAccion = row.querySelector(".plan-accion")?.innerText.trim() || null;
             const observacion = row.querySelector(".observacion")?.value || null;
             const estado = row.querySelector(".estado")?.innerText.trim() || null;
-    
-            // Manejo de adjuntos
-            const adjuntosInput = row.querySelector(".adjunto");
-            const archivos = adjuntosInput?.files || [];
-            //console.log("Adjuntos seleccionados:", archivos);
-            let nombresAdjuntos = "";
-    
-            if (archivos.length > 0) {
-                nombresAdjuntos = Array.from(archivos)
-                    .map((file) => file.name)
-                    .join(", ");
-            }
-    
+        
             // Obtener la fecha de entrega desde la primera columna
             const fechaEntregaRaw = row.querySelector("td:first-child").textContent.trim();
             const [day, month, year] = fechaEntregaRaw.split("/");
@@ -887,20 +886,20 @@
             const hayCambios =
                 fechaRadicado !== originalFechaRadicado ||
                 numeroRadicado !== originalValues.numero_radicado ||
+                radicadoCexp !== originalValues.radicado_cexp ||
                 planAccion !== originalValues.plan_accion ||
                 observacion !== originalValues.observacion ||
-                estado !== originalValues.estado ||
-                nombresAdjuntos !== originalValues.adjunto;
+                estado !== originalValues.estado;
     
             filas.push({
                 id_gestion: idGestion,
                 fecha_entrega: fechaEntrega,
                 fecha_radicado: fechaRadicado,
                 numero_radicado: numeroRadicado,
+                radicado_cexp: radicadoCexp,
                 plan_accion: planAccion,
                 observacion: observacion,
                 estado: estado,
-                adjunto: nombresAdjuntos, // Guardar los nombres de los adjuntos
                 registrado_por: hayCambios
                     ? "{{ user_session.nombres }} {{ user_session.apellidos }}" // Usuario actual si hay cambios
                     : null, // Preservar el usuario registrado anterior si no hay cambios

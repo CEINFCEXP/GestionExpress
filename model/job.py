@@ -3,7 +3,7 @@ from datetime import datetime
 from model.gestion_clausulas import GestionClausulas
 
 ############################################################################################################
-############################### TAREAS PROGRAMADAS MODULO JURIDICO #########################################
+############################### TAREAS PROGRAMADAS GESTIÓN EXPRESS #########################################
 
 class TareasProgramadasJuridico:
 
