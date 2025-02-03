@@ -8,7 +8,6 @@ from model.gestion_clausulas import GestionClausulas
 class TareasProgramadasJuridico:
 
     def __init__(self):
-        self.scheduler = BackgroundScheduler(timezone="America/Bogota")
         self.gestion = GestionClausulas()
 
     def calcular_y_actualizar_fechas_dinamicas(self):
@@ -35,6 +34,12 @@ class TareasProgramadasJuridico:
                 )
                 print(f"Fechas dinámicas calculadas para cláusula ID {clausula['id']}: {fechas_dinamicas}")
 
+                # **Obtener las fechas existentes en la BD antes de insertar**
+                query_select = "SELECT fecha_entrega FROM clausulas_gestion WHERE id_clausula = %s;"
+                with self.gestion.connection.cursor() as cursor:
+                    cursor.execute(query_select, (clausula['id'],))
+                    fechas_existentes = {row[0].strftime("%Y-%m-%d") for row in cursor.fetchall()}  # Convertir a conjunto
+                
                 # Obtener la fecha actual para calcular el estado
                 fecha_actual = datetime.today().date()
 
@@ -43,6 +48,13 @@ class TareasProgramadasJuridico:
                 for f in fechas_dinamicas:
                     # Calcular el estado dinámicamente
                     fecha_entrega = datetime.strptime(f['entrega'], "%Y-%m-%d").date()
+                    
+                    # **Evitar insertar si la fecha ya existe en la BD**
+                    if fecha_entrega.strftime("%Y-%m-%d") in fechas_existentes:
+                        print(f"⚠️ Fecha {fecha_entrega.strftime('%d/%m/%Y')} ya existe. Se omite.")
+                        continue
+                    
+                    # Calcular el estado dinámicamente
                     estado = self.gestion.calcular_estado(
                         fecha_entrega=fecha_entrega,
                         fecha_radicado=None,  # No hay fecha radicado para filas nuevas
@@ -55,9 +67,11 @@ class TareasProgramadasJuridico:
                         "estado": estado,  # Estado calculado dinámicamente
                         "registrado_por": "Sin Gestionar"  # Registrar autoría del job
                     })
-
-                # Insertar filas dinámicas en la base de datos
-                self.gestion.insertar_filas_gestion_nuevas(clausula['id'], filas_gestion)
+                    
+                # Insertar filas dinámicas en la base de datos (solo si hay nuevas)
+                if filas_gestion:
+                    self.gestion.insertar_filas_gestion_nuevas(clausula['id'], filas_gestion)
+                    print(f"✅ {len(filas_gestion)} nuevas fechas insertadas para cláusula ID {clausula['id']}.")
 
             print("Fechas dinámicas actualizadas correctamente.")
 
@@ -111,22 +125,8 @@ class TareasProgramadasJuridico:
         """
         try:
             print("Iniciando envío de correos de incumplimiento...")
-            self.gestion.enviar_correos_incumplimiento()
+            self.gestion.enviar_correos_incumplimiento() # Correos a los responsables
+            self.gestion.enviar_correos_incumplimiento_direccion()  # Correo consolidado para Dirección Jurídica
             print("Correos de incumplimiento enviados exitosamente.")
         except Exception as e:
             print(f"Error en la tarea semanal de incumplimientos: {e}")
-
-    def iniciar_scheduler(self):
-        """
-        Configura y arranca los jobs programados para el proceso Jurídico.
-        """
-        self.scheduler.add_job(self.calcular_y_actualizar_fechas_dinamicas, 'cron', hour=2, minute=0, id='job_calculo_fechas')
-        self.scheduler.add_job(self.sincronizar_estados_filas_gestion, 'cron', hour=3, minute=0, id='job_sincronizacion_estados')
-        self.scheduler.add_job(self.tarea_diaria_recordatorio, 'cron', hour=7, minute=30, id='job_tarea_diaria_recordatorio')
-        self.scheduler.add_job(self.tarea_semanal_incumplimientos, 'cron', day_of_week='tue', hour=8, minute=0, id='job_tarea_semanal_incumplimientos')
-        self.scheduler.start()
-        print("Scheduler iniciado con los jobs configurados.")
-
-# Instancia de la clase para tareas programadas
-tareas_juridico = TareasProgramadasJuridico()
-tareas_juridico.iniciar_scheduler()

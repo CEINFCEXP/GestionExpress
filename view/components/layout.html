@@ -134,14 +134,14 @@
     {% endif %}
 
     <!-- Grupo "Centro de Información" -->
-    {% if 'Blob Storage' in pantallas_permitidas or 'Acceso a Power BI' in pantallas_permitidas %}
+    {% if 'Blob Storage' in pantallas_permitidas or 'Dashboard Power BI' in pantallas_permitidas %}
     <div class="group">
       <div class="group-title">Centro de Información y Power BI</div>
       {% if 'Blob Storage' in pantallas_permitidas %}
       <a class="nav-link" href="/containers">Blob Storage</a>
       {% endif %}
-      {% if 'Acceso a Power BI' in pantallas_permitidas %}
-      <a class="nav-link" href="/powerbi">Acceso a Power BI</a>
+      {% if 'Dashboard Power BI' in pantallas_permitidas %}
+      <a class="nav-link" href="/powerbi">Dashboard Power BI</a>
       {% endif %}
     </div>
     {% endif %}
@@ -235,7 +235,7 @@
         "Asignaciones": "/asignacion",
         "Reportes": "/dashboard",
         "Blob Storage": "/containers",
-        "Acceso a Power BI": "/powerbi" ,
+        "Dashboard Power BI": "/powerbi" ,
         "Control Clausulas": "/juridico",
         "Crear Usuario": "/registrarse",
         "Gestión de Roles": "/roles",
@@ -250,7 +250,7 @@
             
             const gruposPantallas = {
               "Centro de Control": ["Asignaciones", "Reportes"],
-              "Centro Información": ["Blob Storage", "Acceso a Power BI"],
+              "Centro Información": ["Blob Storage", "Dashboard Power BI"],
               "Jurídico": ["Control Clausulas"],
               "Configuración": ["Crear Usuario", "Gestión de Roles", "Roles Blob Storage"]
             };

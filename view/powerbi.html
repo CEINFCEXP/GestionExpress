@@ -1,6 +1,6 @@
 {% extends "components/layout.html" %}
 
-{% block title %}Acceso a Power BI{% endblock %}
+{% block title %}Dashboard Power BI{% endblock %}
 
 {% block content %}
 
@@ -26,7 +26,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
-                    <h5 style="text-align: center; margin-bottom: 20px; font-weight: bold;">Acceso a Power BI</h5>
+                    <h5 style="text-align: center; margin-bottom: 20px; font-weight: bold;">Dashboard Power BI</h5>
                     
                     {% if error_message %}
                     <div class="alert alert-danger" role="alert">
@@ -82,8 +82,6 @@
         }
     </style>
 
-
-
     <!-- Botón Ocultar Menú (dentro del menú) -->
     <button id="hide-menu" 
             style="
@@ -96,24 +94,26 @@
     </button>
     
      <!-- Iteración dinámica para mostrar grupos e informes -->
-     {% for workspace, reports in report_data.items() %}
-        <h3><strong>{{ workspace }}</strong></h3>
-        <ul>
-            {% for report in reports %}
-                <li>
-                    <a href="#" class="report-link" data-report-id="{{ report.report_id }}" data-report-name="{{ report.ItemName }}">
-                        {{ report.ItemName }}
-                    </a>
-                </li>
-            {% endfor %}
-        </ul>
+    {% for workspace, reports in report_data.items() %}
+        <div class="workspace-container">
+            <h3><strong>{{ workspace }}</strong></h3>
+            <ul class="reports-list">
+                {% for report in reports %}
+                    <li class="report-item">
+                        <a href="#" class="report-link" data-report-id="{{ report.report_id }}" data-report-name="{{ report.ItemName }}">
+                            {{ report.ItemName }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
     {% endfor %}
 </div>
 
 <div id="content">
     <!-- Mensaje de carga -->
     <div id="loading-message" style="display: none;">
-        Estamos Cargando el: <br>
+        Estamos Cargando el Dashboard: <br>
         <span id="report-name">Nombre del Reporte</span> <br> ...Por favor espere...
         <img id="loadingbi-gif" src="/static/images/cargandobi.gif" alt="Cargando..." style="display: block; margin: 0 auto;" width="150" height="150" class="mb-3"/>
     </div>
@@ -138,7 +138,8 @@
         position: fixed; /* Fija el panel en su posición relativa a la ventana */
         z-index: 100; /* Asegura que el panel esté por encima de otros elementos */
         top: 45px; /* Fija el panel en la parte superior de la ventana */
-        left: 0px; /* Fija el panel en la parte izquierda de la ventana */
+        left: 5px; /* Fija el panel en la parte izquierda de la ventana */
+        border-right: 5px solid #16A038; /* Agrega una línea de separación entre el panel y el contenido */        
         background-color: #a2f9b571; /* Color de fondo oscuro */
         overflow-x: hidden; /* Oculta el contenido que exceda el ancho */
         transition: 0.15s; /* Suaviza la transición de apertura y cierre en 0.15 segundos */
@@ -157,11 +158,15 @@
 
     #menu h3 { /* Estilo para los títulos de los grupos del menú */
         display: block; /* Mostrar el título del grupo */
-        font-size: 13px; /* Tamaño de fuente del título */
+        font-size: 12px; /* Tamaño de fuente del título */
         margin-left:  5px; /* Añade espacio entre el contenido del grupo y el siguiente */
-        margin-bottom: 10px; /* Añade espacio entre el título y el contenido */
-        padding: 0px; /* Elimina el espacio interno del panel */
+        margin-bottom: 7px; /* Añade espacio entre el título y el contenido */
+        padding: 3px; /* Elimina el espacio interno del panel */
         font-family: 'Century Gothic', Arial, sans-serif;
+        border: none; /* Elimina el borde del botón */
+        border-radius: 5px; /* Bordes redondeados */
+        cursor: pointer; /* Cambia el cursor a un puntero para indicar clic */
+        box-shadow: 0 4px 6px rgba(6, 0, 0, 0.475); /* Sombra para destacar el botón */
     }
 
     #menu ul { /* Estilo para el contenido del menú los grupos de informes */
@@ -298,6 +303,14 @@ body.not.menu-hidden #hide-menu {
     transform: scale(1.1); /* Aumenta el tamaño al pasar el ratón */
 }
 
+/* Oculta la lista de informes por defecto */
+.reports-list {
+    display: block;
+}
+
+.hidden {
+    display: none;
+}
 </style>
 
  <!-- FUNCIONES PARA LA VISUALIZACIÓN DE REPORTES BI EN EL MENU Y PANTALLA -->
@@ -314,6 +327,33 @@ body.not.menu-hidden #hide-menu {
         const hideMenuButton = document.getElementById("hide-menu");
         const menu = document.getElementById("menu");
 
+        // Obtener todos los contenedores de áreas de trabajo
+        const workspaceContainers = document.querySelectorAll('.workspace-container');
+
+        // Agregar evento de clic a cada área de trabajo
+        workspaceContainers.forEach(container => {
+            const header = container.querySelector('h3'); // Área de trabajo (título)
+            const reportsList = container.querySelector('.reports-list'); // Lista de informes
+            
+            // Agregar una flecha al título
+            header.innerHTML = `▼ ${header.textContent}`;
+
+            // Ocultar la lista de informes al cargar
+            reportsList.classList.add('hidden');
+
+            header.addEventListener('click', () => {
+                // Alternar la clase para mostrar u ocultar los informes
+                reportsList.classList.toggle('hidden');
+
+                // Alternar la flecha
+                if (reportsList.classList.contains('hidden')) {
+                    header.innerHTML = `▼ ${header.textContent.slice(2)}`; // Flecha hacia abajo
+                } else {
+                    header.innerHTML = `▲ ${header.textContent.slice(2)}`; // Flecha hacia arriba
+                }
+            });
+        });
+
         // Crear contenedor de error dinámico
         const errorContainer = document.createElement("div");
         errorContainer.id = "error-container";
@@ -323,16 +363,16 @@ body.not.menu-hidden #hide-menu {
 
         // Crear texto del mensaje de error
         const errorText = document.createElement("div");
-        errorText.style.color = "red"; // Color rojo para advertencia
-        errorText.style.fontSize = "18px";
+        errorText.style.color = "blue"; // Color para advertencia
+        errorText.style.fontSize = "28px";
         errorText.style.marginBottom = "10px";
         errorText.textContent = "El informe aún no está disponible. Consulte con el área encargada.";
 
         // Crear la imagen de error
         const errorImage = document.createElement("img");
-        errorImage.src = "/static/images/en_construccion.jpg";
+        errorImage.src = "/static/images/en_construccion.gif";
         errorImage.alt = "En Construcción";
-        errorImage.style.width = "550px";
+        errorImage.style.width = "400px";
         errorImage.style.margin = "0 auto";
         errorImage.style.display = "block"; // Para centrar la imagen
 

@@ -3,9 +3,12 @@ import json
 import os
 import re
 import pandas as pd
+from io import BytesIO
+import calendar
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, date
+from dateutil.relativedelta import relativedelta
 from azure.storage.blob import BlobServiceClient, ContainerClient
 from office365.runtime.auth.authentication_context import AuthenticationContext
 from office365.sharepoint.client_context import ClientContext
@@ -329,10 +332,6 @@ class GestionClausulas:
             self.connection.commit()
 
     def calcular_fechas_dinamicas(self, inicio, fin, frecuencia, periodo_control):
-        from dateutil.relativedelta import relativedelta
-        from datetime import datetime, timedelta
-        import calendar
-
         # Asegurar que los valores sean del tipo `datetime`
         if isinstance(inicio, date):
             inicio = datetime.combine(inicio, datetime.min.time())
@@ -464,17 +463,31 @@ class GestionClausulas:
     def insertar_filas_gestion_nuevas(self, id_clausula, filas_gestion):
         """
         Inserta solo las filas de gestión nuevas si la fecha de entrega no existe ya en la base de datos.
+        Si la cláusula tiene frecuencia "Diario", los campos se completan automáticamente.
         """
+        # Obtener la frecuencia de la cláusula antes de la inserción
+        query_frecuencia = """
+        SELECT frecuencia FROM clausulas WHERE id = %s;
+        """
+        
         query_check = """
         SELECT 1 FROM clausulas_gestion 
         WHERE id_clausula = %s AND fecha_entrega = %s;
         """
+        
         query_insert = """
-        INSERT INTO clausulas_gestion (id_clausula, fecha_entrega, estado, registrado_por, fecha_creacion)
-        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+        INSERT INTO clausulas_gestion (id_clausula, fecha_entrega, estado, fecha_radicado, 
+                                    numero_radicado, radicado_cexp, registrado_por, fecha_creacion)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
         RETURNING id_gestion;
         """
+
         with self.connection.cursor() as cursor:
+            # Obtener la frecuencia de la cláusula
+            cursor.execute(query_frecuencia, (id_clausula,))
+            frecuencia_result = cursor.fetchone()
+            frecuencia = frecuencia_result[0] if frecuencia_result else None
+
             for fila in filas_gestion:
                 # Convertir fecha al formato correcto
                 fecha_entrega = datetime.strptime(fila['fecha_entrega'], "%d/%m/%Y").strftime("%Y-%m-%d")
@@ -484,14 +497,31 @@ class GestionClausulas:
                 existe = cursor.fetchone()
 
                 if not existe:  # Solo insertar si no existe
+                    # Si la frecuencia es "Diario", establecer valores automáticos
+                    if frecuencia and frecuencia.lower() == "diario":
+                        fecha_radicado = fecha_entrega
+                        numero_radicado = "Automático"
+                        radicado_cexp = "Automático"
+                        registrado_por = "AUTOMÁTICO"
+                    else:
+                        fecha_radicado = None
+                        numero_radicado = None
+                        radicado_cexp = None
+                        registrado_por = fila.get('registrado_por', 'Sin Gestionar')
+
                     cursor.execute(query_insert, (
                         id_clausula,
                         fecha_entrega,
                         fila['estado'],
-                        fila['registrado_por'],
+                        fecha_radicado,
+                        numero_radicado,
+                        radicado_cexp,
+                        registrado_por
                     ))
                     fila['id_gestion'] = cursor.fetchone()[0]
+
             self.connection.commit()
+        
         return filas_gestion
     
     def actualizar_filas_gestion(self, filas_gestion):
@@ -534,7 +564,7 @@ class GestionClausulas:
                 cambios_detectados = (
                     current_fecha_radicado != nueva_fecha_radicado or
                     current_values[1] != fila["numero_radicado"] or
-                    current_values[2] != fila["radicado_cexp"] or  # Incluye radicado_cexp
+                    current_values[2] != fila["radicado_cexp"] or  
                     current_values[3] != fila["plan_accion"] or
                     current_values[4] != fila["observacion"] or
                     current_values[5] != fila["estado"]
@@ -824,74 +854,180 @@ class GestionClausulas:
             print(f"Error al validar o reestablecer la conexión: {e}")
             raise
 
+    def calcular_proxima_fecha_cumplimiento(self, ultima_fecha, frecuencia, periodo_control, fin):
+        """
+        Calcula la próxima fecha de entrega basada en la última fecha registrada,
+        generando la siguiente sin esperar a que llegue el periodo exacto.
+        """
+
+        # Asegurar que los valores sean del tipo `datetime`
+        if isinstance(ultima_fecha, str):
+            ultima_fecha = datetime.strptime(ultima_fecha, "%Y-%m-%d").date()
+        if isinstance(fin, str):
+            fin = datetime.strptime(fin, "%Y-%m-%d").date()
+
+        fecha_actual = datetime.today().date()
+        fechas = []
+
+        # Diccionario de frecuencia
+        delta = {
+            "Mensual": relativedelta(months=1),
+            "Bimestral": relativedelta(months=2),
+            "Trimestral": relativedelta(months=3),
+            "Semestral": relativedelta(months=6),
+            "Anual": relativedelta(years=1),
+        }
+
+        # Normaliza la frecuencia
+        frecuencia_normalizada = frecuencia.capitalize()
+
+        # Si la frecuencia es "No aplica", finalizar sin calcular fechas
+        if frecuencia_normalizada == "No aplica":
+            return None  # Termina sin hacer nada
+
+        if frecuencia_normalizada not in delta and frecuencia_normalizada not in ["Personalizado", "Diario", "Quincenal"]:
+            raise ValueError(f"Frecuencia no válida: {frecuencia}")
+
+        incremento = delta.get(frecuencia_normalizada, None)
+
+        # Si la última fecha ya pasó, calcular la próxima fecha
+        while ultima_fecha < fecha_actual:
+            if incremento:
+                ultima_fecha += incremento
+            elif frecuencia_normalizada == "Diario":
+                ultima_fecha += timedelta(days=1)
+                while ultima_fecha.weekday() >= 5:  # Excluir fines de semana
+                    ultima_fecha += timedelta(days=1)
+            elif frecuencia_normalizada == "Quincenal":
+                if not periodo_control:
+                    raise ValueError(f"⚠️ Error en cláusula Quincenal: periodo_control es None.")
+
+                dia_configurado = periodo_control.strip().lower()
+                dias_semana = {
+                    "lunes": "Monday", "martes": "Tuesday", "miercoles": "Wednesday",
+                    "jueves": "Thursday", "viernes": "Friday", "sabado": "Saturday", "domingo": "Sunday"
+                }
+                if dia_configurado not in dias_semana:
+                    raise ValueError(f"El día configurado en periodo_control no es válido: {dia_configurado}")
+
+                dia_configurado_en_ingles = dias_semana[dia_configurado]
+
+                # Avanzar hasta el primer día válido en la semana
+                while calendar.day_name[ultima_fecha.weekday()] != dia_configurado_en_ingles:
+                    ultima_fecha += timedelta(days=1)
+
+                # Sumar ciclos quincenales hasta alcanzar la fecha actual
+                while ultima_fecha < fecha_actual:
+                    ultima_fecha += timedelta(days=14)
+
+            elif frecuencia_normalizada == "Personalizado":
+                if isinstance(periodo_control, str):
+                    try:
+                        fecha_unica = datetime.strptime(periodo_control, "%Y-%m-%d").date()
+                    except ValueError:
+                        raise ValueError(f"Formato de periodo_control inválido para 'Personalizado': {periodo_control}")
+                    if fecha_unica > ultima_fecha and fecha_unica <= fin:
+                        return fecha_unica.strftime("%Y-%m-%d")
+                return None
+
+        # Si la próxima fecha calculada supera la fecha de fin, retornar None
+        if ultima_fecha > fin:
+            return None
+
+        return ultima_fecha.strftime("%Y-%m-%d")
+
     def generar_datos_recordatorio(self):
         """
-        Obtiene los datos necesarios para generar el reporte Excel de las notificaciones por recordatorio.
+        Obtiene los datos necesarios para generar el reporte de notificaciones por recordatorio,
+        calculando la próxima fecha de cumplimiento sin depender de la BD.
         """
-        self.validar_conexion()  # Asegurar que la conexión esté activa
+        self.validar_conexion()
+
         query_clausulas = """
         SELECT 
-            c.id, c.clausula, c.contrato_concesion, c.frecuencia, c.responsable_entrega, r.correo
+            c.id, c.clausula, c.contrato_concesion, c.frecuencia, c.responsable_entrega, r.correo,
+            c.inicio_cumplimiento, c.fin_cumplimiento, c.periodo_control
         FROM clausulas c
         LEFT JOIN responsable r ON c.responsable_entrega = r.responsable;
         """
-        
+
         query_gestion = """
         SELECT id_clausula, fecha_entrega, estado
         FROM clausulas_gestion
         WHERE id_clausula = %s
         ORDER BY fecha_entrega DESC
-        LIMIT 1; -- Traer solo la última fecha de entrega
+        LIMIT 1;
         """
-        
+
         query_procesos = """
         SELECT p.proceso, p.subproceso
         FROM clausula_proceso_subproceso cps
         JOIN procesos p ON cps.id_proceso = p.id_proceso
         WHERE cps.id_clausula = %s;
         """
-        try:
-            # Inicializar datos vacíos
-            data = []
 
-            fecha_hoy = datetime.today().date()  # Obtener la fecha de hoy
+        query_cc_responsables = """
+        SELECT crc.id_clausula, COALESCE(STRING_AGG(r.correo, ', '), '') AS correos_cc
+        FROM clausula_responsables_copia crc
+        JOIN responsable r ON crc.id_responsable = r.id_responsable
+        GROUP BY crc.id_clausula;
+        """
+
+        try:
+            data = []
+            fecha_hoy = datetime.today().date()
+            print(f"🔍 Fecha actual (HOY): {fecha_hoy}")
+
+            cc_responsables = {}
 
             with self.connection.cursor() as cursor:
-                # Obtener los datos base
+                cursor.execute(query_cc_responsables)
+                for row in cursor.fetchall():
+                    cc_responsables[row[0]] = row[1]
+
                 cursor.execute(query_clausulas)
                 clausulas = cursor.fetchall()
 
-                # Iterar sobre las cláusulas
                 for row in clausulas:
                     id_clausula = row[0]
-                    
-                    # Obtener la última fecha de entrega y su estado
-                    cursor.execute(query_gestion, (id_clausula,))
-                    gestion = cursor.fetchone()  # Solo una fila
-
-                    if not gestion:
-                        continue  # Si no hay datos en clausulas_gestion, pasa a la siguiente cláusula
-                    
-                    fecha_entrega = gestion[1]
-                    estado = gestion[2]
-
-                    # Obtener los procesos y subprocesos asociados
-                    cursor.execute(query_procesos, (id_clausula,))
-                    procesos = cursor.fetchall()
-
-                    # Concatenar procesos y subprocesos en una cadena
-                    procesos_texto = ", ".join(
-                        [f"{proceso[0]} - {proceso[1]}" for proceso in procesos]
-                    )
-
-                    # Calcular la fecha de notificación
+                    inicio = row[6]
+                    fin = row[7]
                     frecuencia = row[3]
-                    dias_resta = 5 if frecuencia.lower() in ["mensual", "quincenal"] else 15
-                    fecha_notificacion = fecha_entrega - timedelta(days=dias_resta)
+                    periodo_control = row[8]
 
-                    # Filtrar solo las fechas de notificación que coinciden con hoy
+                    print(f"\n🆔 Procesando cláusula {id_clausula} ({row[1]})")
+
+                    if isinstance(inicio, date):
+                        inicio = inicio.strftime("%Y-%m-%d")
+                    if isinstance(fin, date):
+                        fin = fin.strftime("%Y-%m-%d")
+
+                    cursor.execute(query_gestion, (id_clausula,))
+                    gestion = cursor.fetchone()
+
+                    if gestion:
+                        ultima_fecha_entrega = gestion[1]
+                        estado = gestion[2]
+                    else:
+                        ultima_fecha_entrega = inicio
+                        estado = "Pendiente"
+
+                    proxima_fecha = self.calcular_proxima_fecha_cumplimiento(ultima_fecha_entrega, frecuencia, periodo_control, fin)
+
+                    if not proxima_fecha:
+                        continue
+                    #Parametrizar días de notificación
+                    proxima_fecha_dt = datetime.strptime(proxima_fecha, "%Y-%m-%d").date()
+                    dias_resta = 5 if frecuencia.lower() in ["mensual", "quincenal"] else 15
+                    fecha_notificacion = proxima_fecha_dt - timedelta(days=dias_resta)
+
+                    print(f"📅 Próxima fecha de entrega: {proxima_fecha_dt} - Fecha de notificación esperada: {fecha_notificacion}")
+
                     if fecha_notificacion == fecha_hoy:
-                        # Agregar los datos al resultado
+                        cursor.execute(query_procesos, (id_clausula,))
+                        procesos = cursor.fetchall()
+                        procesos_texto = ", ".join([f"{proceso[0]} - {proceso[1]}" for proceso in procesos])
+
                         data.append({
                             "ID": row[0],
                             "Clausula": row[1],
@@ -899,32 +1035,22 @@ class GestionClausulas:
                             "Frecuencia": frecuencia,
                             "Responsable Entrega": row[4],
                             "Correo": row[5],
+                            "CC_Correos": cc_responsables.get(id_clausula, ""),
                             "Proceso/Subproceso": procesos_texto,
-                            "Fecha Entrega": fecha_entrega,
+                            "Fecha Entrega": proxima_fecha_dt.strftime("%d/%m/%Y"),
                             "Estado": estado,
-                            "Fecha Notificacion": fecha_notificacion
+                            "Fecha Notificacion": fecha_notificacion.strftime("%d/%m/%Y")
                         })
+                        print(f"✅ Se enviará recordatorio para {row[1]}")
+                    else:
+                        print("❌ La fecha de notificación NO coincide con HOY.")
 
-            # Si no hay registros, inicializar con solo encabezados
-            if not data:
-                data.append({
-                    "ID": None,
-                    "Clausula": None,
-                    "Contrato Concesion": None,
-                    "Frecuencia": None,
-                    "Responsable Entrega": None,
-                    "Correo": None,
-                    "Proceso/Subproceso": None,
-                    "Fecha Entrega": None,
-                    "Estado": None,
-                    "Fecha Notificacion": None
-                })
+            return data if data else []
 
-            return data
         except Exception as e:
-            print(f"Error al generar los datos del reporte: {e}")
+            print(f"❌ Error al generar los datos del reporte: {e}")
             raise
-
+  
     def enviar_correos_recordatorio(self):
         """
         Envía correos utilizando la información generada por la función `generar_datos_recordatorio`.
@@ -955,17 +1081,27 @@ class GestionClausulas:
                 if recordatorio["ID"] is None:
                     continue  # Saltar encabezados o filas vacías
                 
+                destinatario = recordatorio["Correo"]
+                cc_destinatarios = [cc for cc in recordatorio["CC_Correos"].split(", ") if cc] if recordatorio["CC_Correos"] else []
+                
                 # Formatear la fecha de entrega
                 try:
                     fecha_entrega = recordatorio["Fecha Entrega"]
-                    if isinstance(fecha_entrega, str):
-                        fecha_entrega = datetime.strptime(fecha_entrega, "%Y-%m-%d")
-                    fecha_entrega_formateada = fecha_entrega.strftime("%d/%m/%Y")
-                except Exception as e:
-                    print(f"Error al formatear la fecha de entrega: {e}")
-                    fecha_entrega_formateada = recordatorio["Fecha Entrega"]
 
-                destinatario = recordatorio["Correo"]
+                    if isinstance(fecha_entrega, str):
+                        # Verificar si la fecha viene en "DD/MM/YYYY" y convertirla a "YYYY-MM-DD"
+                        if "/" in fecha_entrega:
+                            fecha_entrega = datetime.strptime(fecha_entrega, "%d/%m/%Y")
+                        else:
+                            fecha_entrega = datetime.strptime(fecha_entrega, "%Y-%m-%d")
+
+                    fecha_entrega_formateada = fecha_entrega.strftime("%d/%m/%Y")  # Convertir a formato DD/MM/YYYY
+
+                except Exception as e:
+                    print(f"⚠️ Error al formatear la fecha de entrega ({recordatorio['Fecha Entrega']}): {e}")
+                    fecha_entrega_formateada = recordatorio["Fecha Entrega"]  # Usar la fecha original si hay error
+
+                # Crear el asunto y cuerpo del correo
                 asunto = f"Recordatorio: {recordatorio['ID']} - {recordatorio['Clausula']} (Contrato: {recordatorio['Contrato Concesion']}) - Entrega Maxima {fecha_entrega_formateada}"
                 
                 cuerpo = (
@@ -1001,11 +1137,13 @@ class GestionClausulas:
                 mensaje = MIMEMultipart()
                 mensaje["From"] = remitente
                 mensaje["To"] = destinatario
+                if cc_destinatarios:
+                    mensaje["Cc"] = ", ".join(cc_destinatarios)  # Agregar correos en copia
                 mensaje["Subject"] = asunto
                 mensaje.attach(MIMEText(cuerpo, "html"))
 
                 # Enviar el correo
-                server.sendmail(remitente, destinatario, mensaje.as_string())
+                server.sendmail(remitente, [destinatario] + cc_destinatarios, mensaje.as_string())
                 print(f"Correo enviado a: {destinatario}")
 
             # Cerrar conexión con el servidor SMTP
@@ -1042,11 +1180,24 @@ class GestionClausulas:
         WHERE cps.id_clausula = %s;
         """
         
+        query_cc_responsables = """
+        SELECT crc.id_clausula, COALESCE(STRING_AGG(r.correo, ', '), '') AS correos_cc
+        FROM clausula_responsables_copia crc
+        JOIN responsable r ON crc.id_responsable = r.id_responsable
+        GROUP BY crc.id_clausula;
+        """
+        
         try:
             data = []
             fecha_actual = datetime.today().date()
+            cc_responsables = {}
 
             with self.connection.cursor() as cursor:
+                # Obtener los responsables en copia
+                cursor.execute(query_cc_responsables)
+                for row in cursor.fetchall():
+                    cc_responsables[row[0]] = row[1]  # Guardamos {id_clausula: lista_correos_cc}
+                
                 # Obtener los datos base de las cláusulas
                 cursor.execute(query_clausulas)
                 clausulas = cursor.fetchall()
@@ -1082,6 +1233,7 @@ class GestionClausulas:
                         "Frecuencia": row[4],
                         "Responsable Entrega": row[5],
                         "Correo": row[6],
+                        "CC_Correos": cc_responsables.get(id_clausula, ""),  # Correos en copia
                         "Proceso/Subproceso": procesos_texto,
                         "Fechas Incumplidas": fechas_formateadas
                     })
@@ -1126,6 +1278,8 @@ class GestionClausulas:
             # Enviar correos
             for responsable, datos in responsables.items():
                 destinatario = datos["Correo"]
+                cc_destinatarios = [cc for cc in datos["Clausulas"][0]["CC_Correos"].split(", ") if cc] if datos["Clausulas"][0]["CC_Correos"] else []
+
                 cuerpo = (
                     f"<div style='background-color: #004080; color: white; padding: 10px; text-align: center; border-radius: 8px;'>"
                     f"<h2 style='margin: 0; font-size: 20px;'>Reporte de Incumplimientos de Cláusulas Jurídicas</h2>"
@@ -1179,13 +1333,17 @@ class GestionClausulas:
                     f"</div>"
                 )
 
+                # Crear el correo
                 mensaje = MIMEMultipart()
                 mensaje["From"] = remitente
                 mensaje["To"] = destinatario
+                if cc_destinatarios:
+                    mensaje["Cc"] = ", ".join(cc_destinatarios)  # Agregar correos en copia
                 mensaje["Subject"] = "¡Importante! Reporte de Incumplimientos de Cláusulas Jurídicas"
                 mensaje.attach(MIMEText(cuerpo, "html"))
 
-                server.sendmail(remitente, destinatario, mensaje.as_string())
+                # Enviar el correo
+                server.sendmail(remitente, [destinatario] + cc_destinatarios, mensaje.as_string())
                 print(f"Correo enviado a: {destinatario}")
 
             server.quit()
@@ -1194,5 +1352,113 @@ class GestionClausulas:
             print(f"Error al enviar correos de incumplimiento: {e}")
             raise
 
+    def enviar_correos_incumplimiento_direccion(self):
+        """
+        Envía un correo consolidado a una dirección específica con los incumplimientos de todos los responsables.
+        """
+        remitente = os.getenv("USUARIO_CORREO_JURIDICO")
+        contrasena = os.getenv("CLAVE_CORREO_JURIDICO")
+        destinatario_fijo = "sergio.hincapie@consorcioexpress.co"  # Correo Destinatario específico
+        cc_fijo = "pedro.cubillos@consorcioexpress.co"  # Correo fijo en copia
+        smtp_server = "smtp.office365.com"
+        smtp_port = 587
+
+        try:
+            datos_incumplimiento = self.generar_datos_incumplimiento()
+
+            if not datos_incumplimiento:
+                print("No hay fechas de incumplimiento para enviar.")
+                return
+
+            # Agrupar datos por responsable
+            responsables = {}
+            for registro in datos_incumplimiento:
+                responsable = registro["Responsable Entrega"]
+                if responsable not in responsables:
+                    responsables[responsable] = {
+                        "Clausulas": []
+                    }
+                responsables[responsable]["Clausulas"].append(registro)
+
+            # Conectar al servidor SMTP
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()
+            server.login(remitente, contrasena)
+
+            # Construcción del cuerpo del correo
+            cuerpo = (
+                f"<div style='background-color: #004080; color: white; padding: 10px; text-align: center; border-radius: 8px;'>"
+                f"<h2 style='margin: 0; font-size: 20px;'>Consolidado de Incumplimientos de Cláusulas Jurídicas</h2>"
+                f"<p style='margin: 5px 0 0; font-size: 16px; font-style: italic; font-weight: bold;'>Consorcio Express S.A.S</p>"
+                f"</div>"
+                f"<div style='font-size: 14px; background-color: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 8px;'>"
+                f"<p>Estimado(a),</p>"
+                f"<p>A continuación, se presenta el reporte consolidado de cláusulas jurídicas en estado de 'INCUMPLIMIENTO'.</p>"
+            )
+
+            for responsable, datos in responsables.items():
+                cuerpo += (
+                    f"<h3 style='color: #004080; margin-top: 20px;'>Responsable: {responsable}</h3>"
+                    f"<table style='width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px;'>"
+                    f"<thead style='background-color: #f2f2f2;'>"
+                    f"<tr>"
+                    f"<th style='border: 1px solid #ddd; padding: 8px; font-size: 14px;'>Cláusula</th>"
+                    f"<th style='border: 1px solid #ddd; padding: 8px; font-size: 14px;'>Frecuencia</th>"
+                    f"<th style='border: 1px solid #ddd; padding: 8px; font-size: 14px;'>Consecuencia</th>"
+                    f"<th style='border: 1px solid #ddd; padding: 8px; font-size: 14px;'>Fechas Incumplidas</th>"
+                    f"</tr>"
+                    f"</thead>"
+                    f"<tbody>"
+                )
+
+                for clausula in datos["Clausulas"]:
+                    fechas_incumplidas = " - ".join([f"[{fecha}]" for fecha in clausula["Fechas Incumplidas"]])
+                    cuerpo += (
+                        f"<tr>"
+                        f"<td style='border: 1px solid #ddd; padding: 8px; font-size: 12px;'><b>{clausula['ID']} - {clausula['Clausula']}</b></td>"
+                        f"<td style='border: 1px solid #ddd; padding: 8px; font-size: 12px;'>{clausula['Frecuencia']}</td>"
+                        f"<td style='border: 1px solid #ddd; padding: 8px; font-size: 12px;'>{clausula['Consecuencia']}</td>"
+                        f"<td style='border: 1px solid #ddd; padding: 8px; font-size: 12px;'>{fechas_incumplidas}</td>"
+                        f"</tr>"
+                    )
+
+                cuerpo += "</tbody></table>"
+
+            cuerpo += (
+                f"<p>Por favor, recuerde actualizar el estado del cumplimiento con fecha, radicado y los soportes pertinentes "
+                f"a la plataforma de GestiónExpress.</p>"
+                f"<div style='text-align: center; margin-top: 20px;'>"
+                f"<a href='https://gestionconsorcioexpress.onrender.com/' style='"
+                f"display: inline-block; background-color: #004080; color: white; padding: 10px 20px; text-decoration: none; "
+                f"border-radius: 5px; font-size: 16px;'>Ir a GestiónExpress</a>"
+                f"</div>"
+                f"</div>"
+                f"<div style='margin-top: 20px; font-size: 12px; color: #666; text-align: center;'>"
+                f"<p>Consorcio Express S.A.S</p>"
+                f"<p>Dirección: Av. El Dorado #69-63, Bogotá, Colombia | Tel: +57 123 456789</p>"
+                f"<p>Este correo es informativo y no requiere respuesta.</p>"
+                f"</div>"
+            )
+
+            # Crear el correo
+            mensaje = MIMEMultipart()
+            mensaje["From"] = remitente
+            mensaje["To"] = destinatario_fijo  # Se envía a un solo destinatario
+            mensaje["Subject"] = "¡Importante! Consolidado de Incumplimientos de Cláusulas Jurídicas"
+            mensaje.attach(MIMEText(cuerpo, "html"))
+
+            # Solo agregar el correo fijo en copia (CC)
+            mensaje["Cc"] = cc_fijo
+
+            # Enviar el correo
+            server.sendmail(remitente, [destinatario_fijo, cc_fijo], mensaje.as_string())
+            print(f"Correo consolidado enviado a: {destinatario_fijo} con copia a: {cc_fijo}")
+
+            server.quit()
+
+        except Exception as e:
+            print(f"Error al enviar correos de incumplimiento a la dirección: {e}")
+            raise
+ 
     def close(self):
         self.connection.close()

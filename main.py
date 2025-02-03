@@ -1481,7 +1481,6 @@ async def actualizar_copia(req: Request, id_clausula: int):
 ###################################################################################################
 # Instancia de la clase para las tareas programadas
 tareas_juridico = TareasProgramadasJuridico()
-tareas_juridico.iniciar_scheduler()
 
 @app.get("/jobs/calcular_fechas", response_class=JSONResponse)
 def ejecutar_calculo_fechas():
@@ -1531,21 +1530,14 @@ def envio_correos_incumplimiento():
         return {"message": "Correos de incumplimiento enviados correctamente."}
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Error: {str(e)}"})
-
-@app.get("/jobs", response_class=JSONResponse)
-def listar_jobs():
+ 
+@app.get("/jobs/envio_correos_incumplimiento_direccion", response_class=JSONResponse)
+def envio_correos_incumplimiento_direccion():
     """
-    Lista todos los jobs programados en el scheduler.
+    Prueba manual para enviar correos de incumplimiento.
     """
     try:
-        jobs = [
-            {
-                "id": job.id,
-                "name": job.name,
-                "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None
-            } for job in tareas_juridico.scheduler.get_jobs()
-        ]
-        return {"jobs": jobs}
+        tareas_juridico.tarea_semanal_incumplimientos()
+        return {"message": "Correos de incumplimiento enviados correctamente."}
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Error: {str(e)}"})
- 
