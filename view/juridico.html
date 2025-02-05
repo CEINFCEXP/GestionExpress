@@ -19,12 +19,15 @@
     <div class="row justify-content-between align-items-center">
         <h1 class="col-auto" style="font-size: 24px; font-family: 'Century Gothic', sans-serif;">Control de Cláusulas de Contrato y Manual</h1>
         <h1 class="col-auto" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!</h1>
+        <img src="/static/images/excel.png" alt="Descargar Reporte"
+            style="cursor: pointer; margin-left: 10px; height: 50px; width: 70px;"
+            data-bs-toggle="modal" data-bs-target="#modalReportes">
+        <img src="/static/Consorcio.png" alt="Consorcio Icon" style="max-width: 120px; height: auto;">
         <!-- Botón para abrir ventana flotante -->
         <div class="col-auto">
             <!--<a href="{{ url_for('descargar_plantilla_juridico') }}" class="btn btn-dark">Plantilla de Cargue</a>-->
             <!--<button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click();">Cargue Parametros</button>-->
             <!--<input type="file" id="fileInput" style="display: none;" onchange="cargarArchivo(this.files[0])">-->
-            <img src="/static/Consorcio.png" alt="Consorcio Icon" style="max-width: 100px; height: auto;">
         </div>
     </div>
 
@@ -246,7 +249,68 @@
                 </div>
             </div>
         </div>
-    </div>   
+    </div>  
+    
+    <!-- Modal para la consulta y descarga de reportes -->
+    <div class="modal fade" id="modalReportes" tabindex="-1" aria-labelledby="modalReportesLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalReportesLabel">Consulta y Descarga de Reportes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Filtros -->
+                    <div class="row g-2">
+                        <div class="col-md-3"><label class="form-label-sm">ID:</label><select id="filtroId" class="form-select form-select-sm"></select></div>
+                        <div class="col-md-3"><label class="form-label-sm">Control:</label><select id="filtroControl" class="form-select form-select-sm"></select></div>
+                        <div class="col-md-3"><label class="form-label-sm">Cláusula:</label><select id="filtroClausula" class="form-select form-select-sm"></select></div>
+                        <div class="col-md-3"><label class="form-label-sm">Etapa:</label><select id="filtroEtapa" class="form-select form-select-sm"></select></div>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-3"><label class="form-label-sm">Contrato Concesión:</label><select id="filtroContrato" class="form-select form-select-sm"></select></div>
+                        <div class="col-md-3"><label class="form-label-sm">Tipo Cláusula:</label><select id="filtroTipoClausula" class="form-select form-select-sm"></select></div>
+                        <div class="col-md-3"><label class="form-label-sm">Frecuencia:</label><select id="filtroFrecuencia" class="form-select form-select-sm"></select></div>
+                        <div class="col-md-3"><label class="form-label-sm">Responsable:</label><select id="filtroResponsable" class="form-select form-select-sm"></select></div>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-3"><label class="form-label-sm">Fecha Entrega:</label><input type="date" id="filtroFechaEntrega" class="form-control form-control-sm"></div>
+                        <div class="col-md-3"><label class="form-label-sm">Plan Acción:</label><select id="filtroPlanAccion" class="form-select form-select-sm"></select></div>
+                        <div class="col-md-3"><label class="form-label-sm">Estado:</label><select id="filtroEstado" class="form-select form-select-sm"></select></div>
+                        <div class="col-md-3"><label class="form-label-sm">Registrado Por:</label><select id="filtroRegistradoPor" class="form-select form-select-sm"></select></div>
+                    </div>
+                    <br>
+                    <button class="btn btn-primary w-100" onclick="consultarReportes()">Consultar</button>
+
+                    <!-- Indicador de carga -->
+                    <div id="loading" class="text-center mt-3" style="display: none;">
+                        <img src="/static/images/cargando.gif" alt="Cargando..." width="100">
+                    </div>
+
+                    <!-- Tabla de resultados -->
+                    <div id="tablaResultados" class="table-responsive mt-3" style="display: none; max-height: 400px; overflow-y: auto;">
+                        <table class="table table-striped table-bordered text-sm" style="font-size: 12px;">
+                            <thead class="table-dark sticky-top">
+                                <tr id="tablaHead"></tr>
+                            </thead>
+                            <tbody id="tablaBody"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Botones de descarga (visibles solo tras consulta) -->
+                    <div class="text-center mt-3" id="downloadButtons" style="display: none;">
+                        <button class="btn btn-success btn-sm" onclick="descargarReporte('xlsx')">Descargar XLSX</button>
+                        <button class="btn btn-warning btn-sm" onclick="descargarReporte('csv')">Descargar CSV</button>
+                        <button class="btn btn-info btn-sm" onclick="descargarReporte('json')">Descargar JSON</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- ###################################################################################### -->
+<!-- ##################### INICIO DE LOGICA Y FUNCIONES JAVASCRIPT ######################## -->
+<!-- ###################################################################################### -->
     
 <!-- Actualiza las listas desplegables de filtros de acuerdo a gestion_clausulas.py -->
 <script>
@@ -1064,6 +1128,226 @@
                 li.style.color = "red";
             });
         }
+    }    
+    
+</script>
+
+<script>
+    // Función para abrir el modal de Consultar y generar reportes exportables
+    function abrirModalReportes() {
+        let modal = document.getElementById("modalReportes");
+        let modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
+    } 
+
+    // Cargar opciones de los filtros al cargar la página
+    document.addEventListener("DOMContentLoaded", function () {
+        let filtrosPrincipales = {};
+    
+        // Guardar los valores actuales de los filtros de la pantalla principal
+        function guardarFiltrosPrincipales() {
+            filtrosPrincipales = {
+                control: document.getElementById("control").value,
+                etapa: document.getElementById("etapa").value,
+                clausula: document.getElementById("clausula").value,
+                concesion: document.getElementById("concesion").value,
+                estado: document.getElementById("estado").value,
+                responsable: document.getElementById("responsable").value
+            };
+        }
+    
+        // Restaurar los valores originales de los filtros de la pantalla principal
+        function restaurarFiltrosPrincipales() {
+            document.getElementById("control").value = filtrosPrincipales.control;
+            document.getElementById("etapa").value = filtrosPrincipales.etapa;
+            document.getElementById("clausula").value = filtrosPrincipales.clausula;
+            document.getElementById("concesion").value = filtrosPrincipales.concesion;
+            document.getElementById("estado").value = filtrosPrincipales.estado;
+            document.getElementById("responsable").value = filtrosPrincipales.responsable;
+        }
+    
+        // Evento para abrir el modal de reportes
+        document.getElementById("modalReportes").addEventListener("show.bs.modal", function () {
+            guardarFiltrosPrincipales(); // Guardar el estado de los filtros principales
+            cargarFiltrosReportes(); // Cargar los filtros del modal al abrirlo
+        });
+    
+        // Evento para cerrar el modal de reportes
+        document.getElementById("modalReportes").addEventListener("hidden.bs.modal", function () {
+            restaurarFiltrosPrincipales(); // Restaurar los filtros principales al cerrar el modal
+        });
+    
+        // Cargar opciones de los filtros solo cuando se abre el modal
+        function cargarFiltrosReportes() {
+            fetch("/filtros_reportes")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error("Error en los filtros:", data.error);
+                        return;
+                    }
+                    llenarOpciones("filtroId", data.ids);
+                    llenarOpciones("filtroControl", data.controles);
+                    llenarOpciones("filtroClausula", data.clausulas);
+                    llenarOpciones("filtroEtapa", data.etapas);
+                    llenarOpciones("filtroContrato", data.contratos);
+                    llenarOpciones("filtroTipoClausula", data.tipos_clausula);
+                    llenarOpciones("filtroFrecuencia", data.frecuencias);
+                    llenarOpciones("filtroResponsable", data.responsables);
+                    llenarOpciones("filtroPlanAccion", data.plan_acciones);
+                    llenarOpciones("filtroEstado", data.estados);
+                    llenarOpciones("filtroRegistradoPor", data.registrados_por);
+                })
+                .catch(error => console.error("Error al cargar filtros:", error));
+        }
+    
+        function llenarOpciones(id, opciones) {
+            let select = document.getElementById(id);
+            if (select) {
+                select.innerHTML = `<option value="">Todos</option>`;
+                opciones.forEach(opcion => {
+                    select.innerHTML += `<option value="${opcion}">${opcion}</option>`;
+                });
+            }
+        }
+    
+        // Limpiar filtros solo dentro del modal de reportes
+        function limpiarFiltrosReportes() {
+            document.querySelectorAll("#modalReportes .form-select, #modalReportes .form-control").forEach(input => input.value = "");
+            document.getElementById("tablaResultados").style.display = "none";
+        }
+    
+        // Asociar la función `limpiarFiltrosReportes()` solo al modal de reportes
+        document.getElementById("modalReportes").addEventListener("show.bs.modal", limpiarFiltrosReportes);
+    });
+    
+    // Consultar reportes con los filtros aplicados en el modal
+    function consultarReportes() {
+        let filtros = {
+            id: document.getElementById("filtroId").value || "",
+            control: document.getElementById("filtroControl").value || "",
+            clausula: document.getElementById("filtroClausula").value || "",
+            etapa: document.getElementById("filtroEtapa").value || "",
+            contrato_concesion: document.getElementById("filtroContrato").value || "",
+            tipo_clausula: document.getElementById("filtroTipoClausula").value || "",
+            frecuencia: document.getElementById("filtroFrecuencia").value || "",
+            responsable: document.getElementById("filtroResponsable").value || "",
+            fecha_entrega: document.getElementById("filtroFechaEntrega").value || "",
+            plan_accion: document.getElementById("filtroPlanAccion").value || "",
+            estado: document.getElementById("filtroEstado").value || "",
+            registrado_por: document.getElementById("filtroRegistradoPor").value || ""
+        };
+    
+        // Eliminar filtros con valor "Seleccionar..."
+        Object.keys(filtros).forEach(key => {
+            if (filtros[key] === "Seleccionar...") {
+                filtros[key] = "";
+            }
+        });
+    
+        document.getElementById("loading").style.display = "block";
+        
+        fetch(`/consulta_reportes?${new URLSearchParams(filtros)}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("loading").style.display = "none";
+                let thead = document.getElementById("tablaHead");
+                let tbody = document.getElementById("tablaBody");
+                let downloadButtons = document.getElementById("downloadButtons");
+    
+                thead.innerHTML = "";
+                tbody.innerHTML = "";
+    
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="12" class="text-center">No hay datos disponibles</td></tr>`;
+                    downloadButtons.style.display = "none"; // Oculta los botones si no hay datos
+                    return;
+                }
+    
+                let columnas = Object.keys(data[0]);
+                columnas.forEach(col => {
+                    thead.innerHTML += `<th>${col.replace("_", " ").toUpperCase()}</th>`;
+                });
+    
+                data.forEach(row => {
+                    let tr = document.createElement("tr");
+                    tr.style.height = "20px"; // Establece la altura directamente en HTML
+                
+                    columnas.forEach(col => {
+                        let td = document.createElement("td");
+                        td.style.height = "20px";  // Ajusta el alto de cada celda
+                        td.style.padding = "4px";  // Reduce el espacio interno para más compactación
+                        td.style.whiteSpace = "nowrap";  // Evita saltos de línea
+                        td.style.overflow = "hidden";  
+                        td.style.textOverflow = "ellipsis";  
+                        td.innerText = row[col] || "-";
+                        tr.appendChild(td);
+                    });
+                
+                    tbody.appendChild(tr);
+                });                
+    
+                document.getElementById("tablaResultados").style.display = "block";
+                downloadButtons.style.display = "block"; // Muestra los botones de descarga solo si hay datos
+            })
+            .catch(error => {
+                document.getElementById("loading").style.display = "none";
+                alert("Error al realizar la consulta.");
+                console.error("Error en la consulta:", error);
+            });
+    }    
+
+    // Descargar reportes
+    function descargarReporte(formato) {
+        let filtros = {
+            id: document.getElementById("filtroId").value.trim() || "",
+            control: document.getElementById("filtroControl").value.trim() || "",
+            clausula: document.getElementById("filtroClausula").value.trim() || "",
+            etapa: document.getElementById("filtroEtapa").value.trim() || "",
+            contrato_concesion: document.getElementById("filtroContrato").value.trim() || "",
+            tipo_clausula: document.getElementById("filtroTipoClausula").value.trim() || "",
+            frecuencia: document.getElementById("filtroFrecuencia").value.trim() || "",
+            responsable: document.getElementById("filtroResponsable").value.trim() || "",
+            fecha_entrega: document.getElementById("filtroFechaEntrega").value.trim() || "",
+            plan_accion: document.getElementById("filtroPlanAccion").value.trim() || "",
+            estado: document.getElementById("filtroEstado").value.trim() || "",
+            registrado_por: document.getElementById("filtroRegistradoPor").value.trim() || ""
+        };
+    
+        // Eliminar filtros vacíos
+        Object.keys(filtros).forEach(key => {
+            if (!filtros[key] || filtros[key] === "Seleccionar...") {
+                delete filtros[key];
+            }
+        });
+    
+        let url = new URL(`/descargar_reporte`, window.location.origin);
+        url.searchParams.append("formato", formato);
+    
+        Object.keys(filtros).forEach(key => {
+            url.searchParams.append(key, filtros[key]);
+        });
+    
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error en la descarga: ${response.statusText}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `Reporte_Clausulas.${formato}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            })
+            .catch(error => {
+                alert("Error al descargar el archivo.");
+                console.error("Error en la descarga:", error);
+            });
     }    
     
 </script>

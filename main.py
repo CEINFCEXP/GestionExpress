@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import FileResponse
 from pydantic import BaseModel
 from lib.verifcar_clave import check_user
 from controller.user import User
@@ -24,7 +25,7 @@ from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, conc
 from werkzeug.security import generate_password_hash
 from azure.storage.blob import BlobServiceClient, BlobClient
 from urllib.parse import unquote
-from datetime import datetime
+from datetime import datetime, date
 import psycopg2
 import json
 from typing import List, Optional
@@ -1541,3 +1542,74 @@ def envio_correos_incumplimiento_direccion():
         return {"message": "Correos de incumplimiento enviados correctamente."}
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Error: {str(e)}"})
+    
+############################### REPORTE JURÍDICO #################################
+# CONSULTA Y DESCARGA A DETALLE LA INFORMACIÓN DE LA GESTIÓN DE CLAUSULAS
+# Endpoint para obtener los filtros dinámicos disponibles
+def json_serial(obj):
+    """Convierte objetos no serializables a JSON."""
+    if isinstance(obj, date):
+        return obj.strftime("%Y-%m-%d")
+    raise TypeError("Type not serializable")
+
+@app.get("/filtros_reportes")
+def filtros_reportes():
+    try:
+        filtros = gestion.obtener_filtros_disponibles()
+        if "error" in filtros:
+            return JSONResponse(status_code=500, content=filtros)
+        return JSONResponse(content=filtros)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/consulta_reportes")
+def consulta_reportes(
+    id: str = None, control: str = None, clausula: str = None, etapa: str = None,
+    contrato_concesion: str = None, tipo_clausula: str = None, frecuencia: str = None,
+    responsable: str = None, fecha_entrega: str = None, plan_accion: str = None,
+    estado: str = None, registrado_por: str = None
+):
+    try:
+        filtros = {
+            "id": id, "control": control, "clausula": clausula, "etapa": etapa,
+            "contrato_concesion": contrato_concesion, "tipo_clausula": tipo_clausula,
+            "frecuencia": frecuencia, "responsable": responsable, "fecha_entrega": fecha_entrega,
+            "plan_accion": plan_accion, "estado": estado, "registrado_por": registrado_por
+        }
+        
+        # Filtrar solo los valores que no son None ni vacíos
+        filtros = {k: v for k, v in filtros.items() if v}
+
+        print(f"Filtros enviados a la consulta: {filtros}")  # 🔍 Log para depuración
+
+        data = gestion.obtener_reporte_clausulas(**filtros)
+
+        if isinstance(data, dict) and "error" in data:
+            print(f"Error en consulta_reportes: {data['error']}")  # 🔍 Log del error
+            return JSONResponse(status_code=500, content={"error": data["error"]})
+
+        if not isinstance(data, list):
+            print("Error: La respuesta no es una lista.")  # 🔍 Log del error
+            return JSONResponse(content=[])
+
+        return JSONResponse(content=data)
+
+    except Exception as e:
+        print(f"Error general en consulta_reportes: {str(e)}")  # 🔍 Log del error general
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/descargar_reporte")
+def descargar_reporte(formato: str, request: Request):
+    try:
+        filtros = dict(request.query_params)
+        filtros.pop("formato", None)  # Eliminar el formato de los filtros
+
+        file_path, content_type, filename = gestion.exportar_reporte(formato, **filtros)
+
+        if not file_path or not os.path.exists(file_path):
+            return JSONResponse(status_code=400, content={"error": "No hay datos para exportar"})
+
+        return FileResponse(path=file_path, filename=filename, media_type=content_type)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    

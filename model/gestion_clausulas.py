@@ -1460,5 +1460,157 @@ class GestionClausulas:
             print(f"Error al enviar correos de incumplimiento a la dirección: {e}")
             raise
  
+# Reporte descargable de la gestión de clausulas
+    # Reporte descargable de la gestión de cláusulas
+    def conectar_db(self):
+        """Asegura que la conexión a la base de datos esté abierta correctamente."""
+        if self.connection is None or self.connection.closed:
+            database_url = os.getenv("DATABASE_PATH")
+            if not database_url:
+                raise ValueError("DATABASE_PATH no está definido en las variables de entorno")
+            
+            self.connection = psycopg2.connect(database_url)
+
+    def obtener_filtros_disponibles(self):
+        """Obtiene los valores únicos de los filtros para el frontend."""
+        self.conectar_db()
+        query = """
+        SELECT DISTINCT c.id, c.control, c.clausula, c.etapa, c.contrato_concesion, 
+                        c.tipo_clausula, c.frecuencia, c.responsable_entrega, 
+                        g.fecha_entrega, g.plan_accion, g.estado, g.registrado_por
+        FROM clausulas c
+        LEFT JOIN clausulas_gestion g ON c.id = g.id_clausula;
+        """
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(query)
+                data = cursor.fetchall()
+
+            if not data:
+                return {"error": "No hay datos en los filtros"}
+
+            def limpiar(valores):
+                return sorted(set(val for val in valores if val is not None))
+
+            filtros = {
+                "ids": limpiar([row[0] for row in data]),
+                "controles": limpiar([row[1] for row in data]),
+                "clausulas": limpiar([row[2] for row in data]),
+                "etapas": limpiar([row[3] for row in data]),
+                "contratos": limpiar([row[4] for row in data]),
+                "tipos_clausula": limpiar([row[5] for row in data]),
+                "frecuencias": limpiar([row[6] for row in data]),
+                "responsables": limpiar([row[7] for row in data]),
+                "plan_acciones": limpiar([row[9] for row in data]),
+                "estados": limpiar([row[10] for row in data]),
+                "registrados_por": limpiar([row[11] for row in data]),
+            }
+            return filtros
+        except Exception as e:
+            return {"error": str(e)}
+
+    def obtener_reporte_clausulas(self, **filtros):
+        """Obtiene los datos filtrados del reporte."""
+        self.conectar_db()
+        condiciones = []
+        valores = []
+
+        # Mapeo del filtro "responsable" a "responsable_entrega"
+        filtro_mapeo = {
+            "responsable": "c.responsable_entrega"  # Ajuste aquí
+        }
+
+        for campo, valor in filtros.items():
+            if valor:
+                campo_bd = filtro_mapeo.get(campo, campo)  # Usa el mapeo si existe, sino deja el nombre original
+                condiciones.append(f"{campo_bd} = %s")
+                valores.append(valor)
+
+        query = """
+        SELECT
+            c.id, c.control, c.clausula, c.etapa, c.contrato_concesion, c.tipo_clausula,
+            c.tema, c.subtema, c.descripcion_clausula, c.modificacion, c.norma_relacionada,
+            c.consecuencia,
+            (SELECT STRING_AGG(p.proceso || ' - ' || p.subproceso, ', ')
+            FROM clausula_proceso_subproceso cps
+            JOIN procesos p ON cps.id_proceso = p.id_proceso
+            WHERE cps.id_clausula = c.id) AS proceso_subproceso,
+            c.frecuencia, c.inicio_cumplimiento, c.fin_cumplimiento, c.observacion,
+            c.responsable_entrega,
+            (SELECT STRING_AGG(r.correo, ', ')
+            FROM clausula_responsables_copia crc
+            JOIN responsable r ON crc.id_responsable = r.id_responsable
+            WHERE crc.id_clausula = c.id) AS responsables_copia,
+            c.ruta_soporte, g.fecha_entrega, g.fecha_radicado, g.numero_radicado,
+            g.radicado_cexp, g.plan_accion, g.observacion, g.estado, g.registrado_por
+        FROM clausulas c
+        LEFT JOIN clausulas_gestion g ON c.id = g.id_clausula
+        """
+
+        if condiciones:
+            query += " WHERE " + " AND ".join(condiciones)
+
+        print(f"Consulta generada: {query}")  # 🔍 Log de la consulta SQL
+        print(f"Valores de la consulta: {valores}")  # 🔍 Log de los valores a insertar en SQL
+
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(query, tuple(valores))
+                data = cursor.fetchall()
+
+            return [
+                {
+                    "id": row[0], "control": row[1], "clausula": row[2], "etapa": row[3],
+                    "contrato_concesion": row[4], "tipo_clausula": row[5], "tema": row[6], 
+                    "subtema": row[7], "descripcion_clausula": row[8], "modificacion": row[9],
+                    "norma_relacionada": row[10], "consecuencia": row[11], "proceso_subproceso": row[12],
+                    "frecuencia": row[13], 
+                    "inicio_cumplimiento": row[14].isoformat() if isinstance(row[14], date) else None,
+                    "fin_cumplimiento": row[15].isoformat() if isinstance(row[15], date) else None,
+                    "observacion": row[16], "responsable": row[17], "responsables_copia": row[18], 
+                    "ruta_soporte": row[19], 
+                    "fecha_entrega": row[20].isoformat() if isinstance(row[20], date) else None,
+                    "fecha_radicado": row[21].isoformat() if isinstance(row[21], date) else None,
+                    "numero_radicado": row[22], "radicado_cexp": row[23], 
+                    "plan_accion": row[24], "observacion_gestion": row[25], "estado": row[26], 
+                    "registrado_por": row[27]
+                } for row in data
+            ]
+        except Exception as e:
+            self.connection.rollback()
+            print(f"Error en obtener_reporte_clausulas: {str(e)}")  # 🔍 Log del error SQL
+            return {"error": str(e)}
+    
+    def exportar_reporte(self, formato, **filtros):
+        data = self.obtener_reporte_clausulas(**filtros)
+        if not data:
+            return None, None, None
+
+        df = pd.DataFrame(data)
+
+        # Obtener la carpeta de Descargas del usuario
+        download_folder = os.path.expanduser("~/Downloads")
+        if not os.path.exists(download_folder):
+            os.makedirs(download_folder)  # Asegurar que existe
+
+        filename = f"Reporte_Clausulas.{formato}"
+
+        # Crear archivo temporal en la carpeta de descargas
+        file_path = os.path.join(download_folder, filename)
+
+        if formato == "xlsx":
+            df.to_excel(file_path, index=False)
+            content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        elif formato == "csv":
+            df.to_csv(file_path, index=False)
+            content_type = "text/csv"
+        elif formato == "json":
+            df.to_json(file_path, orient="records")
+            content_type = "application/json"
+        else:
+            return None, None, None
+
+        return file_path, content_type, filename
+    
     def close(self):
         self.connection.close()
