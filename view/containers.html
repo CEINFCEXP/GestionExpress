@@ -85,18 +85,21 @@
                         ">
                     </ul>
 
-                    <!-- Zona de Subida de Archivos -->
-                    <div class="drop-zone p-4 text-center border border-primary rounded mb-3" id="dropZone">
-                        <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-2"></i>
-                        <p class="mb-2"><em>Selecciona el Folder con doble click, despues Arrastra y suelta los archivos aquí, ¡Verifica la ruta de carga!</em></p>
-                        <button class="btn btn-secondary" id="selectFilesBtn">Cargar Archivos al Blob</button>
-                        <input type="file" id="fileUpload" multiple hidden>
-                    </div>
-
-                    <!-- Sección para mostrar la ruta de carga -->
+                     <!-- Sección para mostrar la ruta de carga -->
                     <div class="mb-3">
                         <span style="font-weight: bold;"><strong>Ruta de carga:</strong></span>
                         <span id="currentUploadPathDisplay">/</span>
+                    </div>
+
+                    <!-- Zona de Subida de Archivos -->
+                    <div class="drop-zone p-4 text-center border border-primary rounded mb-3" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-2"></i>
+                        <p class="mb-2">
+                            <em>Selecciona el Folder con doble clic o clic derecho, después Arrastra y suelta los archivos aquí.<br> 
+                            ¡Verifica la ruta de carga!</em>
+                        </p>
+                        <button class="btn btn-secondary" id="selectFilesBtn">Cargar Archivos al Blob</button>
+                        <input type="file" id="fileUpload" multiple hidden>
                     </div>
 
                     <!-- Barra de Progreso -->
@@ -106,8 +109,14 @@
                 </div>
             </div>
         </div>
-
     </div>
+</div>
+
+<!-- Menú Contextual (Clic derecho en folders) -->
+<div id="contextMenu" class="context-menu" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; border-radius: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);">
+    <ul style="list-style: none; padding: 10px; margin: 0;">
+        <li id="setUploadPath" style="padding: 5px 10px; cursor: pointer;">📂 Marcar como ruta de carga</li>
+    </ul>
 </div>
 
 <script>
@@ -120,6 +129,8 @@
         const fileTree = document.getElementById('fileTree');
         const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const contextMenu = document.getElementById('contextMenu');
+        let selectedFolderPath = null;
         let currentContainer = "";
         let currentUploadPath = ""; 
 
@@ -455,6 +466,55 @@
                 }
             }
         });
+
+        // Capturar clic derecho en las carpetas
+        fileTree.addEventListener('contextmenu', function (event) {
+            event.preventDefault();
+
+            // Verificar si el clic derecho fue en una carpeta
+            const folderElement = event.target.closest('.folder');
+            if (folderElement) {
+                // Obtener la ruta completa de la carpeta
+                selectedFolderPath = getFullPath(folderElement);
+
+                // Posicionar el menú contextual en la ubicación del clic
+                contextMenu.style.top = `${event.clientY}px`;
+                contextMenu.style.left = `${event.clientX}px`;
+                contextMenu.style.display = "block";
+            } else {
+                contextMenu.style.display = "none"; // Si se hizo clic fuera, ocultar el menú
+            }
+        });
+
+        // Ocultar menú contextual al hacer clic fuera de él (Clic Derecho)
+        document.addEventListener('click', function (event) {
+            if (!event.target.closest('.context-menu')) {
+                contextMenu.style.display = "none";
+            }
+        });
+
+        // Marcar carpeta como ruta de carga desde el menú contextual (Clic Derecho)
+        document.getElementById('setUploadPath').addEventListener('click', function () {
+            if (selectedFolderPath) {
+                currentUploadPath = selectedFolderPath;
+                document.getElementById('currentUploadPathDisplay').textContent = `Contenedor/${currentUploadPath}`;
+                contextMenu.style.display = "none";
+            }
+        });
+
+        // Función para obtener la ruta completa de una carpeta (Clic Derecho)
+        function getFullPath(folderElement) {
+            let path = folderElement.textContent.trim();
+            let parent = folderElement.closest('ul').parentNode;
+            while (parent && parent.classList.contains('list-group-item')) {
+                let parentFolder = parent.querySelector('.folder');
+                if (parentFolder) {
+                    path = parentFolder.textContent.trim() + '/' + path;
+                }
+                parent = parent.closest('ul').parentNode;
+            }
+            return path;
+        }
     });
 </script>
 

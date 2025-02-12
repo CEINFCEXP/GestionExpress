@@ -1517,7 +1517,7 @@ class GestionClausulas:
 
         # Mapeo del filtro "responsable" a "responsable_entrega"
         filtro_mapeo = {
-            "responsable": "c.responsable_entrega"  # Ajuste aquí
+            "responsable": "c.responsable_entrega" 
         }
 
         for campo, valor in filtros.items():
@@ -1549,9 +1549,12 @@ class GestionClausulas:
 
         if condiciones:
             query += " WHERE " + " AND ".join(condiciones)
+            
+        # Agregar orden ascendente por id y luego por fecha_entrega
+        query += " ORDER BY c.id ASC, g.fecha_entrega ASC"
 
-        print(f"Consulta generada: {query}")  # 🔍 Log de la consulta SQL
-        print(f"Valores de la consulta: {valores}")  # 🔍 Log de los valores a insertar en SQL
+        #print(f"Consulta generada: {query}")  # 🔍 Log de la consulta SQL
+        #print(f"Valores de la consulta: {valores}")  # 🔍 Log de los valores a insertar en SQL
 
         try:
             with self.connection.cursor() as cursor:

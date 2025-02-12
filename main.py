@@ -1507,7 +1507,7 @@ def ejecutar_sincronizacion_estados():
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Error: {str(e)}"})
 
-############################### CORREOS AUTOMATICOS #################################
+########################## CORREOS AUTOMATICOS JURIDICO ##############################
 # NOTIFICACIONES RECORDATORIO POR CORREO Y TAREAS PROGRAMADAS - PANTALLA JURIDICO
 gestion = GestionClausulas()
 @app.get("/jobs/envio_correos_recordatorio", response_class=JSONResponse)
@@ -1580,7 +1580,7 @@ def consulta_reportes(
         # Filtrar solo los valores que no son None ni vacíos
         filtros = {k: v for k, v in filtros.items() if v}
 
-        print(f"Filtros enviados a la consulta: {filtros}")  # 🔍 Log para depuración
+        #print(f"Filtros enviados a la consulta: {filtros}")  # 🔍 Log para depuración
 
         data = gestion.obtener_reporte_clausulas(**filtros)
 
@@ -1613,3 +1613,7 @@ def descargar_reporte(formato: str, request: Request):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
     
+#####################################################################################
+############################### MODULO DE CHECKLIST #################################
+#####################################################################################
+
