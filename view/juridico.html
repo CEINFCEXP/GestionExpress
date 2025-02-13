@@ -201,7 +201,7 @@
 
     <!-- Modal de Gestión -->
     <div class="modal fade" id="modalGestion" tabindex="-1" aria-labelledby="modalGestionLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 80%; height: auto; overflow-y: auto;">
+        <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 88%; height: auto; overflow-y: auto;">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalGestionLabel" style="font-size: 16px; text-align: center; margin-bottom: 10px;">Datos Generales de la Cláusula</h5>
@@ -230,6 +230,8 @@
                                             <th style="width: 29;">Observación</th>
                                             <th style="width: 10%;">Adjunto</th>
                                             <th style="width: 8;">Estado</th>
+                                            <th style="width: 10%;">Prórroga</th>
+                                            <th style="width: 10%;">F. Prórroga</th>
                                             <th style="width: 17%;">Registrado Por</th>
                                         </tr>
                                     </thead>
@@ -524,10 +526,12 @@
             // 1. Obtener filas existentes desde la base de datos
             const responseExistentes = await fetch(`/gestion_clausula/${clausulaId}`);
             const filasExistentes = await responseExistentes.json();
+            //console.log("📥 Filas existentes recibidas:", filasExistentes);
     
             // 2. Obtener fechas dinámicas (nuevas filas)
             const responseFechas = await fetch(`/api/fechas_dinamicas/${clausulaId}`);
             const fechasDinamicas = await responseFechas.json();
+            //console.log("📥 Fechas dinámicas recibidas:", fechasDinamicas);
     
             if (!esMasivo && tabla) {
                 tabla.innerHTML = ""; // Limpiar filas existentes en el DOM si no es masivo
@@ -553,6 +557,11 @@
                     const [day, month, year] = fila.fecha_radicado.split("/");
                     fechaRadicado = `${year}-${month}-${day}`; // Convertir a formato compatible YYYY-MM-DD
                 }
+
+                // Asegurar que `fechaProrroga` **siempre** tenga un valor definido
+                let fechaProrroga = (fila.fecha_prorroga && fila.fecha_prorroga !== "null") 
+                ? fila.fecha_prorroga.split("/").reverse().join("-") 
+                : ""; // Si no hay valor, se asigna una cadena vacía
     
                 const registradoPor = fila.fecha_radicado
                     ? fila.registrado_por || "Sin Gestionar"
@@ -568,7 +577,7 @@
                     const filaElemento = document.createElement("tr");
                     filaElemento.innerHTML = `
                         <td>${entregaFormatted}</td>
-                        <td><input type="date" class="form-control fecha-radicado" value="${fechaRadicado}" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" style="font-size: 12px; height: 30px;" /></td>
+                        <td><input type="date" class="form-control fecha-radicado" value="${fechaRadicado}" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" style="font-size: 12px; height: 30px; width: 110px;" /></td>
                         <td><input type="text" class="form-control numero-radicado" value="${fila.numero_radicado || ''}" style="font-size: 12px; height: 30px;" /></td>
                         <td><input type="text" class="form-control radicado-cexp" value="${fila.radicado_cexp || ''}" style="font-size: 12px; height: 30px;" /></td>
                         <td class="plan-accion" style="text-align: center;">${fila.plan_accion || ''}</td>
@@ -581,6 +590,14 @@
                             </div>
                         </td>
                         <td class="estado" style="text-align: center;">${fila.estado || ''}</td>
+                        <td>
+                            <label><input type="radio" name="prorroga_${fila.id_gestion}" value="No" ${fila.prorroga === "No" ? "checked" : ""} onchange="toggleFechaProrroga(this)"> No</label>
+                            <label style="margin-left: 10px;"><input type="radio" name="prorroga_${fila.id_gestion}" value="Sí" ${fila.prorroga === "Sí" ? "checked" : ""} onchange="toggleFechaProrroga(this)"> Sí</label>
+                        </td>
+                        <td>
+                            <input type="date" class="form-control fecha-prorroga" value="${fechaProrroga}" 
+                                style="font-size: 12px; height: 30px; width: 110px; ${fila.prorroga === 'Sí' ? '' : 'display:none;'}" />
+                        </td>
                         <td class="registrado-por">${registradoPor}</td>
                     `;
                     filaElemento.dataset.idGestion = fila.id_gestion;
@@ -597,6 +614,9 @@
                 const entregaFormatted = item.entrega.split("-").reverse().join("/");
     
                 if (!fechasExistentes.has(entregaFormatted)) {
+                    //console.log("🆕 Nueva fecha detectada:", entregaFormatted);
+                    let fechaProrroga = "";
+
                     // Crear una fila temporal para evaluar el estado dinámicamente
                     const filaTemporal = document.createElement("tr");
                     filaTemporal.innerHTML = `
@@ -614,14 +634,16 @@
                         id_gestion: null,
                         fecha_entrega: entregaFormatted,
                         estado: estadoEvaluado || "A Tiempo",
-                        registrado_por: "Sin Gestionar"
+                        registrado_por: "Sin Gestionar",
+                        prorroga: "No",
+                        fecha_prorroga: null
                     });
     
                     if (!esMasivo && tabla) {
                         const fila = document.createElement("tr");
                         fila.innerHTML = `
                             <td>${entregaFormatted}</td>
-                            <td><input type="date" class="form-control fecha-radicado" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" style="font-size: 12px; height: 30px;" /></td>
+                            <td><input type="date" class="form-control fecha-radicado" data-entrega="${entregaFormatted}" onchange="evaluarPlanAccion(this); evaluarEstado(this);" style="font-size: 12px; height: 30px; width: 110px;" /></td>
                             <td><input type="text" class="form-control numero-radicado" style="font-size: 12px; height: 30px;" /></td>
                             <td><input type="text" class="form-control radicado-cexp" style="font-size: 12px; height: 30px;" /></td>
                             <td class="plan-accion" style="text-align: center;"></td>
@@ -634,6 +656,14 @@
                                 </div>
                             </td>
                             <td class="estado" style="text-align: center;">${estadoEvaluado || "A Tiempo"}</td>
+                            <td>
+                                <label><input type="radio" name="prorroga_${fila.id_gestion}" value="No" ${fila.prorroga === "No" ? "checked" : ""} onchange="toggleFechaProrroga(this)"> No</label>
+                                <label style="margin-left: 10px;"><input type="radio" name="prorroga_${fila.id_gestion}" value="Sí" ${fila.prorroga === "Sí" ? "checked" : ""} onchange="toggleFechaProrroga(this)"> Sí</label>
+                            </td>
+                            <td>
+                                <input type="date" class="form-control fecha-prorroga" value="${fechaProrroga}" 
+                                    style="font-size: 12px; height: 30px; width: 120px; ${fila.prorroga === 'Sí' ? '' : 'display:none;'}" />
+                            </td>
                             <td class="registrado-por">Sin Gestionar</td>
                         `;
                         tabla.appendChild(fila);
@@ -644,6 +674,8 @@
                     }
                 }
             });
+
+            //console.log("📤 Filas nuevas a enviar:", filasNuevas);
     
             // 5. Enviar nuevas filas al backend
             if (filasNuevas.length > 0) {
@@ -662,6 +694,19 @@
         }
     }     
 
+    // Función para Mostrar/Ocultar "Fecha Prórroga"
+    function toggleFechaProrroga(radio) {
+        const fila = radio.closest("tr");
+        const inputFechaProrroga = fila.querySelector(".fecha-prorroga");
+    
+        if (radio.value === "Sí") {
+            inputFechaProrroga.style.display = "block";
+        } else {
+            inputFechaProrroga.style.display = "none";
+            inputFechaProrroga.value = ""; // Limpiar valor si cambia a "No"
+        }
+    }    
+    
     // Función para actualizar IDs en el DOM
     function actualizarIdsEnDOM(filasConIds) {
         const filasDOM = document.querySelectorAll("#tabla-gestion tr");
@@ -934,6 +979,15 @@
             const fechaEntregaRaw = row.querySelector("td:first-child").textContent.trim();
             const [day, month, year] = fechaEntregaRaw.split("/");
             const fechaEntrega = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
+
+            // Obtener valores de "Prórroga" y "Fecha Prórroga"
+            const prorroga = row.querySelector(`input[name='prorroga_${idGestion}']:checked`)?.value || "No";
+            let fechaProrrogaRaw = row.querySelector(".fecha-prorroga")?.value || null;
+            let fechaProrroga = null;
+            if (fechaProrrogaRaw) {
+                const [yearP, monthP, dayP] = fechaProrrogaRaw.split("-");
+                fechaProrroga = `${yearP}-${monthP}-${dayP}`; // Formato YYYY-MM-DD
+            }
     
             // Obtener valores originales para verificar cambios
             const originalValues = row.dataset.originalValues
@@ -945,6 +999,12 @@
                 const [origDay, origMonth, origYear] = originalValues.fecha_radicado.split("/");
                 originalFechaRadicado = `${origYear}-${origMonth}-${origDay}`;
             }
+
+            let originalFechaProrroga = null;
+            if (originalValues.fecha_prorroga) {
+                const [origDayP, origMonthP, origYearP] = originalValues.fecha_prorroga.split("/");
+                originalFechaProrroga = `${origYearP}-${origMonthP}-${origDayP}`;
+            }
     
             // Verificar si hubo cambios
             const hayCambios =
@@ -953,7 +1013,9 @@
                 radicadoCexp !== originalValues.radicado_cexp ||
                 planAccion !== originalValues.plan_accion ||
                 observacion !== originalValues.observacion ||
-                estado !== originalValues.estado;
+                estado !== originalValues.estado ||
+                prorroga !== originalValues.prorroga ||
+                fechaProrroga !== originalFechaProrroga;
     
             filas.push({
                 id_gestion: idGestion,
@@ -964,6 +1026,8 @@
                 plan_accion: planAccion,
                 observacion: observacion,
                 estado: estado,
+                prorroga: prorroga,
+                fecha_prorroga: fechaProrroga,
                 registrado_por: hayCambios
                     ? "{{ user_session.nombres }} {{ user_session.apellidos }}" // Usuario actual si hay cambios
                     : null, // Preservar el usuario registrado anterior si no hay cambios
@@ -1266,7 +1330,13 @@
     
                 let columnas = Object.keys(data[0]);
                 columnas.forEach(col => {
-                    thead.innerHTML += `<th>${col.replace("_", " ").toUpperCase()}</th>`;
+                    let nombreColumna = col.replace("_", " ").toUpperCase(); // Convertir nombres por defecto
+
+                    if (col === "numero_radicado") {
+                        nombreColumna = "RADICADO TMSA";  // Renombrar específicamente la columna
+                    }
+
+                    thead.innerHTML += `<th>${nombreColumna}</th>`;
                 });
     
                 data.forEach(row => {

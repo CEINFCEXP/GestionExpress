@@ -469,16 +469,17 @@ class GestionClausulas:
         query_frecuencia = """
         SELECT frecuencia FROM clausulas WHERE id = %s;
         """
-        
+        # Obtener ID de la feccha de entrega a gestionar
         query_check = """
         SELECT 1 FROM clausulas_gestion 
         WHERE id_clausula = %s AND fecha_entrega = %s;
         """
-        
+        # Insertar la fila de gestión
         query_insert = """
         INSERT INTO clausulas_gestion (id_clausula, fecha_entrega, estado, fecha_radicado, 
-                                    numero_radicado, radicado_cexp, registrado_por, fecha_creacion)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                                    numero_radicado, radicado_cexp, prorroga, fecha_prorroga,
+                                    registrado_por, fecha_creacion)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
         RETURNING id_gestion;
         """
 
@@ -508,6 +509,13 @@ class GestionClausulas:
                         numero_radicado = None
                         radicado_cexp = None
                         registrado_por = fila.get('registrado_por', 'Sin Gestionar')
+                        
+                    # Obtener valores de Prórroga y Fecha Prórroga
+                    prorroga = fila.get("prorroga", "No")  # Valor por defecto "No"
+                    fecha_prorroga = (
+                        datetime.strptime(fila["fecha_prorroga"], "%d/%m/%Y").strftime("%Y-%m-%d")
+                        if fila.get("fecha_prorroga") else None
+                    )
 
                     cursor.execute(query_insert, (
                         id_clausula,
@@ -516,6 +524,8 @@ class GestionClausulas:
                         fecha_radicado,
                         numero_radicado,
                         radicado_cexp,
+                        prorroga,
+                        fecha_prorroga,
                         registrado_por
                     ))
                     fila['id_gestion'] = cursor.fetchone()[0]
@@ -530,13 +540,13 @@ class GestionClausulas:
         Solo actualiza el campo `registrado_por` si hay cambios en los valores gestionados.
         """
         query_select = """
-        SELECT fecha_radicado, numero_radicado, radicado_cexp, plan_accion, observacion, estado, registrado_por
+        SELECT fecha_radicado, numero_radicado, radicado_cexp, plan_accion, observacion, estado, registrado_por, prorroga, fecha_prorroga
         FROM clausulas_gestion WHERE id_gestion = %s;
         """
         query_update = """
         UPDATE clausulas_gestion
         SET fecha_radicado = %s, numero_radicado = %s, radicado_cexp = %s, plan_accion = %s, observacion = %s,
-            estado = %s, registrado_por = CASE 
+            estado = %s, prorroga = %s, fecha_prorroga = %s, registrado_por = CASE 
                 WHEN %s THEN %s ELSE registrado_por END
         WHERE id_gestion = %s;
         """
@@ -559,6 +569,16 @@ class GestionClausulas:
                     if fila["fecha_radicado"]
                     else None
                 )
+                
+                # Convertir fecha prórroga al mismo formato
+                current_fecha_prorroga = (
+                    current_values[8].strftime("%Y-%m-%d") if current_values[8] else None
+                )
+                nueva_fecha_prorroga = (
+                    datetime.strptime(fila["fecha_prorroga"], "%Y-%m-%d").strftime("%Y-%m-%d")
+                    if fila.get("fecha_prorroga")
+                    else None
+                )
 
                 # Comparar valores actuales con los enviados
                 cambios_detectados = (
@@ -567,7 +587,9 @@ class GestionClausulas:
                     current_values[2] != fila["radicado_cexp"] or  
                     current_values[3] != fila["plan_accion"] or
                     current_values[4] != fila["observacion"] or
-                    current_values[5] != fila["estado"]
+                    current_values[5] != fila["estado"] or
+                    current_values[7] != fila["prorroga"] or
+                    current_fecha_prorroga != nueva_fecha_prorroga
                 )
 
                 registrado_por_cambio = fila["registrado_por"] if cambios_detectados else None
@@ -580,6 +602,8 @@ class GestionClausulas:
                     fila["plan_accion"],
                     fila["observacion"],
                     fila["estado"],
+                    fila["prorroga"],
+                    nueva_fecha_prorroga,
                     cambios_detectados,  # True si hay cambios
                     registrado_por_cambio,  # Usuario actual si hay cambios
                     fila["id_gestion"],
@@ -592,7 +616,7 @@ class GestionClausulas:
         """
         query = """
         SELECT id_gestion, fecha_entrega, fecha_radicado, numero_radicado, radicado_cexp, plan_accion, observacion, 
-            estado, registrado_por, fecha_creacion
+            estado, registrado_por, fecha_creacion, prorroga, fecha_prorroga
         FROM clausulas_gestion
         WHERE id_clausula = %s
         ORDER BY fecha_entrega ASC;
@@ -607,6 +631,8 @@ class GestionClausulas:
                     fila["fecha_entrega"] = fila["fecha_entrega"].strftime("%d/%m/%Y")
                 if fila["fecha_radicado"]:
                     fila["fecha_radicado"] = fila["fecha_radicado"].strftime("%d/%m/%Y")
+                if fila["fecha_prorroga"]:
+                    fila["fecha_prorroga"] = fila["fecha_prorroga"].strftime("%d/%m/%Y")
                 if fila.get("fecha_creacion"):
                     fila["fecha_creacion"] = fila["fecha_creacion"].strftime("%d/%m/%Y")
         return filas
@@ -1542,7 +1568,8 @@ class GestionClausulas:
             JOIN responsable r ON crc.id_responsable = r.id_responsable
             WHERE crc.id_clausula = c.id) AS responsables_copia,
             c.ruta_soporte, g.fecha_entrega, g.fecha_radicado, g.numero_radicado,
-            g.radicado_cexp, g.plan_accion, g.observacion, g.estado, g.registrado_por
+            g.radicado_cexp, g.plan_accion, g.observacion, g.estado, g.registrado_por,
+            g.prorroga, g.fecha_prorroga
         FROM clausulas c
         LEFT JOIN clausulas_gestion g ON c.id = g.id_clausula
         """
@@ -1576,7 +1603,8 @@ class GestionClausulas:
                     "fecha_radicado": row[21].isoformat() if isinstance(row[21], date) else None,
                     "numero_radicado": row[22], "radicado_cexp": row[23], 
                     "plan_accion": row[24], "observacion_gestion": row[25], "estado": row[26], 
-                    "registrado_por": row[27]
+                    "registrado_por": row[27], "prorroga": row[28], 
+                    "fecha_prorroga": row[29].isoformat() if isinstance(row[29], date) else None
                 } for row in data
             ]
         except Exception as e:
@@ -1590,6 +1618,9 @@ class GestionClausulas:
             return None, None, None
 
         df = pd.DataFrame(data)
+        
+        # Renombrar la columna "numero_radicado" a "Radicado TMSA"
+        df.rename(columns={"numero_radicado": "radicado_tmsa"}, inplace=True)
 
         # Obtener la carpeta de Descargas del usuario
         download_folder = os.path.expanduser("~/Downloads")
