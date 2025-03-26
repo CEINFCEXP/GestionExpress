@@ -1384,8 +1384,16 @@ class GestionClausulas:
         """
         remitente = os.getenv("USUARIO_CORREO_JURIDICO")
         contrasena = os.getenv("CLAVE_CORREO_JURIDICO")
-        destinatario_fijo = "sergio.hincapie@consorcioexpress.co"  # Correo Destinatario específico
-        cc_fijo = "pedro.cubillos@consorcioexpress.co"  # Correo fijo en copia
+        destinatario_fijo = [
+            "patrick.barros@consorcioexpress.co",
+            "geraldine.perez@consorcioexpress.co"
+        ] 
+        
+        cc_fijo = [
+            "laura.bonilla@consorcioexpress.co",
+            "sergio.hincapie@consorcioexpress.co"
+        ] 
+        
         smtp_server = "smtp.office365.com"
         smtp_port = 587
 
@@ -1469,16 +1477,16 @@ class GestionClausulas:
             # Crear el correo
             mensaje = MIMEMultipart()
             mensaje["From"] = remitente
-            mensaje["To"] = destinatario_fijo  # Se envía a un solo destinatario
+            mensaje["To"] = ", ".join(destinatario_fijo)
             mensaje["Subject"] = "¡Importante! Consolidado de Incumplimientos de Cláusulas Jurídicas"
             mensaje.attach(MIMEText(cuerpo, "html"))
 
-            # Solo agregar el correo fijo en copia (CC)
-            mensaje["Cc"] = cc_fijo
+            # Solo agregar el correo en copia (CC)
+            mensaje["Cc"] = ", ".join(cc_fijo) 
 
             # Enviar el correo
-            server.sendmail(remitente, [destinatario_fijo, cc_fijo], mensaje.as_string())
-            print(f"Correo consolidado enviado a: {destinatario_fijo} con copia a: {cc_fijo}")
+            server.sendmail(remitente, destinatario_fijo + cc_fijo, mensaje.as_string())
+            print(f"Correo consolidado enviado a: {', '.join(destinatario_fijo)} con copia a: {', '.join(cc_fijo)}")
 
             server.quit()
 
@@ -1487,7 +1495,6 @@ class GestionClausulas:
             raise
  
 # Reporte descargable de la gestión de clausulas
-    # Reporte descargable de la gestión de cláusulas
     def conectar_db(self):
         """Asegura que la conexión a la base de datos esté abierta correctamente."""
         if self.connection is None or self.connection.closed:

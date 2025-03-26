@@ -1,0 +1,1369 @@
+{% extends "components/layout.html" %}
+{% block title %} Control Checklist {% endblock %}
+
+{% block head %}
+    <!-- Incluyendo los estilos de Bootstrap y Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid bg-white shadow-md rounded-lg  mt-0 mb-3">
+    <h1 class="text-3xl font-bold text-center mb-3" style="font-size:20px; font-family: 'Century Gothic', sans-serif;" >Gestión de Checklist Vehiculos CEXP</h1>
+    
+    <!-- Pantalla General de Pestañas -->
+    <ul class="nav nav-tabs justify-content-center" id="checklistTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="registro-tab" data-bs-toggle="tab" data-bs-target="#registro" type="button" role="tab" style="font-size:14px; font-family: 'Century Gothic', sans-serif;">📋 Registro Checklist</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="fallas-tab" data-bs-toggle="tab" data-bs-target="#fallas" type="button" role="tab" style="font-size:14px; font-family: 'Century Gothic', sans-serif;">⚠️ Consolidado de Fallas</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="vehiculos-tab" data-bs-toggle="tab" data-bs-target="#vehiculos" type="button" role="tab" style="font-size:14px; font-family: 'Century Gothic', sans-serif;">🚗 Parametrización Vehículos</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="reporte-tab" data-bs-toggle="tab" data-bs-target="#reporte" type="button" role="tab" style="font-size:14px; font-family: 'Century Gothic', sans-serif;">📊 Consultas y Reportes</button>
+        </li>
+    </ul>
+    
+    <!-- Proceso de carga -->
+    <div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(20, 20, 20, 0.5); z-index:9999;">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; color:white; font-size:18px; font-weight:bold;">
+            <img src="/static/images/cargandobi.gif" style="width:150px; height:150px; border-radius: 50%;" alt="Cargando...">
+            <p style="margin-top: 10px;">Guardando datos, por favor espere...</p>
+        </div>
+    </div>
+
+    <!-- Pestaña Registro Checklist -->
+    <div class="tab-content mt-4" id="checklistTabsContent">
+        <div class="tab-pane fade show active form-section" id="registro" role="tabpanel">
+            <div class="container-fluid">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                    <h4 class="fw-bold m-0 text-truncate" style="font-size: 16px; font-family: 'Century Gothic', sans-serif; max-width: 100%;">
+                        ¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!
+                    </h4>
+                    <h4 class="text-primary fw-bold m-0 text-truncate" style="font-size: 16px; font-family: 'Century Gothic', sans-serif; max-width: 100%;">
+                        Consulta tu vehículo y Registra Checklist
+                    </h4>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!--<label class="form-label fw-bold mb-0 me-2">Ingrese Placa:</label> -->
+                        <div class="position-relative" style="width: 180px;">
+                            <input type="text" class="form-control" id="searchPlaca" placeholder="Ingrese la placa..." 
+                                oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');">
+                            <div id="placaList" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
+                        </div>
+                        <button id="btnConsultar" class="btn btn-primary" style="height: 36px; min-width: 80px; padding: 4px 6px; font-size: 14px;">
+                            Consultar
+                        </button>
+                        <button class="btn btn-secondary" onclick="limpiarConsulta()" style="height: 36px; min-width: 80px; padding: 4px 6px; font-size: 14px;">
+                            Limpiar
+                        </button>
+                    </div>
+                </div>                         
+
+                <!-- Campos a Diligenciar por Conductor -->
+                <div class="row g-1 align-items-center">
+                    <!-- Fecha Hora del Registro-->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <span style="color: red; font-weight: bold;">*</span> Fecha y Hora:
+                        </label>
+                        <input type="datetime-local" class="form-control" id="fechaHoraRegistro" required >
+                    </div>
+    
+                    <!-- Inicio Turno -->
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">
+                            <span style="color: red; font-weight: bold;">*</span> Inicio Turno:
+                        </label>
+                        <input type="time" class="form-control" id="inicioTurno" required>
+                    </div>
+    
+                    <!-- Fin Turno -->
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">
+                            <span style="color: red; font-weight: bold;">*</span> Fin Turno:
+                        </label>
+                        <input type="time" class="form-control" id="finTurno" required>
+                    </div>
+    
+                    <!-- Km Odómetro -->
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">
+                            <span style="color: red; font-weight: bold;">*</span> Km Odómetro:
+                        </label>
+                        <input type="number" class="form-control" id="kmOdometro" placeholder="Ingrese Km" required>
+                    </div>
+    
+                    <!-- Observación General -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Observación General:</label>
+                        <textarea class="form-control" id="observacionGeneral" rows="1" placeholder="Ingrese observaciones..."></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Secciones retractiles -->
+            <div class="accordion mt-4" id="vehiculoAccordion">
+                
+                <!-- Datos Generales del Vehículo -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingOne">
+                        <button class="accordion-button py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                            <img src="/static/images/camion.png" alt="Icono camion" width="24" height="24" class="me-2">
+                            <span>Datos Generales del Vehículo</span>
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#vehiculoAccordion">
+                        <div class="accordion-body">
+                            <div class="d-flex flex-wrap gap-4">
+                                <p class="mb-0"><strong>Tipo de Vehículo:</strong> <span id="tipoVehiculoInfo">-</span></p>
+                                <p class="mb-0"><strong>Marca:</strong> <span id="marcaVehiculoInfo">-</span></p>
+                                <p class="mb-0"><strong>Línea:</strong> <span id="lineaVehiculoInfo">-</span></p>
+                                <p class="mb-0"><strong>Modelo:</strong> <span id="modeloVehiculoInfo">-</span></p>
+                            </div>
+                        </div>
+                    </div>                    
+                </div>
+                
+                <!-- Verificación de Documentos -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingTwo">
+                        <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                            <img src="/static/images/documento.png" alt="Icono Documento" width="24" height="24" class="me-2">
+                            <span>Verificación de Documentos</span>
+                        </button>
+                    </h2>
+                    <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#vehiculoAccordion">
+                        <div class="table-responsive">
+                            <table class="table table-bordered text-center">
+                                <thead style="background-color: #0a6ad1; color: white; text-align: center; font-weight: bold;">
+                                    <tr>
+                                        <th class="py-1">Tipo</th>
+                                        <th class="py-1">Estado</th>
+                                        <th class="py-1">Observación</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-documentos">
+                                    <!-- Aquí se insertarán los documentos dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secciones con tabla (Por Grupo, Posición y Componente) -->
+                <h2 class="fw-bold mt-4" style="color: #060d6b; font-size: 18px;">Estado del vehículo</h2>            
+                <div class="accordion mt-4" id="vehiculoAccordion">
+                    {% for grupo, posiciones in componentes.items() %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ grupo | replace(' ', '') }}">
+                            <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ grupo | replace(' ', '') }}">
+                                <img src="/static/images/lista.png" alt="Icono lista" width="24" height="24" class="me-2">
+                                {{ grupo }}
+                            </button>
+                        </h2>
+                        <div id="collapse{{ grupo | replace(' ', '') }}" class="accordion-collapse collapse" data-bs-parent="#vehiculoAccordion">
+                            <div class="table-responsive">
+                                <table class="table table-bordered text-center">
+                                    <thead style="background-color: #0a6ad1; color: white; text-align: center; font-weight: bold;">
+                                        <tr>
+                                            <th class="py-1" style="padding: 12px; border: 1px solid #ddd;">Posición</th>
+                                            <th class="py-1" style="padding: 12px; border: 1px solid #ddd;">Componente</th>
+                                            <th class="py-1" style="padding: 12px; border: 1px solid #ddd;">Estado</th>
+                                            <th class="py-1" style="padding: 12px; border: 1px solid #ddd;">Observaciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for posicion, componentes in posiciones.items() %}
+                                        <tr>
+                                            <td rowspan="{{ componentes|length }}">{{ posicion }}</td>
+                                            {% for componente in componentes %}
+                                            <td>{{ componente }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center justify-content-center gap-0" style="gap: 2px;">
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="estado_{{ componente.id_componente }}" value="OK"
+                                                            style="transform: scale(1.5); margin-right: 5px;">
+                                                        <label class="form-check-label fw-bold">OK</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="estado_{{ componente.id_componente }}" value="Falla"
+                                                            style="transform: scale(1.5); margin-right: 5px;">>
+                                                        <label class="form-check-label fw-bold">Falla</label>
+                                                    </div>
+                                                </div>                                                                                               
+                                            </td>                                            
+                                            <td><input type="text" class="form-control"></td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña Consolidado de Fallas -->
+        <div class="tab-pane fade form-section" id="fallas" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+            </div>
+
+            <!-- Filtros de búsqueda -->
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Placa:</label>
+                    <input type="text" class="form-control" id="buscarPlaca" placeholder="Ingrese la placa...">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Tipo de Falla:</label>
+                    <select class="form-select" id="tipoFalla">
+                        <option value="">Seleccionar...</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Estado:</label>
+                    <select class="form-select" id="estadoFalla">
+                        <option value="">Seleccionar...</option>
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="En Proceso">En Proceso</option>
+                        <option value="Solucionado">Solucionado</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-primary me-2" onclick="cargarFallas()">Buscar</button>
+                    <button class="btn btn-secondary" onclick="limpiarFiltros()">Limpiar</button>
+                </div>
+            </div>
+
+            <!-- Tabla de Fallas -->
+            <div class="table-responsive" style="max-height: 500px; overflow-y: auto; border: 1px solid rgb(104, 103, 103);">
+                <table class="table table-bordered table-striped" id="tablaFallas">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Vehículo</th>
+                            <th>Placa</th>
+                            <th>Falla</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Se llenará dinámicamente con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div> 
+
+        <!-- Parametización de Vehículos -->
+        <div class="tab-pane fade form-section" id="vehiculos" role="tabpanel">
+            <div class="row">
+                <!-- Sección Izquierda: Creación de Vehículo -->
+                <div class="col-lg-5 d-flex flex-column" style="height: 80vh;">
+                    <div class="card shadow-sm flex-grow-1 d-flex flex-column">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Registrar Nuevo Vehículo</h4>
+                        </div>
+                        <div class="card-body flex-grow-1 d-flex flex-column" style="overflow-y: auto; height: 70vh;">
+                            <form id="createVehicleForm">
+                                <div class="mb-3">
+                                    <label class="form-label"><span style="color: red; font-weight: bold;">*</span> Placa del Vehículo:</label>
+                                    <input type="text" class="form-control" id="placaVehiculo" placeholder="Ejemplo: ABC123" required 
+                                        oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label"><span style="color: red; font-weight: bold;">*</span> Tipo de Vehículo:</label>
+                                    <select class="form-select" id="tipoVehiculo" required>
+                                        <option disabled selected>Seleccione el tipo...</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label"><span style="color: red; font-weight: bold;">*</span> Marca:</label>
+                                    <input type="text" class="form-control" id="marcaVehiculo" placeholder="Ejemplo: Toyota" required>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label"><span style="color: red; font-weight: bold;">*</span> Línea:</label>
+                                        <input type="text" class="form-control" id="lineaVehiculo" placeholder="Ejemplo: Hilux" required>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label"><span style="color: red; font-weight: bold;">*</span> Modelo:</label>
+                                        <input type="number" class="form-control" id="modeloVehiculo" placeholder="Ejemplo: 2022" required
+                                            oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-success w-100">Guardar Vehículo</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección Derecha: Listado de Vehículos -->
+                <div class="col-lg-7 d-flex flex-column" style="height: 80vh;">
+                    <div class="card shadow-sm flex-grow-1 d-flex flex-column">
+                        <div class="card-header bg-dark text-white">
+                            <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Vehículos Registrados</h4>
+                        </div>
+                        <div class="card-body flex-grow-1 d-flex flex-column" style="overflow-y: auto; height: 70vh; padding-top: 0;">
+                            <table class="table table-hover table-striped text-center" style="table-layout: fixed; width: 100%; font-size: 12px;">
+                                <thead style="background-color: #0a6ad1; color: white; position: sticky; top: 0; z-index: 1; margin-top: 0; padding: 0">
+                                    <tr>
+                                        <th style="width: 60px; min-width: 60px;">Placa</th>
+                                        <th style="width: 80px; min-width:80px;">Tipo</th>
+                                        <th style="width: 120px; min-width: 120px;">Marca</th>
+                                        <th style="width: 120px; min-width: 120px;">Línea</th>
+                                        <th style="width: 80px; min-width: 80px;">Modelo</th>
+                                        <th style="width: 80px; min-width: 80px;">Estado</th>
+                                        <th style="width: 150px; min-width: 150px;">Acciones</th>
+                                    </tr>                                    
+                                </thead>
+                                <tbody id="vehiculosTable">
+                                    <!-- Se cargarán los vehículos aquí dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña Reportes -->
+        <div class="tab-pane fade form-section" id="reporte" role="tabpanel">
+            <h2 class="text-xl font-semibold fw-bold mb-4" style="font-size:16px; font-family: 'Century Gothic', sans-serif;">Generación de Reportes</h2>
+            <label class="form-label">Seleccionar Rango de Fechas:</label>
+            <div class="d-flex">
+                <input type="date" class="form-control me-2">
+                <input type="date" class="form-control">
+            </div>
+            <div class="mt-4 d-grid gap-2">
+                <button class="btn btn-primary">Generar Reporte</button>
+                <button class="btn btn-secondary">Descargar Excel</button>
+            </div>
+        </div>
+    </div>
+
+<!-- Modal para editar vehículo -->
+<div class="modal fade" id="editVehicleModal" tabindex="-1" aria-labelledby="editVehicleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editVehicleForm">
+                <input type="hidden" id="editVehicleIdHidden" name="placa">
+  
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="editVehicleModalLabel">Editar Vehículo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+  
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editPlacaVehiculo" class="form-label">Placa</label>
+                        <input type="text" class="form-control" id="editPlacaVehiculo" name="placa" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTipoVehiculo" class="form-label">Tipo de Vehículo</label>
+                        <select class="form-select" id="editTipoVehiculo" name="tipo_vehiculo" required>
+                            <option disabled selected>Seleccione el tipo...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editMarcaVehiculo" class="form-label">Marca</label>
+                        <input type="text" class="form-control" id="editMarcaVehiculo" name="marca" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editLineaVehiculo" class="form-label">Línea</label>
+                            <input type="text" class="form-control" id="editLineaVehiculo" name="linea" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editModeloVehiculo" class="form-label">Modelo</label>
+                            <input type="number" class="form-control" id="editModeloVehiculo" name="modelo" required>
+                        </div>
+                    </div>
+                </div>
+  
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+  </div>
+
+<!-- Modal de Gestión de Fallas -->
+<div class="modal fade" id="modalFalla" tabindex="-1" aria-labelledby="modalFallaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalFallaLabel">Detalles de la Falla</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formFalla">
+                    <input type="hidden" id="fallaId">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Vehículo:</label>
+                            <input type="text" class="form-control" id="vehiculoFalla" disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Placa:</label>
+                            <input type="text" class="form-control" id="placaFalla" disabled>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Descripción:</label>
+                            <textarea class="form-control" id="descripcionFalla" rows="3" disabled></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Estado:</label>
+                            <select class="form-select" id="estadoFallaModal">
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="En Proceso">En Proceso</option>
+                                <option value="Solucionado">Solucionado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Observaciones:</label>
+                            <input type="text" class="form-control" id="observacionFalla">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarFalla()">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ###################################################################################### -->
+<!-- ###################### INICIO DE LOGICA Y FUNCIONES JAVASCRIPT  ###################### -->
+<!-- ###################################################################################### -->
+
+<!--  JavaScript Interacción Pestañas  -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        let tabs = document.querySelectorAll(".nav-tabs .nav-link");
+
+        // Asegurar que la primera pestaña esté activa al inicio
+        let firstTab = document.querySelector(".nav-tabs .nav-link");
+        if (firstTab) {
+            firstTab.classList.add("active");
+            firstTab.style.backgroundColor = "#007bff"; // Color de pestaña activa
+            firstTab.style.color = "#fff";
+        }
+
+        tabs.forEach(tab => {
+            // Evento para cambiar color al pasar el mouse
+            tab.addEventListener("mouseover", function() {
+                if (!this.classList.contains("active")) {
+                    this.style.backgroundColor = "#d3d3d3";
+                    this.style.color = "#000";
+                }
+            });
+
+            // Evento para restaurar color cuando el mouse sale
+            tab.addEventListener("mouseout", function() {
+                if (!this.classList.contains("active")) {
+                    this.style.backgroundColor = "#f8f9fa";
+                    this.style.color = "#495057";
+                }
+            });
+
+            // Evento para manejar selección de pestañas
+            tab.addEventListener("click", function() {
+                tabs.forEach(t => {
+                    t.classList.remove("active");
+                    t.style.backgroundColor = "#f8f9fa"; // Restaurar color original
+                    t.style.color = "#495057";
+                });
+                this.classList.add("active");
+                this.style.backgroundColor = "#007bff"; // Color de pestaña activa
+                this.style.color = "#fff";
+            });
+        });
+    });
+</script>
+
+<!--  JavaScript para Manejo de Registro CheckList  -->
+<script>
+    // Autocompletar Fecha-Hora al abrir formulario
+    document.addEventListener("DOMContentLoaded", function () {
+        // Función para establecer la fecha y hora actual con la zona horaria de Bogotá
+        function setFechaHoraActual() {
+            // Obtener la fecha y hora en la zona horaria de Bogotá
+            const fechaUTC = new Date();
+            const opcionesFecha = { timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit" };
+            const opcionesHora = { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hour12: false };
+    
+            // Formatear la fecha y hora correctamente
+            const fechaBogota = new Intl.DateTimeFormat("es-CO", opcionesFecha).format(fechaUTC);
+            const horaBogota = new Intl.DateTimeFormat("es-CO", opcionesHora).format(fechaUTC);
+    
+            // Convertir la fecha al formato YYYY-MM-DD
+            const [dia, mes, anio] = fechaBogota.split("/");
+            const fechaFormateada = `${anio}-${mes}-${dia}`;
+    
+            // Convertir la hora al formato HH:MM
+            const horaFormateada = horaBogota.replace(":", ":"); // Asegurar formato HH:MM
+    
+            // Asignar la fecha y hora al input
+            document.getElementById("fechaHoraRegistro").value = `${fechaFormateada}T${horaFormateada}`;
+        }
+        // Ejecutar la función al cargar la página
+        setFechaHoraActual();
+    
+        // Asegurar que la fecha y hora se actualicen al abrir la pestaña de checklist
+        const tab = document.getElementById("registro-tab"); // ID correcto del tab
+        if (tab) {
+            tab.addEventListener("shown.bs.tab", function () {
+                setFechaHoraActual();
+            });
+        }
+        // Asegurar que el campo sea obligatorio
+        document.getElementById("fechaHoraRegistro").setAttribute("required", "true");
+    });       
+    
+    // Autocompletar placa al digitar por el usuario
+    document.getElementById("searchPlaca").addEventListener("input", async function () {
+        const query = this.value.trim();
+        const placaList = document.getElementById("placaList");
+    
+        if (query.length < 1) {
+            placaList.innerHTML = "";
+            return;
+        }
+    
+        const response = await fetch(`/vehiculos/buscar/${query}`);
+        const placas = await response.json();
+    
+        placaList.innerHTML = ""; // Limpiar la lista antes de mostrar nuevas opciones
+    
+        if (placas.length === 0) {
+            placaList.innerHTML = `<button class="list-group-item list-group-item-action disabled">No hay coincidencias</button>`;
+            return;
+        }
+    
+        placas.forEach(vehiculo => {
+            const item = document.createElement("button");
+            item.classList.add("list-group-item", "list-group-item-action");
+            item.style.padding = "4px"; 
+            item.style.fontSize = "16px"; 
+            item.textContent = vehiculo.placa;
+            item.addEventListener("click", function () {
+                document.getElementById("searchPlaca").value = vehiculo.placa.toUpperCase();
+                placaList.innerHTML = ""; // Ocultar la lista tras seleccionar
+            });
+    
+            placaList.appendChild(item);
+        });
+    });    
+    
+    // Eventos click o consultas
+    document.querySelector(".btn-primary").addEventListener("click", consultarVehiculo);
+    document.querySelector(".btn-secondary").addEventListener("click", limpiarConsulta);
+    document.addEventListener("DOMContentLoaded", cargarDocumentos);
+    
+    // Función para consultar un vehículo por placa
+    async function consultarVehiculo() {
+        const placa = document.getElementById("searchPlaca").value.trim();
+        if (!placa) {
+            alert("Por favor, ingrese una placa válida.");
+            return;
+        }
+    
+        try {
+            const response = await fetch(`/vehiculos/checklist/${placa}`);
+            if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+            
+            const data = await response.json();
+            
+            //console.log(" Respuesta recibida del servidor:", data);
+    
+            if (data.error) {
+                alert("Vehículo no encontrado.");
+                return;
+            }
+    
+            const vehiculo = data.vehiculo;
+            const checklist = data.checklist || {};
+            let documentos = data.documentos || [];
+            let detalles = data.detalles || [];
+    
+            // **Validar documentos y detalles**
+            if (!Array.isArray(documentos)) {
+                console.warn("⚠️ No se encontraron documentos válidos.");
+                documentos = [];
+            }
+    
+            if (!Array.isArray(detalles)) {
+                console.warn("⚠️ No se encontraron detalles válidos.");
+                detalles = [];
+            }
+    
+            // **Asignar información del vehículo**
+            document.getElementById("tipoVehiculoInfo").textContent = vehiculo.tipo_vehiculo;
+            document.getElementById("marcaVehiculoInfo").textContent = vehiculo.marca;
+            document.getElementById("lineaVehiculoInfo").textContent = vehiculo.linea;
+            document.getElementById("modeloVehiculoInfo").textContent = vehiculo.modelo;
+            document.getElementById("searchPlaca").setAttribute("data-idVehiculo", vehiculo.id_vehiculo);
+    
+            // **Cargar los componentes según el tipo de vehículo**
+            await cargarComponentes(vehiculo.placa);
+    
+            // **Actualizar los datos del checklist si existe**
+            document.getElementById("fechaHoraRegistro").value = checklist.fecha_hora_registro || "";
+            document.getElementById("inicioTurno").value = checklist.inicio_turno || "";
+            document.getElementById("finTurno").value = checklist.fin_turno || "";
+            document.getElementById("kmOdometro").value = checklist.km_odometro || "";
+            document.getElementById("observacionGeneral").value = checklist.observaciones_generales || "";
+    
+            // **Llenar la tabla de documentos**
+            document.querySelectorAll("#tbody-documentos tr").forEach(row => {
+                const idTipoDocumento = row.getAttribute("data-idTipoDocumento");
+                const index = row.getAttribute("data-index"); 
+                const docEncontrado = documentos.find(doc => doc.id_tipo_documento == idTipoDocumento);
+            
+                if (docEncontrado) {
+                    const radioName = `doc_estado_${idTipoDocumento}_${index}`; 
+                    const radioOk = row.querySelector(`input[name="${radioName}"][value="OK"]`);
+                    const radioFalla = row.querySelector(`input[name="${radioName}"][value="Falla"]`);
+                    const observacionInput = row.querySelector("input[type='text']");
+            
+                    if (radioOk && radioFalla) {
+                        radioOk.checked = docEncontrado.estado ? true : false;
+                        radioFalla.checked = !docEncontrado.estado ? true : false;
+                    }
+            
+                    if (observacionInput) {
+                        observacionInput.value = docEncontrado.observaciones || "";
+                    }
+                }
+            });
+    
+            // **Actualizar la tabla de detalles del checklist**
+            document.querySelectorAll("#vehiculoAccordion tbody tr").forEach(row => {
+                const idComponente = row.getAttribute("data-idComponente");
+                const detalleEncontrado = detalles.find(det => det.id_componente == idComponente);
+    
+                if (detalleEncontrado) {
+                    const radioBtn = row.querySelector(`input[name="comp_estado_${idComponente}"][value="${detalleEncontrado.estado ? 'OK' : 'Falla'}"]`);
+                    const observacionInput = row.querySelector("input[type='text']");
+    
+                    if (radioBtn) radioBtn.checked = true;
+                    if (observacionInput) observacionInput.value = detalleEncontrado.observaciones || "";
+                }
+            });
+
+            activarCambioColorEstado();
+            //console.log(" Vehículo y checklist cargados correctamente.");
+            
+        } catch (error) {
+            console.error("❌ Error al consultar vehículo:", error);
+            alert("Ocurrió un error al consultar el vehículo.");
+        }
+    }          
+
+    // Borra o limpia la consulta y los datos del vehículo en la pantalla
+    function limpiarConsulta() {
+        const confirmacion = confirm("¿Está seguro de que desea limpiar todos los datos?");
+        
+        if (!confirmacion) {
+            return; 
+        }
+
+        document.getElementById("searchPlaca").value = "";
+        document.getElementById("fechaHoraRegistro").value = "";
+        document.getElementById("inicioTurno").value = "";
+        document.getElementById("finTurno").value = "";
+        document.getElementById("kmOdometro").value = "";
+        document.getElementById("observacionGeneral").value = "";
+
+        // Limpiar selección de radio buttons y campos de texto en Documentos
+        document.querySelectorAll("#tbody-documentos input[type='radio']").forEach(radio => {
+            radio.checked = false;
+        });
+        document.querySelectorAll("#tbody-documentos input[type='text']").forEach(input => {
+            input.value = "";
+        });
+
+        // Limpiar selección de radio buttons y campos de texto en Componentes
+        document.querySelectorAll("#vehiculoAccordion tbody input[type='radio']").forEach(radio => {
+            radio.checked = false;
+        });
+        document.querySelectorAll("#vehiculoAccordion tbody input[type='text']").forEach(input => {
+            input.value = "";
+        });
+
+        // Restablecer la colorimetría de todas las celdas de estado en Documentos
+        document.querySelectorAll("#tbody-documentos td").forEach(celda => {
+            celda.style.backgroundColor = "transparent"; // Restaura el color a su estado original
+        });
+
+        // Restablecer la colorimetría de todas las celdas de estado en Componentes
+        document.querySelectorAll("#vehiculoAccordion tbody td").forEach(celda => {
+            celda.style.backgroundColor = "transparent"; // Restaura el color a su estado original
+        });
+    }
+
+    // Función para obtener los documentos desde la base de datos y cargarlos en la tabla
+    async function cargarDocumentos() {
+        try {
+            const response = await fetch("/documentos");
+            const documentos = await response.json();
+    
+            if (!Array.isArray(documentos)) {
+                console.error("Formato de respuesta incorrecto:", documentos);
+                alert("Error al obtener los documentos.");
+                return;
+            }
+    
+            const tbody = document.getElementById("tbody-documentos");
+            tbody.innerHTML = ""; 
+    
+            documentos.forEach((doc, index) => {  // Asegurar índices únicos
+                let fila = document.createElement("tr");
+    
+                // 🔹 Asignar el ID real del documento o un valor alternativo
+                let idTipoDocumento = doc.id_tipo_documento || doc.id;
+                fila.setAttribute("data-idTipoDocumento", idTipoDocumento);
+                fila.setAttribute("data-index", index);
+    
+                // 🔹 Generar un nombre único para cada fila
+                let radioName = `doc_estado_${idTipoDocumento}_${index}`; 
+    
+                fila.innerHTML = `
+                    <td>${doc.nombre}</td>
+                    <td>
+                        <div class="d-flex align-items-center justify-content-center gap-0" style="gap: 2px;">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="${radioName}" value="OK"
+                                    style="transform: scale(1.5); margin-right: 5px;">
+                                <label class="form-check-label fw-bold">OK</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="${radioName}" value="Falla"
+                                    style="transform: scale(1.5); margin-right: 5px;">
+                                <label class="form-check-label fw-bold">Falla</label>
+                            </div>
+                        </div>
+                    </td>
+                    <td><input type="text" class="form-control"></td>
+                `;
+    
+                tbody.appendChild(fila);
+            });
+    
+        } catch (error) {
+            console.error("Error al obtener documentos:", error);
+            alert("Ocurrió un error al cargar los documentos.");
+        }
+
+        activarCambioColorEstado();
+    }                   
+
+    // Función para cargar componentes dinámicamente según la placa
+    async function cargarComponentes(placa) {
+        try {
+            const response = await fetch(`/componentes/${placa}`);
+            const componentes = await response.json();
+
+            if (componentes.error) {
+                alert("Error al obtener componentes: " + componentes.error);
+                return;
+            }
+
+            // Renderizar los componentes en el acordeón
+            generarAcordeonComponentes(componentes);
+
+        } catch (error) {
+            console.error("Error al obtener componentes:", error);
+            alert("Ocurrió un error al obtener los componentes.");
+        }
+    }
+
+    // Función para actualizar dinámicamente el acordeón con los componentes
+    function generarAcordeonComponentes(componentes) {
+        const acordeon = document.getElementById("vehiculoAccordion");
+    
+        // Eliminar solo las secciones dinámicas previas
+        const gruposDinamicos = acordeon.querySelectorAll(".grupo-dinamico");
+        gruposDinamicos.forEach(grupo => grupo.remove());
+    
+        // 🔹 Limpiar todas las selecciones previas antes de volver a generar el acordeón
+        document.querySelectorAll("input[type='radio']").forEach(input => {
+            input.checked = false;
+        });
+    
+        Object.keys(componentes).forEach(grupo => {
+            const listaComponentes = componentes[grupo];
+    
+            // Agrupar por posición
+            let posicionesAgrupadas = {};
+            listaComponentes.forEach((item) => {
+                if (!posicionesAgrupadas[item.posicion]) {
+                    posicionesAgrupadas[item.posicion] = [];
+                }
+                posicionesAgrupadas[item.posicion].push({ 
+                    componente: item.componente, 
+                    id_componente: item.id_componente  
+                });
+            });
+    
+            let seccionHTML = document.createElement("div");
+            seccionHTML.classList.add("accordion-item", "grupo-dinamico");
+    
+            seccionHTML.innerHTML = `
+                <h2 class="accordion-header" id="heading${grupo.replace(/\s/g, '')}">
+                    <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" 
+                            data-bs-target="#collapse${grupo.replace(/\s/g, '')}">
+                        <img src="/static/images/lista.png" alt="Icono lista" width="24" height="24" class="me-2">
+                        ${grupo}
+                    </button>
+                </h2>
+                <div id="collapse${grupo.replace(/\s/g, '')}" class="accordion-collapse collapse" 
+                     data-bs-parent="#vehiculoAccordion"
+                     style="padding: 6px 10px; font-size: 16px; min-height: 35px; line-height: 1;">
+                    <div class="accordion-body" style="padding: 0px; margin: 0px;">
+                        <div class="table-responsive">
+                            <table class="table table-bordered text-center">
+                                <thead style="background-color: #0a6ad1; color: white;">
+                                    <tr>
+                                        <th style="width: 10%;">Posición</th>
+                                        <th style="width: 25%;">Componente</th>
+                                        <th style="width: 10%;">Estado</th>
+                                        <th style="width: 55%;">Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-${grupo.replace(/\s/g, '')}">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+    
+            acordeon.appendChild(seccionHTML);
+            const tbody = document.getElementById(`tbody-${grupo.replace(/\s/g, '')}`);
+    
+            // Recorrer cada posición y agregar correctamente las filas con celdas combinadas
+            Object.keys(posicionesAgrupadas).forEach(posicion => {
+                const componentesList = posicionesAgrupadas[posicion];
+                const totalComponentes = componentesList.length;
+    
+                componentesList.forEach((item, index) => {
+                    let fila = document.createElement("tr");
+    
+                    // Solo agregar la celda de "Posición" en la primera fila del grupo
+                    if (index === 0) {
+                        let celdaPosicion = document.createElement("td");
+                        celdaPosicion.rowSpan = totalComponentes;  // Combina las filas
+                        celdaPosicion.textContent = posicion;
+                        celdaPosicion.classList.add("fw-bold", "text-center", "align-middle", "bg-light");
+                        fila.appendChild(celdaPosicion);
+                    }
+    
+                    // Celda de Componente
+                    let celdaComponente = document.createElement("td");
+                    celdaComponente.textContent = item.componente;
+                    fila.appendChild(celdaComponente);
+    
+                    // Generar un nombre único para los radios (cada componente tiene su propio grupo)
+                    let radioName = `comp_estado_${item.id_componente}`;
+    
+                    // Celda de Estado (radio buttons)
+                    let celdaEstado = document.createElement("td");
+                    celdaEstado.innerHTML = `
+                        <div class="d-flex align-items-center justify-content-center gap-0">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="${radioName}" value="OK"
+                                    style="transform: scale(1.5); margin-right: 0px;">
+                                <label class="form-check-label fw-bold">OK</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="${radioName}" value="Falla"
+                                    style="transform: scale(1.5); margin-right: 0px;">
+                                <label class="form-check-label fw-bold">Falla</label>
+                            </div>
+                        </div>
+                    `;
+
+                    fila.appendChild(celdaEstado);
+    
+                    // Celda de Observaciones
+                    let celdaObservacion = document.createElement("td");
+                    celdaObservacion.innerHTML = `<input type="text" class="form-control">`;
+                    fila.appendChild(celdaObservacion);
+    
+                    // Guardar el ID del componente en la fila
+                    fila.setAttribute("data-idComponente", item.id_componente);
+    
+                    tbody.appendChild(fila);
+                });
+            });
+        });
+
+        activarCambioColorEstado();
+    
+        agregarBotonesFinales();
+    }                 
+    
+    // Función para incluir colorimetria al cambiar estado de los radio buttons
+    function activarCambioColorEstado() {
+        document.querySelectorAll("input[type='radio']").forEach(radio => {
+            radio.addEventListener("change", function () {
+                let celdaEstado = this.closest("td"); // Obtener la celda que contiene los radio buttons
+                
+                if (this.value === "OK") {
+                    celdaEstado.style.backgroundColor = "#c8e6c9"; // Verde pastel
+                } else if (this.value === "Falla") {
+                    celdaEstado.style.backgroundColor = "#ffcccb"; // Rojo pastel
+                }
+            });
+    
+            // Disparar manualmente el evento para aplicar color a los ya seleccionados
+            if (radio.checked) {
+                radio.dispatchEvent(new Event('change'));
+            }
+        });
+    }    
+
+    // Función para agregar los botones finales al final del acordeón
+    function agregarBotonesFinales() {
+        let botonesFinales = document.getElementById("botonesFinales");
+    
+        if (botonesFinales) {
+            botonesFinales.remove();
+        }
+    
+        botonesFinales = document.createElement("div");
+        botonesFinales.id = "botonesFinales";
+        botonesFinales.classList.add("d-flex", "justify-content-end", "mt-3");
+    
+        botonesFinales.innerHTML = `
+            <button class="btn btn-secondary me-2" onclick="limpiarConsulta()">Limpiar</button>
+            <button class="btn btn-success" id="btnGuardar" onclick="guardarChecklist()">Guardar</button>
+        `;
+    
+        document.getElementById("vehiculoAccordion").appendChild(botonesFinales);
+    }    
+
+</script>
+
+<!--  JavaScript para Guardar todo el CheckList  -->
+<script>
+    async function guardarChecklist() {
+        const btnGuardar = document.querySelector("#btnGuardar");
+
+        if (!btnGuardar) {
+            console.error("❌ Error: No se encontró el botón de guardar.");
+            return;
+        }
+
+        // Evitar múltiples clics deshabilitando el botón
+        btnGuardar.disabled = true;
+
+        const idVehiculo = document.getElementById("searchPlaca").getAttribute("data-idVehiculo");
+        if (!idVehiculo) {
+            alert("Debe seleccionar un vehículo válido antes de guardar.");
+            btnGuardar.disabled = false; // Habilitar el botón nuevamente
+            return;
+        }
+    
+        const fechaHoraRegistro = document.getElementById("fechaHoraRegistro").value;
+        const inicioTurno = document.getElementById("inicioTurno").value;
+        const finTurno = document.getElementById("finTurno").value;
+        const kmOdometro = document.getElementById("kmOdometro").value;
+        const observacionesGenerales = document.getElementById("observacionGeneral").value;
+        const usuarioRegistra = "{{ user_session.nombres }} {{ user_session.apellidos }}";
+    
+        // Validar que los campos obligatorios estén completos
+        if (!fechaHoraRegistro || !inicioTurno || !finTurno || !kmOdometro) {
+            alert("⚠️ Todos los campos obligatorios deben ser diligenciados.");
+            btnGuardar.disabled = false; // Habilitar el botón nuevamente
+            return;
+        }
+    
+        let documentos = [];
+        let faltaDocumento = false;
+
+        document.querySelectorAll("#tbody-documentos tr").forEach(row => {
+            const idTipoDocumento = row.getAttribute("data-idTipoDocumento");
+            const estadoSeleccionado = row.querySelector("input[name^='doc_estado_']:checked");
+
+            /*
+            console.log("🔍 Documento detectado:", {
+                idTipoDocumento,
+                estado: estadoSeleccionado ? estadoSeleccionado.value : "No seleccionado"
+            });
+            */
+
+            if (!estadoSeleccionado) faltaDocumento = true;
+
+            documentos.push({
+                id_tipo_documento: idTipoDocumento ? parseInt(idTipoDocumento, 10) : null,
+                estado: estadoSeleccionado ? (estadoSeleccionado.value === "OK" ? 1 : 0) : null,
+                observaciones: row.querySelector("input[type='text']").value || ""
+            });
+        });
+
+        if (faltaDocumento) {
+            alert("⚠️ Debe seleccionar el estado de todos los documentos.");
+            btnGuardar.disabled = false;
+            return;
+        }
+    
+        let detalles = [];
+        let faltaDetalle = false;
+    
+        document.querySelectorAll("#vehiculoAccordion tbody tr").forEach(row => {
+            const estado = row.querySelector("input[name^='comp_estado_']:checked")?.value;
+            const idComponente = row.getAttribute("data-idComponente"); 
+        
+            // Evitar agregar registros sin ID válido
+            if (!idComponente) return;
+        
+            if (!estado) faltaDetalle = true;
+        
+            detalles.push({
+                id_componente: idComponente,  
+                estado: estado === "OK" ? 1 : 0,
+                observaciones: row.querySelector("input[type='text']").value || ""
+            });
+        
+            //console.log("🔍 Componente detectado:", { idComponente, estado });
+        });                        
+    
+        if (faltaDetalle) {
+            alert("⚠️ Debe seleccionar el estado de todos los componentes del vehículo.");
+            btnGuardar.disabled = false;
+            return;
+        }
+    
+        if (documentos.length === 0 || detalles.length === 0) {
+            alert("⚠️ Debe completar la verificación de documentos y el estado del vehículo.");
+            btnGuardar.disabled = false;
+            return;
+        }
+    
+        const payload = {
+            registro: {
+                id_vehiculo: idVehiculo,
+                fecha_hora_registro: fechaHoraRegistro,
+                inicio_turno: inicioTurno,
+                fin_turno: finTurno,
+                km_odometro: kmOdometro,
+                observaciones_generales: observacionesGenerales,
+                usuario_registro: usuarioRegistra
+            },
+            documentos: documentos,
+            detalles: detalles
+        };
+    
+        //console.log("📦 Payload enviado:", JSON.stringify(payload, null, 2));
+        
+        // Mostrar GIF procesando mientras termina la petición
+        document.getElementById("loadingOverlay").style.display = "block";
+    
+        try {
+            const response = await fetch("/guardar_checklist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+    
+            const data = await response.json();
+
+            // Ocultar GIF de carga
+            document.getElementById("loadingOverlay").style.display = "none";
+
+            if (response.ok) {
+                alert("✅ Checklist guardado correctamente con ID: " + data.id_checklist);
+                limpiarFormularioChecklist();
+                location.reload();
+            } else {
+                alert("⚠️ Error al guardar: " + (data.detail || "Error desconocido."));
+                btnGuardar.disabled = false;
+            }
+        } catch (error) {
+            document.getElementById("loadingOverlay").style.display = "none"; // Ocultar GIF de carga
+            console.error("❌ Error al guardar checklist:", error);
+            alert("Ocurrió un error al guardar el checklist.");
+            btnGuardar.disabled = false;
+        }
+    }  
+    
+    // Limpia todos los campos del formulario tras el guardado
+    function limpiarFormularioChecklist() {
+        document.getElementById("searchPlaca").value = "";
+        document.getElementById("fechaHoraRegistro").value = "";
+        document.getElementById("inicioTurno").value = "";
+        document.getElementById("finTurno").value = "";
+        document.getElementById("kmOdometro").value = "";
+        document.getElementById("observacionGeneral").value = "";
+
+        // Limpiar selección de radio buttons y campos de texto en Documentos
+        document.querySelectorAll("#tbody-documentos input[type='radio']").forEach(radio => {
+            radio.checked = false;
+        });
+        document.querySelectorAll("#tbody-documentos input[type='text']").forEach(input => {
+            input.value = "";
+        });
+
+        // Limpiar selección de radio buttons y campos de texto en Componentes
+        document.querySelectorAll("#vehiculoAccordion tbody input[type='radio']").forEach(radio => {
+            radio.checked = false;
+        });
+        document.querySelectorAll("#vehiculoAccordion tbody input[type='text']").forEach(input => {
+            input.value = "";
+        });
+
+        // Restablecer la colorimetría de todas las celdas de estado en Documentos
+        document.querySelectorAll("#tbody-documentos td").forEach(celda => {
+            celda.style.backgroundColor = "transparent"; // Restaura el color a su estado original
+        });
+
+        // Restablecer la colorimetría de todas las celdas de estado en Componentes
+        document.querySelectorAll("#vehiculoAccordion tbody td").forEach(celda => {
+            celda.style.backgroundColor = "transparent"; // Restaura el color a su estado original
+        });
+    }
+</script>
+
+<!--  JavaScript para Manejo de Vehículos  -->
+<script>
+    window.onload = cargarVehiculos;
+    // Cargar vehículos cuando se carga la página
+    async function cargarVehiculos() {
+        const response = await fetch("/vehiculos");
+        const vehiculos = await response.json();
+        const tbody = document.getElementById("vehiculosTable");
+        tbody.innerHTML = "";
+    
+        vehiculos.forEach(vehiculo => {
+            // Determinar si el vehículo está activo o inactivo
+            const estadoTexto = vehiculo.estado === 1 ? "Activo" : "Inactivo";
+            const estadoClase = vehiculo.estado === 1 ? "text-success" : "text-danger";
+    
+            // Crear botón de editar
+            const botonEditar = `
+            <button class="btn btn-sm btn-primary" 
+                style="height: 30px; padding: 4px 6px; font-size: 14px;" 
+                onclick="editarVehiculo('${vehiculo.placa}')"
+                data-bs-toggle="modal" data-bs-target="#editVehicleModal">
+                <i class="fas fa-edit"></i> Editar
+            </button>`;
+
+            // Crear botón de inactivar/activar
+            const botonEstado = vehiculo.estado === 1
+            ? `<button class="btn btn-sm btn-warning" 
+                style="height: 30px; width: 70px; padding: 4px 6px; font-size: 14px;" 
+                onclick="cambiarEstadoVehiculo('${vehiculo.placa}', 0)">
+                <i class="fas fa-ban"></i> Inactivar
+            </button>`
+            : `<button class="btn btn-sm btn-success" 
+                style="height: 30px; width: 70px; padding: 4px 6px; font-size: 14px;" 
+                onclick="cambiarEstadoVehiculo('${vehiculo.placa}', 1)">
+                <i class="fas fa-check"></i> Activar
+            </button>`;
+    
+            // Agregar la fila a la tabla
+            const row = `<tr>
+                <td>${vehiculo.placa}</td>
+                <td>${vehiculo.tipo_vehiculo_nombre}</td>
+                <td>${vehiculo.marca}</td>
+                <td>${vehiculo.linea}</td>
+                <td>${vehiculo.modelo}</td>
+                <td class="${estadoClase}">${estadoTexto}</td>
+                <td>
+                    ${botonEditar}
+                    ${botonEstado}
+                </td>
+            </tr>`;
+    
+            tbody.innerHTML += row;
+        });
+    }      
+    
+    // Cargar tipos de vehículos en las listas desplegables
+    async function cargarTiposVehiculos() {
+        try {
+            const response = await fetch("/tipos_vehiculos");
+            if (!response.ok) {
+                throw new Error("No se pudo obtener la lista de tipos de vehículos");
+            }
+
+            const tipos = await response.json();
+            const selectTipoVehiculo = document.getElementById("tipoVehiculo");
+            const selectEditTipoVehiculo = document.getElementById("editTipoVehiculo");
+
+            // Limpiar listas y agregar opción por defecto
+            selectTipoVehiculo.innerHTML = '<option disabled selected>Seleccione el tipo...</option>';
+            selectEditTipoVehiculo.innerHTML = '<option disabled selected>Seleccione el tipo...</option>';
+
+            // Poblar las listas con los valores desde la base de datos
+            tipos.forEach(tipo => {
+                let option = `<option value="${tipo.id_tipo_vehiculo}">${tipo.nombre}</option>`;
+                selectTipoVehiculo.innerHTML += option;
+                selectEditTipoVehiculo.innerHTML += option;
+            });
+        } catch (error) {
+            console.error("Error al cargar tipos de vehículos:", error);
+        }
+    }
+
+    // Enviar formulario y crear un nuevo vehículo
+    document.getElementById("createVehicleForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        
+        const data = {
+            placa: document.getElementById("placaVehiculo").value.toUpperCase(),
+            id_tipo_vehiculo: document.getElementById("tipoVehiculo").value,
+            marca: document.getElementById("marcaVehiculo").value,
+            linea: document.getElementById("lineaVehiculo").value,
+            modelo: document.getElementById("modeloVehiculo").value
+        };
+    
+        const response = await fetch("/vehiculos/crear", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+    
+        const result = await response.json();
+        if (result.message) {
+            alert(result.message);
+            cargarVehiculos(); // Recargar la tabla
+
+            // Limpiar formulario después de la creación
+            document.getElementById("createVehicleForm").reset();
+        } else {
+            alert("Error al crear vehículo: " + result.error);
+        }
+    });
+
+    // Carga de Vehículos y Tipos al Abrir la Pestaña
+    document.addEventListener("DOMContentLoaded", function () {
+        const vehiculosTab = document.getElementById("vehiculos-tab"); // Ajustar según ID de la pestaña
+        if (vehiculosTab) {
+            vehiculosTab.addEventListener("shown.bs.tab", function () {
+                cargarTiposVehiculos(); // Cargar la lista de tipos de vehículos
+                cargarVehiculos(); // Cargar la lista de vehículos registrados
+            });
+        }
+    });    
+
+    // Edita configuración del vehículos en ventana modal
+    async function editarVehiculo(placa) {
+        try {
+            const response = await fetch(`/vehiculos/${placa}`);
+            if (!response.ok) {
+                throw new Error("No se pudo obtener el vehículo");
+            }
+            const vehiculo = await response.json();
+
+            // Llenar los campos del modal con los datos del vehículo
+            document.getElementById("editVehicleIdHidden").value = vehiculo.placa;
+            document.getElementById("editPlacaVehiculo").value = vehiculo.placa;
+            document.getElementById("editTipoVehiculo").value = vehiculo.id_tipo_vehiculo;  // ID correcto
+            document.getElementById("editMarcaVehiculo").value = vehiculo.marca;
+            document.getElementById("editLineaVehiculo").value = vehiculo.linea;
+            document.getElementById("editModeloVehiculo").value = vehiculo.modelo;
+
+            // El vehículo seleccionado coincida con el del vehículo
+            const selectTipo = document.getElementById("editTipoVehiculo");
+            for (let i = 0; i < selectTipo.options.length; i++) {
+                if (selectTipo.options[i].value == vehiculo.id_tipo_vehiculo) {
+                    selectTipo.selectedIndex = i;
+                    break;
+                }
+            }
+        } catch (error) {
+            alert("Error al obtener datos del vehículo: " + error.message);
+        }
+    }    
+    
+    // Permite cambiar el estado activo o inactivo de un vehiculo
+    async function cambiarEstadoVehiculo(placa, nuevoEstado) {
+        const confirmacion = nuevoEstado === 0 
+            ? confirm("¿Estás seguro de que deseas INACTIVAR este vehículo?")
+            : confirm("¿Deseas ACTIVAR este vehículo?");
+        
+        if (!confirmacion) return;
+    
+        const response = await fetch(`/vehiculos/inactivar/${placa}/${nuevoEstado}`, { method: "PUT" });
+        const result = await response.json();
+    
+        if (result.message) {
+            alert(result.message);
+            cargarVehiculos(); // Recargar la tabla con los cambios
+        } else {
+            alert("Error al cambiar el estado del vehículo: " + result.error);
+        }
+    }     
+    
+    // Guardar Cambios de un vehiculo
+    document.getElementById("editVehicleForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+    
+        const placa = document.getElementById("editPlacaVehiculo").value;
+        const data = {
+            id_tipo_vehiculo: document.getElementById("editTipoVehiculo").value,
+            marca: document.getElementById("editMarcaVehiculo").value,
+            linea: document.getElementById("editLineaVehiculo").value,
+            modelo: document.getElementById("editModeloVehiculo").value
+        };
+    
+        const response = await fetch(`/vehiculos/actualizar/${placa}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+    
+        const result = await response.json();
+        if (result.message) {
+            alert(result.message);
+            cargarVehiculos(); // Recargar la tabla
+            document.getElementById("editVehicleModal").classList.remove("show"); // Cerrar modal visualmente
+            document.querySelector(".modal-backdrop").remove(); // Eliminar fondo del modal
+            document.getElementById("editVehicleModal").style.display = "none"; // Ocultar el modal
+        } else {
+            alert("Error al actualizar vehículo: " + result.error);
+        }
+    });    
+
+</script>
+
+<!--  JavaScript para consolidar fallas y gestión del CheckList  -->
+<script>
+
+
+</script>
+
+<!--  JavaScript para la consulta de reportes de checklist  -->
+<script>
+
+</script>
+
+{% endblock %}

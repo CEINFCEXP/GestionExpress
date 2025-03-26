@@ -1,29 +1,16 @@
+#########################################################################################
+######################### Importar librerías necesarias #################################
+#########################################################################################
 from fastapi import FastAPI, Request, Form, Depends, File, UploadFile, HTTPException, Query, Response, APIRouter, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from bs4 import BeautifulSoup 
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import FileResponse
+from bs4 import BeautifulSoup 
 from pydantic import BaseModel
-from lib.verifcar_clave import check_user
-from controller.user import User
-from controller.cargues import ProcesarCargueControles
-from model.gestionar_db import Cargue_Controles
-from model.gestionar_db import Cargue_Asignaciones
-from model.gestionar_db import CargueLicenciasBI
-from model.gestionar_db import HandleDB
-from model.gestionar_db import Cargue_Roles_Blob_Storage
-from model.consultas_db import Reporte_Asignaciones
-from model.gestion_clausulas import GestionClausulas
-from model.job import TareasProgramadasJuridico
-from model.containerModel import ContainerModel
-from model.gestion_reportbi import ReportBIGestion
-from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, concesion, control, rutas, turnos, hora_inicio, hora_fin
-from werkzeug.security import generate_password_hash
-from azure.storage.blob import BlobServiceClient, BlobClient
 from urllib.parse import unquote
 from datetime import datetime, date
 import psycopg2
@@ -36,12 +23,39 @@ import re
 import msal
 import requests
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash
+from azure.storage.blob import BlobServiceClient, BlobClient
 
-# Cargar las variables de entorno desde .env
+#########################################################################################
+##################### Importar controladores y modelos backend ##########################
+#########################################################################################
+from controller.user import User
+from lib.verifcar_clave import check_user
+from lib.asignar_controles import fecha_asignacion, puestos_SC, puestos_UQ, concesion, control, rutas, turnos, hora_inicio, hora_fin
+from controller.cargues import ProcesarCargueControles
+from model.gestionar_db import Cargue_Controles
+from model.gestionar_db import Cargue_Asignaciones
+from model.gestionar_db import CargueLicenciasBI
+from model.gestionar_db import HandleDB
+from model.gestionar_db import Cargue_Roles_Blob_Storage
+from model.consultas_db import Reporte_Asignaciones
+from model.gestion_clausulas import GestionClausulas
+from model.job import TareasProgramadasJuridico
+from model.containerModel import ContainerModel
+from model.gestion_reportbi import ReportBIGestion
+
+#########################################################################################
+################### Importar rutas de los controladores (Endpoint) ######################
+#########################################################################################
+from controller.route_checklist import checklist_router
+
+#########################################################################################
+############################### Carga de Variables de Entorno ###########################
+#########################################################################################
 load_dotenv()
 
 app = FastAPI()
-app.add_middleware(SessionMiddleware, secret_key="!secret_key")
+app.add_middleware(SessionMiddleware, secret_key="!secret_key", max_age=1800) # Expira en 30 minutos
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="./view")
 db = HandleDB()
@@ -54,6 +68,10 @@ CONTAINER_NAME = "5000-juridica-y-riesgos-juridica-clausulas"
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 TENANT_ID = os.getenv("TENANT_ID")
+
+#########################################################################################
+############################### Componentes y Rutas de la API ###########################
+#########################################################################################
 
 # Función para verificar si el usuario ha iniciado sesión
 def get_user_session(req: Request):
@@ -102,12 +120,6 @@ def login(req: Request, username: str = Form(...), password_user: str = Form(...
         # Si las credenciales no son válidas, muestra un mensaje de error
         error_message = "Por favor valide sus credenciales y vuelva a intentar."
         return templates.TemplateResponse("index.html", {"request": req, "error_message": error_message})
-
-@app.get("/inicio", response_class=HTMLResponse)
-def registrarse(req: Request, user_session: dict = Depends(get_user_session)):
-    if not user_session:
-        return RedirectResponse(url="/", status_code=302)    
-    return templates.TemplateResponse("inicio.html", {"request": req, "user_session": user_session})
   
 # Ruta de cierre de sesión
 @app.get("/logout", response_class=HTMLResponse)
@@ -116,6 +128,12 @@ async def logout(request: Request): # Limpiar cualquier estado de sesión
     response = RedirectResponse(url="/", status_code=302) # Crear una respuesta de redirección
     response.delete_cookie("access_token") # Eliminar la cookie de sesión o token de acceso
     return response
+
+@app.get("/inicio", response_class=HTMLResponse)
+def registrarse(req: Request, user_session: dict = Depends(get_user_session)):
+    if not user_session:
+        return RedirectResponse(url="/", status_code=302)    
+    return templates.TemplateResponse("inicio.html", {"request": req, "user_session": user_session})
 
 @app.get("/registrarse", response_class=HTMLResponse)
 def registrarse(req: Request, user_session: dict = Depends(get_user_session)):
@@ -1616,4 +1634,12 @@ def descargar_reporte(formato: str, request: Request):
 #####################################################################################
 ############################### MODULO DE CHECKLIST #################################
 #####################################################################################
+# Incluir las rutas factorizadas en `route_checklist.py`
+app.include_router(checklist_router)
+
+@app.get("/checklist", response_class=HTMLResponse)
+def checklist(req: Request, user_session: dict = Depends(get_user_session)):
+    if not user_session:
+        return RedirectResponse(url="/", status_code=302)
+    return templates.TemplateResponse("checklist.html", {"request": req, "user_session": user_session})
 
