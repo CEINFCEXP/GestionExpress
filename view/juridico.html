@@ -99,56 +99,56 @@
 
     <!-- Tabla Principal -->
     <div class="table-wrapper" style="max-height: 600px; overflow-y: auto; border: 1px solid rgb(104, 103, 103);">
-        <table class="table table-bordered table-striped" style="font-size: 12px; width: 100%; margin-bottom: 0; border: 1px solid rgb(218, 212, 212);">
+        <table class="table table-bordered table-striped" style="font-size: 12px; width: 100%; margin-bottom: 0; border: 1px solid rgb(218, 212, 212); table-layout: fixed;">
             <thead class="table-responsive" style="background-color: #120b6e; color: #ffffff; position: sticky; top: 0; z-index: 100; font-family: 'Century Gothic', Arial, sans-serif;">
                 <tr>
-                    <th style="width: 10px;">Ver</th>
-                    <th style="width: 15px;">Id</th>
-                    <th style="width: 20px;">Control</th>
-                    <th style="width: 25px;">Etapa</th>
-                    <th style="width: 15px;">Cláusula</th>
-                    <th style="width: 60px;">Contrato</th>
-                    <th style="width: 80px;">Tema</th>
-                    <th style="width: 250px;">Descripción</th>
-                    <th style="width: 20px;">Tipo</th>
-                    <th style="width: 50px;">Frecuencia</th>
-                    <th style="width: 50px;">Entrega</th>
-                    <th style="width: 50px;">Estado</th>
+                    <th style="width: 40px;">Ver</th>
+                    <th style="width: 50px;">Id</th>
+                    <th style="width: 80px;">Control</th>
+                    <th style="width: 100px;">Etapa</th>
+                    <th style="width: 100px;">Cláusula</th>
+                    <th style="width: 100px;">Contrato</th>
+                    <th style="width: 200px;">Tema</th>
+                    <th style="width: 200px;">Descripción</th>
+                    <th style="width: 100px;">Tipo</th>
+                    <th style="width: 110px;">Frecuencia</th>
+                    <th style="width: 80px;">Entrega</th>
+                    <th style="width: 100px;">Estado</th>
                 </tr>
             </thead>
             <tbody>
                 <!-- Filas dinámicas aquí -->
                 {% for clausula in clausulas %}
                 <tr data-id="{{ clausula.id }}" style="height: 20px;"> <!-- Definir el alto fijo -->
-                    <td tyle="text-align: center; vertical-align: middle;  width: 40px;">
+                    <td tyle="width: 40px; text-align: center; vertical-align: middle;">
                         <!-- Botón en la tabla para llamar a la función de abrir modal de Edición o Gestión -->
                         <button type="button" class="btn btn-primary d-flex align-items-center justify-content-center" data-id="{{ clausula.id }}" onclick="abrirModalGestion(this)" data-bs-toggle="modal" data-bs-target="#modalGestion" style="background-color: #ffffff; border-color: rgb(13, 15, 124); padding: 5px; height: 30px; width: 30px;">
                             <img src="/static/images/editar.png" alt="Editar" style="width: 20px; height: 20px;">
                         </button>                                              
                     </td>
-                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.id }}</td>
-                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.control }}</td>
-                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.etapa }}</td>
-                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.clausula }}</td>
-                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">{{ clausula.contrato_concesion }}</td>
+                    <td style="width: 50px; text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.id }}</td>
+                    <td style="width: 80px; text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.control }}</td>
+                    <td style="width: 100px; text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.etapa }}</td>
+                    <td style="width: 100px; text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.clausula }}</td>
+                    <td style="width: 100px; text-align: left; vertical-align: middle;">{{ clausula.contrato_concesion }}</td>
                     <td class="description-cell" 
                         title="{{ clausula.tema }}" 
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top"
-                        style="text-align: justify; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">
+                        style="width: 200px; text-align: justify; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         {{ clausula.tema }}
                     </td>
                     <td class="description-cell" 
                         title="{{ clausula.descripcion_clausula }}" 
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top"
-                        style="text-align: justify; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">
+                        style="width: 200px; text-align: justify; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" >
                         {{ clausula.descripcion_clausula }}
                     </td>
-                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.tipo_clausula }}</td>
-                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.frecuencia }}</td>
-                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.fecha_entrega_mas_reciente or "Sin Fecha" }}</td>
-                    <td style="text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">{{ clausula.estado_mas_reciente or "Sin Estado" }}</td>
+                    <td style="width: 100px; text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.tipo_clausula }}</td>
+                    <td style="width: 110px; text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.frecuencia }}</td>
+                    <td style="width: 80px; text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clausula.fecha_entrega_mas_reciente or "Sin Fecha" }}</td>
+                    <td style="width: 100px; text-align: center; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">{{ clausula.estado_mas_reciente or "Sin Estado" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
