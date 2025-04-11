@@ -43,6 +43,7 @@ from model.gestion_clausulas import GestionClausulas
 from model.job import TareasProgramadasJuridico
 from model.containerModel import ContainerModel
 from model.gestion_reportbi import ReportBIGestion
+from controller.route_chatbot import chatbot_router
 
 #########################################################################################
 ################### Importar rutas de los controladores (Endpoint) ######################
@@ -1643,3 +1644,14 @@ def checklist(req: Request, user_session: dict = Depends(get_user_session)):
         return RedirectResponse(url="/", status_code=302)
     return templates.TemplateResponse("checklist.html", {"request": req, "user_session": user_session})
 
+
+########################## CHATBOT ##########################
+# Incluir las rutas factorizadas en `route_checklist.py`
+app.include_router(chatbot_router)
+ 
+# Ruta para servir el chatbot.html
+@app.get("/chatbot", response_class=HTMLResponse, include_in_schema=False)
+async def get_chatbot(req: Request, user_session: dict = Depends(get_user_session)):
+    if not user_session:
+        return RedirectResponse(url="/", status_code=302)    
+    return templates.TemplateResponse("chatbot.html", {"request": req, "user_session": user_session})

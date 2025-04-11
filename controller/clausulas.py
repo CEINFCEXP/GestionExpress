@@ -2,7 +2,6 @@ import sys
 import os
 import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import pandas as pd
 from dotenv import load_dotenv
 from model.gestion_clausulas import GestionClausulas

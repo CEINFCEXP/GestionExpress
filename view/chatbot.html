@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Chatbot CEXP</title>
+    <style>
+        body {
+            font-family: 'Century Gothic', Arial, sans-serif;
+          }
+
+        .chatbot-box {
+            max-width: 700px;
+            margin: 20px auto;
+            padding: 10px;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.05);
+        }
+
+        #chatContainer {
+            width: 100%;
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f4f4f456;
+            border: 1px solid #030303;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        #chatInputContainer {
+            display: flex;
+            border-top: 1px solid #ccc;
+            padding: 5px;
+        }
+
+        #chatInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            outline: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #sendButton {
+            background-color: #25397A;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-left: 5px;
+        }
+
+        #sendButton:hover {
+            background-color: #16A038;
+        }
+
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            max-width: 90%;
+        }
+
+        .user-message {
+            background-color: #BBCCF9;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .bot-message {
+            background-color: #D9D9D9;
+            align-self: flex-start;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="chatbot-box">
+        <div id="chatContainer">
+            <div class="message bot-message"><strong>Bot-CEXP:</strong> Hola {{ user_session.nombres }}, ¿en qué puedo ayudarte hoy? 🚀</div>
+        </div>
+
+        <div id="chatInputContainer">
+            <input type="text" id="chatInput" placeholder="Escribe tu mensaje..." />
+            <button id="sendButton">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chatContainer');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+
+        sendButton.addEventListener('click', enviarMensaje);
+        chatInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                enviarMensaje();
+            }
+        });
+
+        function enviarMensaje() {
+            const userMessage = chatInput.value.trim();
+            if (!userMessage) return;
+
+            mostrarMensaje(userMessage, 'user');
+            chatInput.value = '';
+
+            fetch(`/ask_ia?question=${encodeURIComponent(userMessage)}`)
+                .then(res => {
+                    if (!res.ok) throw new Error("Error en la respuesta del servidor");
+                    return res.json();
+                })
+                .then(data => {
+                    mostrarMensaje(data.answer || "⚠️ Respuesta vacía", 'bot');
+                })
+                .catch(error => {
+                    console.error('❌ Error al contactar la IA:', error);
+                    mostrarMensaje('⚠️ Ocurrió un error al contactar con la IA.', 'bot');
+                });
+        }
+
+        function mostrarMensaje(texto, tipo) {
+            const mensaje = document.createElement('div');
+            mensaje.classList.add('message', tipo === 'user' ? 'user-message' : 'bot-message');
+            mensaje.innerHTML = `<strong>${tipo === 'user' ? 'Tú' : 'Bot-CEXP'}:</strong> ${texto}`;
+            chatContainer.appendChild(mensaje);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    </script>
+</body>
+</html>
+
+
