@@ -7,10 +7,13 @@ import re
 
 load_dotenv()  # Carga variables desde .env
 
+# Carga el token de Hugging Face desde la variable de entorno
 api_token_ia = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-# Verifica si el token de Hugging Face está presente
+# Si no se encuentra en el entorno, intenta cargarlo desde el archivo .env
 if not api_token_ia:
-    raise ValueError("❌ ERROR: No se encontró la variable HUGGINGFACEHUB_API_TOKEN en el archivo .env")
+    raise ValueError("❌ ERROR: No se encontró la variable HUGGINGFACEHUB_API_TOKEN en el entorno ni en .env")
+
+# Establece el token de Hugging Face en la variable de entorno
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = api_token_ia
 
 class AgenteIA:
