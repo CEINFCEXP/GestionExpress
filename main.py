@@ -581,13 +581,14 @@ reporte_asignaciones = Reporte_Asignaciones()
 
 # Ruta para el dashboard principal
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(req: Request, user_session: dict = Depends(get_user_session)):
+async def dashboard(req: Request,  modal: bool = False, user_session: dict = Depends(get_user_session)):
     if not user_session:
         return RedirectResponse(url="/", status_code=302)
     filtros = reporte_asignaciones.obtener_filtros_unicos()
     return templates.TemplateResponse("dashboard.html", {
         "request": req,
         "user_session": user_session,
+        "modal": modal,
         **filtros
     })
 
@@ -1632,6 +1633,17 @@ def descargar_reporte(formato: str, request: Request):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
     
+########################## CHATBOT ##########################
+# Incluir las rutas factorizadas en `route_checklist.py`
+app.include_router(chatbot_router)
+ 
+# Ruta para servir el chatbot.html
+@app.get("/chatbot", response_class=HTMLResponse, include_in_schema=False)
+async def get_chatbot(req: Request, user_session: dict = Depends(get_user_session)):
+    if not user_session:
+        return RedirectResponse(url="/", status_code=302)    
+    return templates.TemplateResponse("chatbot.html", {"request": req, "user_session": user_session})
+
 #####################################################################################
 ############################### MODULO DE CHECKLIST #################################
 #####################################################################################
@@ -1645,13 +1657,4 @@ def checklist(req: Request, user_session: dict = Depends(get_user_session)):
     return templates.TemplateResponse("checklist.html", {"request": req, "user_session": user_session})
 
 
-########################## CHATBOT ##########################
-# Incluir las rutas factorizadas en `route_checklist.py`
-app.include_router(chatbot_router)
- 
-# Ruta para servir el chatbot.html
-@app.get("/chatbot", response_class=HTMLResponse, include_in_schema=False)
-async def get_chatbot(req: Request, user_session: dict = Depends(get_user_session)):
-    if not user_session:
-        return RedirectResponse(url="/", status_code=302)    
-    return templates.TemplateResponse("chatbot.html", {"request": req, "user_session": user_session})
+

@@ -25,6 +25,15 @@
     <div class="row justify-content-between align-items-center">
         <h1 class="col-auto" style="font-size: 24px; font-family: 'Century Gothic', sans-serif;">Asignación de Técnicos a Controles - Consorcio Express</h1>
         <h1 class="col-auto" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!</h1>
+        <div class="col-auto d-flex align-items-center" style="cursor: pointer;"
+            data-bs-toggle="modal" data-bs-target="#modalReportes"
+            onclick="cargarDashboard()">
+
+            <span style="font-family: 'Century Gothic', sans-serif; font-size: 14px; margin-right: 6px;">Reporte</span>
+            <img src="/static/images/excel.png" alt="Reporte de Asignaciones"
+                style="height: 40px; width:40px;">
+        </div>
+
         <!-- Botón para abrir ventana flotante -->
         <div class="col-auto">
             <a href="{{ url_for('descargar_plantilla') }}" class="btn btn-dark">Plantilla de Cargue</a>
@@ -373,6 +382,22 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para mostrar dashboard.html -->
+<div class="modal fade" id="modalReportes" tabindex="-1" aria-labelledby="modalReportesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" style="max-width: 98%;">
+      <div class="modal-content" style="height: 95vh;">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalReportesLabel">Reporte de Asignaciones</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-0" id="contenidoDashboard" style="height: calc(100% - 56px); overflow-y: auto;">
+          <!-- Aquí se cargará dashboard.html dinámicamente -->
+          <div class="text-center mt-5"><em>Cargando contenido del Dashboard...</em></div>
+        </div>
+      </div>
+    </div>
+  </div>  
 
 <!-- Estilos adicionales Ventana Flotante y Colorimetria de Grilla-->
 <style>
@@ -2025,5 +2050,33 @@
     }   
 
 </script> 
+
+<!-- FUNCIONES DE LA VENTANA MODAL DE REPORTE ASIGNACIONES" -->
+<script>
+    function cargarDashboard() {
+        fetch("/dashboard?modal=true")
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById("contenidoDashboard").innerHTML = html;
+    
+                // Forzar ejecución de scripts incluidos en el HTML insertado
+                let scripts = document.getElementById("contenidoDashboard").getElementsByTagName("script");
+                for (let script of scripts) {
+                    let newScript = document.createElement("script");
+                    if (script.src) {
+                        newScript.src = script.src;
+                    } else {
+                        newScript.textContent = script.textContent;
+                    }
+                    document.body.appendChild(newScript);
+                }
+            })
+            .catch(error => {
+                document.getElementById("contenidoDashboard").innerHTML = `<div class="alert alert-danger">Error al cargar el dashboard</div>`;
+                console.error("Error al cargar dashboard:", error);
+            });
+    }
+    
+</script>    
 
 {% endblock %}

@@ -130,9 +130,6 @@
       {% if 'Checklist' in pantallas_permitidas %}
       <a class="nav-link" href="/checklist">Checklist</a>
       {% endif %}
-      {% if 'Reportes' in pantallas_permitidas %}
-      <a class="nav-link" href="/dashboard">Reportes</a>
-      {% endif %}
     </div>
     {% endif %}
 
@@ -237,7 +234,6 @@
       const pantallasRutas = {
         "Asignaciones": "/asignacion",
         "Checklist": "/checklist",
-        "Reportes": "/dashboard",
         "Blob Storage": "/containers",
         "Dashboard Power BI": "/powerbi" ,
         "Control Clausulas": "/juridico",
@@ -253,7 +249,7 @@
             const pantallas = data.pantallas;
             
             const gruposPantallas = {
-              "Centro de Control": ["Asignaciones", "Checklist", "Reportes"],
+              "Centro de Control": ["Asignaciones", "Checklist"],
               "Centro Información": ["Blob Storage", "Dashboard Power BI"],
               "Jurídico": ["Control Clausulas"],
               "Configuración": ["Crear Usuario", "Gestión de Roles", "Roles Blob Storage"]
