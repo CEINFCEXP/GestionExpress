@@ -2,204 +2,146 @@
 <header>
   <nav class="navbar navbar-light bg-light" style="padding: 0;">
     <div class="container-fluid d-flex justify-content-end" style="padding: 0;">
-      <ul class="navbar-nav" style="display: flex; flex-direction: row; align-items: center; margin: 0;">
-        <li class="nav-item" style="margin-right: 40px;">
-          <a class="nav-link" href="/logout">Cerrar Sesión</a>
-        </li>
-      </ul>
+        <ul class="navbar-nav" style="display: flex; flex-direction: row; align-items: center; margin: 0;">
+            <!-- Botón ChatBot al lado izquierdo -->
+            <li class="nav-item" style="margin-right: 20px;">
+              <div id="chatBotButton">
+                <img src="/static/images/robot-de-chat.gif" alt="Chatbot" style="width: 40px; height: 40px; border-radius: 50%;">
+                <span class="tooltip-text">Abrir Chatbot</span>
+              </div>
+            </li>
+          
+            <!-- Botón cerrar sesión -->
+            <li class="nav-item" style="margin-right: 40px;">
+              <a class="nav-link" href="/logout">Cerrar Sesión</a>
+            </li>
+        </ul>
     </div>
   </nav>
 </header>
 
+<style>
+  #chatBotButton {
+    position: relative;
+    background-color: #a2f9b571;
+    padding: 2px;
+    border-radius: 50%;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+    font-family: 'Century Gothic', Arial, sans-serif;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+    text-align: center;
+    display: inline-block;
+  }
+
+  #chatBotButton:hover {
+    background-color: #16A038;
+    transition: background-color 0.3s ease;
+  }
+
+  .tooltip-text {
+    visibility: hidden;
+    background-color: #16A038;
+    color: white;
+    text-align: center;
+    padding: 5px 10px;
+    border-radius: 5px;
+    position: absolute;
+    top: 50%;
+    left: 110%;
+    white-space: nowrap;
+    font-size: 12px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transform: translateY(-50%);
+    z-index: 1001;
+  }
+
+  #chatBotButton:hover .tooltip-text {
+    visibility: visible;
+  }
+
+  .chatbot-modal {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #a2f9b571;
+  }
+
+  .chatbot-modal-content {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 510px;
+    margin: 50px auto;
+    overflow: hidden; 
+    animation: fadeIn 0.3s ease-out;
+    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  #closeChat {
+    color: #030303;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  #closeChat:hover,
+  #closeChat:focus {
+    color: black;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-300px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+<!-- Modal para el Chatbot -->
+<div id="chatModal" class="chatbot-modal">
+  <div class="chatbot-modal-content">
+    <span id="closeChat">&times;</span>
+    <div id="chatContent">
+      <p style="text-align:center;">Cargando el chat...</p>
+    </div>
+  </div>
+</div>
+
 <script>
-  // Función para mostrar el modal
-  function openModal() {
-    document.getElementById('modalIncognito').style.display = 'block';
-  }
+  const chatButton = document.getElementById('chatBotButton');
+  const chatModal = document.getElementById('chatModal');
+  const closeChat = document.getElementById('closeChat');
+  const chatContent = document.getElementById('chatContent');
 
-  // Función para redirigir a Power BI
-  function redirectPowerBI() {
-    window.location.href = '/powerbi';
-  }
+  chatButton.addEventListener('click', function () {
+    chatModal.style.display = 'block';
+    chatContent.innerHTML = `
+      <iframe src="/chatbot"
+              style="width:100%; height:520px; border:none; border-radius:10px; font-family: 'Century Gothic', Arial, sans-serif;"
+              title="Chatbot IA CEXP"></iframe>`;
+  });
 
-  // Función para redirigir a la página de inicio
-  function redirectInicio() {
-    window.location.href = '/inicio';
-  }
+  closeChat.addEventListener('click', function () {
+    chatModal.style.display = 'none';
+  });
+
+  window.addEventListener('click', function (event) {
+    if (event.target === chatModal) {
+      chatModal.style.display = 'none';
+    }
+  });
 </script>
-
-<!-- ######### Estilos generales y botón del chat ######### -->
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot Flotante</title>
-    <!-- Estilos generales -->
-    <style>
-        /* Botón flotante del chat */
-        #chatBotButton { 
-            position: fixed; /* Fija el botón en la pantalla */
-            top: 0px; /* Fija el panel en la parte superior de la ventana */
-            right: 300px; /* Fija el panel en la parte derecha de la ventana */
-            background-color: #a2f9b571; /* Color de fondo del botón */
-            color: white; /* Color del texto del botón */
-            padding: 2px; /* Espacio alrededor del botón */
-            border-radius: 50%; /* Radio de los bordes del botón */ 
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3); /* Sombra para destacar el botón */
-            font-family: 'Century Gothic', Arial, sans-serif; /* Fuente del botón */
-            font-weight: bold; /* Hace que el texto del botón sea negrita */
-            cursor: pointer; /* Cambia el cursor al pasar por encima */
-            z-index: 1000; /* Asegura que el panel esté por encima de otros elementos */
-            font-size: 14px; /* Tamaño de fuente del botón */
-            text-align: center; /* Alinea el texto centrado */
-        } 
-        
-        /* Botón flotante del chat */
-        #chatBotButton:hover { 
-            background-color: #16A038; /* Cambia el color del botón al pasar el ratón */
-            transition: background-color 0.3s ease; /* Suaviza el efecto de cambio de color */
-        }
-
-        /* Estilo del contenedor del botón */
-        #chatBotButton {
-            position: fixed; /* Fija el botón en la pantalla */
-            top: 0px; /* Fija el botón en la parte superior de la ventana */
-            right: 300px; /* Fija el botón en la parte derecha de la ventana */
-            cursor: pointer; /* Cambia el cursor al pasar por encima */
-            text-align: center; /* Alinea el texto centrado */
-            z-index: 1000; /* Asegura que el botón esté por encima de otros elementos */
-        }
-
-        /* Tooltip oculto por defecto */
-        .tooltip-text { 
-            visibility: hidden; /* Oculto por defecto */
-            background-color: #16A038; /* Color de fondo */
-            color: white; /* Color del texto */
-            text-align: center; /* Alinea el texto centrado */
-            padding: 5px 10px; /* Añade espacio interno */
-            border-radius: 5px; /* Radio de los bordes */
-            position: absolute; /* Fija el tooltip en la posición */
-            top: 50%; /* Ajuste de posición */
-            left: 110%; /* Desplazado a la derecha del botón */
-            white-space: nowrap; /* Evita que el texto se corte */
-            font-size: 12px; /* Tamaño de fuente del texto */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Sombra para destacar el botón */
-            transform: translateY(-50%); /* Movimiento vertical */
-            z-index: 1001; /* Asegura que el tooltip esté por encima de otros elementos */
-        }
-
-        /* Mostrar el tooltip al pasar el cursor */
-        #chatBotButton:hover .tooltip-text {
-            visibility: visible;
-        }
-
-        /* Modal general */
-        .modal {
-            display: none; /* Oculto inicialmente */
-            position: fixed; /* Fija el modal en la pantalla */
-            z-index: 1001; /* Asegura que el modal esté por encima de otros elementos */
-            left: 0; /* Fija el modal en la parte izquierda de la ventana */
-            top: 0; /* Fija el modal en la parte superior de la ventana */
-            width: 100%; /* Fija el ancho del modal */
-            height: 100%; /* Fija el alto del modal */
-            background-color: #a2f9b571; /* Color de fondo del modal */
-        }
-
-        /* Contenido del modal */
-        .modal-content {
-            background-color: white; /* Color de fondo del modal */
-            border-radius: 10px; /* Radio de los bordes del modal */
-            padding: 20px; /* Añade espacio interno al modal */
-            max-width: 900px; /* Fija el ancho máximo del modal */
-            width: 100%; /* Fija el ancho del modal */
-            margin: 50px auto; /* Centra horizontalmente usando márgenes automáticos */
-            animation: fadeIn 0.3s ease-out; /* Suaviza el efecto de animación */
-            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2); /* Sombra para destacar el modal */
-        }
-
-        /* Botón cerrar (X) */
-        #closeChat {
-            color: #030303; /* Color del texto del botón */
-            float: right; /* Fija el botón en la parte derecha de la ventana */
-            font-size: 28px; /* Tamaño de fuente del botón */
-            font-weight: bold; /* Hace que el texto del botón sea negrita */
-            cursor: pointer; /* Cambia el cursor al pasar por encima */
-        }
-
-        #closeChat:hover, #closeChat:focus {
-            color: black; /* Cambia el color del texto al pasar el ratón */
-        }
-
-        /* Animación de entrada */
-        @keyframes fadeIn {
-            from { /* Desde */
-                opacity: 0; /* Opacidad de 0 */
-                transform: translateY(-300px); /* Movimiento vertical */
-            }
-            to { /* Hasta */
-                opacity: 1; /* Opacidad de 1 */
-                transform: translateY(0); /* Movimiento vertical */
-            }
-        }
-    </style>
-</head>
-<body>
-
-    <!-- Botón flotante con imagen y tooltip personalizado -->
-    <div id="chatBotButton">
-      <img src="static/images/robot-de-chat.gif" alt="Chatbot" style="width: 50px; height: 40px; border-radius: 50%;">
-    <!-- Tooltip -->
-      <span class="tooltip-text">Abrir Chatbot</span>
-    </div>
-
-    <!-- Modal del Chat -->
-    <div id="chatModal" class="modal">
-        <div class="modal-content">
-            <!-- Botón cerrar -->
-            <span id="closeChat">&times;</span>
-            <!-- Contenido cargado del chat -->
-            <div id="chatContent">
-                <p style="text-align:center;">Cargando el chat...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Script JavaScript -->
-    <script>
-        // Variables de los elementos del DOM
-        const chatButton = document.getElementById('chatBotButton');
-        const chatModal = document.getElementById('chatModal');
-        const closeChat = document.getElementById('closeChat');
-        const chatContent = document.getElementById('chatContent');
-
-        // Función para abrir el modal y cargar el chat
-        chatButton.addEventListener('click', function () {
-            // Mostrar el modal
-            chatModal.style.display = 'block';
-
-            // Cargar el contenido de chatbot.html
-            chatContent.innerHTML = `
-                <iframe src="/chatbot" 
-                        style="width:100%; height:520px; border:none; border-radius:10px; font-family: 'Century Gothic', Arial, sans-serif;"
-                        title="Chatbot IA CEXP">
-                </iframe>
-                `;
-        });
-
-        // Función para cerrar el modal
-        closeChat.addEventListener('click', function () {
-            chatModal.style.display = 'none';
-        });
-
-        // Cerrar el modal al hacer clic fuera del contenido
-        window.addEventListener('click', function (event) {
-            if (event.target === chatModal) {
-                chatModal.style.display = 'none';
-            }
-        });
-    </script>
-</body>
-</html>
-
 {% endblock %}

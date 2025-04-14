@@ -6,33 +6,34 @@
     <style>
         body {
             font-family: 'Century Gothic', Arial, sans-serif;
-          }
+        }
 
         .chatbot-box {
-            max-width: 700px;
-            margin: 20px auto;
+            max-width: 900px;
+            height: 400px;
+            margin: 0 auto;
             padding: 10px;
             background-color: #ffffff;
-            border: 1px solid #ccc;
-            border-radius: 12px;
-            box-shadow: 0 0 8px rgba(0,0,0,0.05);
+            border-radius: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
         }
 
         #chatContainer {
-            width: 100%;
-            height: 300px;
+            flex: 1;
             overflow-y: auto;
-            padding: 10px;
-            background-color: #f4f4f456;
-            border: 1px solid #030303;
+            padding: 15px;
+            border: 1px solid #ccc;
+            background-color: #f8f9fa;
             border-radius: 10px;
             margin-bottom: 10px;
+            font-size: 13px;
         }
 
         #chatInputContainer {
             display: flex;
-            border-top: 1px solid #ccc;
-            padding: 5px;
+            padding-top: 10px;
         }
 
         #chatInput {
@@ -40,18 +41,21 @@
             padding: 10px;
             border: 1px solid #ccc;
             outline: none;
-            border-radius: 5px;
-            font-size: 16px;
+            border-radius: 10px;
+            font-size: 14px;
         }
 
         #sendButton {
             background-color: #25397A;
             color: white;
-            padding: 10px 20px;
+            padding: 10px 16px;
             border: none;
+            border-radius: 10px;
+            margin-left: 8px;
             cursor: pointer;
-            border-radius: 5px;
-            margin-left: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #sendButton:hover {
@@ -59,34 +63,67 @@
         }
 
         .message {
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 8px;
-            max-width: 90%;
+            display: flex;
+            margin-bottom: 12px;
+            align-items: flex-start;
+        }
+
+        .user-message,
+        .bot-message {
+            padding: 10px 15px;
+            border-radius: 12px;
+            max-width: 80%;
+            font-size: 13px;
+            line-height: 1.4;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
         .user-message {
-            background-color: #BBCCF9;
-            align-self: flex-end;
+            background-color: #dce8ff;
             margin-left: auto;
         }
 
         .bot-message {
-            background-color: #D9D9D9;
-            align-self: flex-start;
+            background-color: #e6e6e6;
             margin-right: auto;
         }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            margin-right: 8px;
+        }
+
+        .user-avatar {
+            margin-left: 8px;
+            margin-right: 0;
+        }
+
+        .message strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
     </style>
 </head>
 <body>
     <div class="chatbot-box">
         <div id="chatContainer">
-            <div class="message bot-message"><strong>Bot-CEXP:</strong> Hola {{ user_session.nombres }}, ¿en qué puedo ayudarte hoy? 🚀</div>
+            <div class="message bot-message">
+                <img src="/static/images/robot-de-chat.gif" class="avatar" alt="Bot">
+                <div>
+                    <strong>Bot-CEXP:</strong> Hola {{ user_session.nombres }}, ¿en qué puedo ayudarte hoy? 🚀
+                </div>
+            </div>
         </div>
 
         <div id="chatInputContainer">
-            <input type="text" id="chatInput" placeholder="Escribe tu mensaje..." />
-            <button id="sendButton">Enviar</button>
+            <input type="text" id="chatInput" placeholder="Escribe tu mensaje...">
+            <button id="sendButton">
+                <img src="/static/images/enviar.png" 
+                    alt="Enviar" width="18" height="18" style="margin-right: 6px;">
+                Enviar
+            </button>
         </div>
     </div>
 
@@ -126,13 +163,28 @@
 
         function mostrarMensaje(texto, tipo) {
             const mensaje = document.createElement('div');
-            mensaje.classList.add('message', tipo === 'user' ? 'user-message' : 'bot-message');
-            mensaje.innerHTML = `<strong>${tipo === 'user' ? 'Tú' : 'Bot-CEXP'}:</strong> ${texto}`;
+            mensaje.classList.add('message');
+
+            const avatar = document.createElement('img');
+            avatar.classList.add('avatar');
+            avatar.src = tipo === 'user' ? '/static/images/usuario.png' : '/static/images/robot-de-chat.gif';
+            if (tipo === 'user') avatar.classList.add('user-avatar');
+
+            const contenido = document.createElement('div');
+            contenido.classList.add(tipo === 'user' ? 'user-message' : 'bot-message');
+            contenido.innerHTML = `<strong>${tipo === 'user' ? 'Tú' : 'Bot-CEXP'}:</strong> ${texto}`;
+
+            if (tipo === 'user') {
+                mensaje.appendChild(contenido);
+                mensaje.appendChild(avatar);
+            } else {
+                mensaje.appendChild(avatar);
+                mensaje.appendChild(contenido);
+            }
+
             chatContainer.appendChild(mensaje);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
     </script>
 </body>
 </html>
-
-
