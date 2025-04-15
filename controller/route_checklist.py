@@ -239,6 +239,19 @@ async def guardar_checklist(data: ChecklistRequest):
     return {"message": "Checklist guardado correctamente", "id_checklist": id_checklist}
 
 # --- GESTIÓN FALLAS CHECKLIST DEL VEHICULO ---
+@checklist_router.get("/fallas_vehiculos")
+def obtener_vehiculos_con_fallas():
+    """Retorna vehículos con al menos una falla registrada en su checklist"""
+    gestion = GestionChecklist()
+    vehiculos = gestion.obtener_vehiculos_con_fallas()
+    return JSONResponse(content=vehiculos)
+
+@checklist_router.get("/fallas_vehiculo/{placa}")
+def obtener_detalles_falla_por_placa(placa: str):
+    """Retorna todos los detalles de fallas por vehículo"""
+    gestion = GestionChecklist()
+    data = gestion.obtener_detalle_falla_vehiculo(placa)
+    return JSONResponse(content=data)
 
 
 

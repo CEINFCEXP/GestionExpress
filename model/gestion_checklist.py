@@ -1,5 +1,6 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from datetime import datetime
 from dotenv import load_dotenv
 import os
 
@@ -233,3 +234,90 @@ class GestionChecklist:
             ))
             self.connection.commit()
 
+    def obtener_vehiculos_con_fallas(self):
+        """Devuelve vehículos únicos con al menos una falla en checklist"""
+        query = """
+        SELECT DISTINCT v.placa, t.nombre AS tipo_vehiculo, v.marca, v.linea, v.modelo,
+            CASE 
+                WHEN EXISTS (
+                    SELECT 1 FROM checklist_documentos cd 
+                    JOIN checklist_registro cr ON cr.id_checklist = cd.id_checklist_registro 
+                    WHERE cd.estado = false AND cr.id_vehiculo = v.id
+                ) OR EXISTS (
+                    SELECT 1 FROM checklist_detalle cd 
+                    JOIN checklist_registro cr ON cr.id_checklist = cd.id_checklist_registro 
+                    WHERE cd.estado = false AND cr.id_vehiculo = v.id
+                ) THEN 'Fallas'
+                ELSE 'Correcto'
+            END AS estado
+        FROM vehiculos v
+        JOIN checklist_tipo_vehiculo t ON v.id_tipo_vehiculo = t.id_tipo_vehiculo
+        JOIN checklist_registro cr ON cr.id_vehiculo = v.id
+        """
+        with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query)
+            return cursor.fetchall()
+
+    def obtener_detalle_falla_vehiculo(self, placa):
+        """Retorna los datos del vehículo y checklist con fallas (documentos y componentes)"""
+        with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            # Obtener vehículo
+            cursor.execute("""
+                SELECT v.id, v.placa, t.nombre AS tipo_vehiculo, v.marca, v.linea, v.modelo
+                FROM vehiculos v
+                JOIN checklist_tipo_vehiculo t ON v.id_tipo_vehiculo = t.id_tipo_vehiculo
+                WHERE v.placa = %s
+            """, (placa,))
+            vehiculo = cursor.fetchone()
+
+            if not vehiculo:
+                return {"error": "Vehículo no encontrado"}
+
+            # Observaciones generales
+            cursor.execute("""
+                SELECT fecha_hora_registro, observaciones_generales, usuario_registro
+                FROM checklist_registro
+                WHERE id_vehiculo = %s
+                ORDER BY fecha_hora_registro DESC
+            """, (vehiculo["id"],))
+            observaciones_generales = cursor.fetchall()
+
+            for row in observaciones_generales:
+                row["fecha_hora_registro"] = row["fecha_hora_registro"].strftime('%Y-%m-%d %H:%M:%S')
+
+            # Fallas en documentos
+            cursor.execute("""
+                SELECT cd.id_tipo_documento, td.nombre AS tipo_documento,
+                    cd.observaciones, cr.usuario_registro, cr.fecha_hora_registro
+                FROM checklist_documentos cd
+                JOIN checklist_registro cr ON cr.id_checklist = cd.id_checklist_registro
+                JOIN checklist_tipo_documento td ON td.id_tipo_documento = cd.id_tipo_documento
+                WHERE cd.estado = false AND cr.id_vehiculo = %s
+                ORDER BY cr.fecha_hora_registro DESC
+            """, (vehiculo["id"],))
+            documentos = cursor.fetchall()
+
+            for doc in documentos:
+                doc["fecha_hora_registro"] = doc["fecha_hora_registro"].strftime('%Y-%m-%d %H:%M:%S')
+
+            # Fallas en componentes
+            cursor.execute("""
+                SELECT cc.grupo, cc.posicion, cc.componente,
+                    cd.observaciones, cr.usuario_registro, cr.fecha_hora_registro
+                FROM checklist_detalle cd
+                JOIN checklist_registro cr ON cr.id_checklist = cd.id_checklist_registro
+                JOIN checklist_componentes cc ON cc.id_componente = cd.id_componente
+                WHERE cd.estado = false AND cr.id_vehiculo = %s
+                ORDER BY cr.fecha_hora_registro DESC
+            """, (vehiculo["id"],))
+            componentes = cursor.fetchall()
+
+            for comp in componentes:
+                comp["fecha_hora_registro"] = comp["fecha_hora_registro"].strftime('%Y-%m-%d %H:%M:%S')
+
+        return {
+            "vehiculo": vehiculo,
+            "observaciones_generales": observaciones_generales,
+            "fallas_documentos": documentos,
+            "fallas_componentes": componentes
+        }

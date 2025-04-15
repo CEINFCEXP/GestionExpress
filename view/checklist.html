@@ -212,57 +212,71 @@
 
         <!-- Pestaña Consolidado de Fallas -->
         <div class="tab-pane fade form-section" id="fallas" role="tabpanel">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="row mb-3 p-2 border rounded shadow-sm bg-light">
+                <!-- Placa -->
+                <div class="col-md-2 position-relative">
+                    <label class="form-label fw-bold mb-1">Placa:</label>
+                    <input type="text" class="form-control form-control-sm" id="buscarPlaca"
+                        placeholder="Ej: ABC123"
+                        oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');">
+                    <div id="placaList" class="list-group position-absolute w-100" style="z-index: 1000;"></div>
+                </div>
+
+                <!-- Tipo Vehículo -->
+                <div class="col-md-2">
+                    <label class="form-label fw-bold mb-1">Tipo Vehículo:</label>
+                    <input type="text" class="form-control form-control-sm" id="buscarTipoVehiculo"
+                        placeholder="Ej: Carro Taller">
+                </div>
+
+                <!-- Marca -->
+                <div class="col-md-2">
+                    <label class="form-label fw-bold mb-1">Marca:</label>
+                    <input type="text" class="form-control form-control-sm" id="buscarMarca"
+                        placeholder="Ej: Chevrolet">
+                </div>
+
+                <!-- Línea -->
+                <div class="col-md-2">
+                    <label class="form-label fw-bold mb-1">Línea:</label>
+                    <input type="text" class="form-control form-control-sm" id="buscarLinea"
+                        placeholder="Ej: NHR">
+                </div>
+
+                <!-- Modelo -->
+                <div class="col-md-2">
+                    <label class="form-label fw-bold mb-1">Modelo:</label>
+                    <input type="text" class="form-control form-control-sm" id="buscarModelo"
+                        placeholder="Ej: 2026">
+                </div>
+
+                <!-- Botones -->
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <!-- <button class="btn btn-primary btn-sm w-50" onclick="cargarFallas()">Buscar</button> -->
+                    <button class="btn btn-secondary btn-sm w-50" onclick="limpiarFiltros()">Limpiar</button>
+                </div>
             </div>
 
-            <!-- Filtros de búsqueda -->
-            <div class="row mb-3">
-                <div class="col-md-3">
-                    <label class="form-label fw-bold">Placa:</label>
-                    <input type="text" class="form-control" id="buscarPlaca" placeholder="Ingrese la placa...">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-bold">Tipo de Falla:</label>
-                    <select class="form-select" id="tipoFalla">
-                        <option value="">Seleccionar...</option>
-                    </select>
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-bold">Estado:</label>
-                    <select class="form-select" id="estadoFalla">
-                        <option value="">Seleccionar...</option>
-                        <option value="Pendiente">Pendiente</option>
-                        <option value="En Proceso">En Proceso</option>
-                        <option value="Solucionado">Solucionado</option>
-                    </select>
-                </div>
-
-                <div class="col-md-3 d-flex align-items-end">
-                    <button class="btn btn-primary me-2" onclick="cargarFallas()">Buscar</button>
-                    <button class="btn btn-secondary" onclick="limpiarFiltros()">Limpiar</button>
-                </div>
-            </div>
-
-            <!-- Tabla de Fallas -->
-            <div class="table-responsive" style="max-height: 500px; overflow-y: auto; border: 1px solid rgb(104, 103, 103);">
-                <table class="table table-bordered table-striped" id="tablaFallas">
-                    <thead class="table-dark">
+            <!-- Tabla de Vehículos con Fallas -->
+            <div class="table-responsive mt-3 shadow-sm rounded" style="border: 2px solid #dee2e6;">
+                <table class="table table-hover table-bordered align-middle" id="tablaFallas" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">
+                    <thead style="background-color: #336ff0; color: white;" class="text-center">
                         <tr>
-                            <th>Vehículo</th>
-                            <th>Placa</th>
-                            <th>Falla</th>
-                            <th>Estado</th>
-                            <th>Acción</th>
+                            <th style="width: 60px;"><i class="fas fa-cog"></i></th>
+                            <th><i class="fas fa-car"></i> Placa</th>
+                            <th><i class="fas fa-list-alt"></i> Tipo Vehículo</th>
+                            <th><i class="fas fa-industry"></i> Marca</th>
+                            <th><i class="fas fa-stream"></i> Línea</th>
+                            <th><i class="fas fa-calendar-alt"></i> Modelo</th>
+                            <th><i class="fas fa-exclamation-triangle"></i> Estado</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <!-- Se llenará dinámicamente con JavaScript -->
+                    <tbody class="text-center">
+                        <!-- Se llena dinámicamente -->
                     </tbody>
                 </table>
             </div>
-        </div> 
+        </div>
 
         <!-- Parametización de Vehículos -->
         <div class="tab-pane fade form-section" id="vehiculos" role="tabpanel">
@@ -406,56 +420,93 @@
 
 <!-- Modal de Gestión de Fallas -->
 <div class="modal fade" id="modalFalla" tabindex="-1" aria-labelledby="modalFallaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalFallaLabel">Detalles de la Falla</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formFalla">
-                    <input type="hidden" id="fallaId">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Vehículo:</label>
-                            <input type="text" class="form-control" id="vehiculoFalla" disabled>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Placa:</label>
-                            <input type="text" class="form-control" id="placaFalla" disabled>
-                        </div>
-                    </div>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="modalFallaLabel">
+                    Detalle de Fallas del Vehículo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" onclick="cerrarModalFalla()" aria-label="Close"></button>
 
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Descripción:</label>
-                            <textarea class="form-control" id="descripcionFalla" rows="3" disabled></textarea>
-                        </div>
-                    </div>
-
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Estado:</label>
-                            <select class="form-select" id="estadoFallaModal">
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="En Proceso">En Proceso</option>
-                                <option value="Solucionado">Solucionado</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Observaciones:</label>
-                            <input type="text" class="form-control" id="observacionFalla">
-                        </div>
-                    </div>
-                </form>
             </div>
+
+            <div class="modal-body" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">
+                <!-- Encabezado Datos del Vehículo (horizontal) -->
+                <div class="border rounded bg-light p-3 mb-3 shadow-sm">
+                    <div class="row text-start" style="font-size: 14px;">
+                        <div class="col-md-2 mb-2"><strong>Placa:</strong> <span id="fallaPlaca">-</span></div>
+                        <div class="col-md-3 mb-2"><strong>Tipo Vehículo:</strong> <span id="fallaTipoVehiculo">-</span></div>
+                        <div class="col-md-2 mb-2"><strong>Marca:</strong> <span id="fallaMarca">-</span></div>
+                        <div class="col-md-3 mb-2"><strong>Línea:</strong> <span id="fallaLinea">-</span></div>
+                        <div class="col-md-2 mb-2"><strong>Modelo:</strong> <span id="fallaModelo">-</span></div>
+                    </div>
+                </div>
+                <!-- Observaciones Generales -->
+                <div class="mb-4">
+                    <h6 class="bg-secondary text-white p-2 rounded">📌 Observaciones Generales</h6>
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha Reporte</th>
+                                <th>Observaciones</th>
+                                <th>Registrado Por</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaObservacionesGenerales"></tbody>
+                    </table>
+                </div>
+
+                <!-- Fallas en Documentos -->
+                <div class="mb-4">
+                    <h6 class="p-2 rounded text-white" style="background-color: #0078C7;">
+                        📄 Verificación de Documentos
+                    </h6>                    
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha Reporte</th>
+                                <th>Tipo</th>
+                                <th>Observación</th>
+                                <th>Registrado Por</th>
+                                <th>Solucionado</th>
+                                <th>Observación Solución</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaFallasDocumentos"></tbody>
+                    </table>
+                </div>
+
+                <!-- Fallas en Componentes -->
+                <div>
+                    <h6 class="p-2 rounded text-white" style="background-color: #4ea35c;">
+                        🔧 Verificación de Estados del Vehículo
+                    </h6>                    
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha Reporte</th>
+                                <th>Grupo</th>
+                                <th>Posición</th>
+                                <th>Componente</th>
+                                <th>Observación</th>
+                                <th>Registrado Por</th>
+                                <th>Solucionado</th>
+                                <th>Observación Solución</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaFallasComponentes"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary" onclick="guardarFalla()">Guardar Cambios</button>
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalFalla()">Cerrar</button>
+                <button type="button" class="btn btn-success">Guardar Cambios</button>
             </div>
         </div>
     </div>
 </div>
+
 
 <!-- ###################################################################################### -->
 <!-- ###################### INICIO DE LOGICA Y FUNCIONES JAVASCRIPT  ###################### -->
@@ -1357,9 +1408,227 @@
 
 <!--  JavaScript para consolidar fallas y gestión del CheckList  -->
 <script>
+    async function cargarFallas() {
+        try {
+            const response = await fetch('/fallas_vehiculos');
+            const data = await response.json();
+            const tbody = document.querySelector("#tablaFallas tbody");
+            tbody.innerHTML = "";
+    
+            // Filtros
+            const placaFiltro = document.getElementById("buscarPlaca").value.toUpperCase();
+            const tipoFiltro = document.getElementById("buscarTipoVehiculo").value.toUpperCase();
+            const marcaFiltro = document.getElementById("buscarMarca").value.toUpperCase();
+            const lineaFiltro = document.getElementById("buscarLinea").value.toUpperCase();
+            const modeloFiltro = document.getElementById("buscarModelo").value.toUpperCase();
+    
+            // Aplicar filtros a cada fila
+            const filtrados = data.filter(item => {
+                return (
+                    (!placaFiltro || item.placa.toUpperCase().includes(placaFiltro)) &&
+                    (!tipoFiltro || item.tipo_vehiculo.toUpperCase().includes(tipoFiltro)) &&
+                    (!marcaFiltro || item.marca.toUpperCase().includes(marcaFiltro)) &&
+                    (!lineaFiltro || item.linea.toUpperCase().includes(lineaFiltro)) &&
+                    (!modeloFiltro || String(item.modelo).includes(modeloFiltro))
+                );
+            });
+    
+            // Mostrar mensaje si no hay resultados
+            if (filtrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7">No se encontraron resultados.</td></tr>`;
+                return;
+            }
+    
+            // Generar tabla
+            filtrados.forEach(item => {
+                const fila = document.createElement("tr");
+                fila.innerHTML = `
+                    <td>
+                        <button type="button"
+                        class="btn btn-light border d-flex align-items-center justify-content-center"
+                        style="padding: 5px; height: 30px; width: 30px; border-color: rgb(13, 15, 124);"
+                        onclick="abrirModalFalla('${item.placa}')"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalFalla"
+                        title="Gestionar Falla">
+                        <img src="/static/images/editar.png" alt="Editar" style="width: 35px; height: 35px;">
+                    </button>
+                    </td>
+                    <td>${item.placa}</td>
+                    <td>${item.tipo_vehiculo}</td>
+                    <td>${item.marca}</td>
+                    <td>${item.linea}</td>
+                    <td>${item.modelo}</td>
+                    <td class="${item.estado === 'Fallas' ? 'text-danger fw-bold' : 'text-success fw-bold'}">
+                        ${item.estado}
+                    </td>
+                `;
+                tbody.appendChild(fila);
+            });
+        } catch (error) {
+            console.error("❌ Error al cargar fallas:", error);
+            alert("Ocurrió un error al cargar los datos.");
+        }
+    }    
+    
+    async function abrirModalFalla(placa) {
+        try {
+            const response = await fetch(`/fallas_vehiculo/${placa}`);
+            const data = await response.json();
 
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
 
+            document.getElementById("fallaPlaca").textContent = data.vehiculo.placa;
+            document.getElementById("fallaTipoVehiculo").textContent = data.vehiculo.tipo_vehiculo;
+            document.getElementById("fallaMarca").textContent = data.vehiculo.marca;
+            document.getElementById("fallaLinea").textContent = data.vehiculo.linea;
+            document.getElementById("fallaModelo").textContent = data.vehiculo.modelo;
+
+            document.getElementById("tablaObservacionesGenerales").innerHTML = data.observaciones_generales.map(row => `
+                <tr>
+                    <td>${row.fecha_hora_registro}</td>
+                    <td>${row.observaciones_generales}</td>
+                    <td>${row.usuario_registro}</td>
+                </tr>
+            `).join("");
+
+            document.getElementById("tablaFallasDocumentos").innerHTML = data.fallas_documentos.map(doc => `
+                <tr>
+                    <td>${doc.fecha_hora_registro}</td>
+                    <td>${doc.tipo_documento}</td>
+                    <td>${doc.observaciones}</td>
+                    <td>${doc.usuario_registro}</td>
+                    <td><input type="checkbox"></td>
+                    <td><input type="text" class="form-control form-control-sm"></td>
+                </tr>
+            `).join("");
+
+            document.getElementById("tablaFallasComponentes").innerHTML = data.fallas_componentes.map(comp => `
+                <tr>
+                    <td>${comp.fecha_hora_registro}</td>
+                    <td>${comp.grupo}</td>
+                    <td>${comp.posicion}</td>
+                    <td>${comp.componente}</td>
+                    <td>${comp.observaciones}</td>
+                    <td>${comp.usuario_registro}</td>
+                    <td><input type="checkbox"></td>
+                    <td><input type="text" class="form-control form-control-sm"></td>
+                </tr>
+            `).join("");
+
+            const modalFalla = new bootstrap.Modal(document.getElementById("modalFalla"));
+            modalFalla.show();
+        } catch (error) {
+            console.error("❌ Error al abrir modal de falla:", error);
+            alert("Ocurrió un error al consultar los detalles del vehículo.");
+        }
+    }
+
+    function cerrarModalFalla() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("modalFalla"));
+        if (modal) {
+            modal.hide();
+        }
+        document.body.classList.remove("modal-open");
+        document.querySelectorAll(".modal-backdrop").forEach(el => el.remove());
+    }    
+
+    // Cargar automáticamente si está visible
+    document.addEventListener("DOMContentLoaded", function () {
+        const tab = document.getElementById("fallas-tab");
+        if (tab) {
+            tab.addEventListener("shown.bs.tab", function () {
+                cargarFallas();
+            });
+        }
+    
+        if (window.location.hash === "#fallas") {
+            cargarFallas();
+        }
+    
+        // Filtros dinámicos
+        ["buscarPlaca", "buscarTipoVehiculo", "buscarMarca", "buscarLinea", "buscarModelo"].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener("input", () => {
+                    cargarFallas();  // recargar al escribir
+                });
+            }
+        });
+    });
+    
+    // Autocompletar placa en pestaña de Fallas
+    document.getElementById("buscarPlaca").addEventListener("input", async function () {
+        const query = this.value.trim();
+        const placaList = document.getElementById("placaList"); // usa el mismo dropdown de sugerencias
+
+        if (query.length < 1) {
+            placaList.innerHTML = "";
+            return;
+        }
+
+        try {
+            const response = await fetch(`/vehiculos/buscar/${query}`);
+            const placas = await response.json();
+
+            placaList.innerHTML = "";
+
+            if (placas.length === 0) {
+                placaList.innerHTML = `<button class="list-group-item list-group-item-action disabled">No hay coincidencias</button>`;
+                return;
+            }
+
+            placas.forEach(vehiculo => {
+                const item = document.createElement("button");
+                item.classList.add("list-group-item", "list-group-item-action");
+                item.style.padding = "4px";
+                item.style.fontSize = "14px";
+                item.textContent = vehiculo.placa;
+
+                item.addEventListener("click", function () {
+                    document.getElementById("buscarPlaca").value = vehiculo.placa.toUpperCase();
+                    placaList.innerHTML = "";
+                    // Opcional: autoejecutar búsqueda si se quiere al seleccionar
+                    // cargarFallas();
+                });
+
+                placaList.appendChild(item);
+            });
+        } catch (error) {
+            console.error("Error en autocompletar placa (fallas):", error);
+        }
+    });
+
+    // Limpiar filtros de búsqueda
+    function limpiarFiltros() {
+        document.getElementById("buscarPlaca").value = "";
+        document.getElementById("buscarTipoVehiculo").value = "";
+        document.getElementById("buscarMarca").value = "";
+        document.getElementById("buscarLinea").value = "";
+        document.getElementById("buscarModelo").value = "";
+        cargarFallas();
+    }
+    
 </script>
+<!-- Estilos personalizados para la tabla fallas-->
+<style>
+    #tablaFallas tbody td input,
+    #tablaFallas tbody td button,
+    #tablaFallas tbody td img {
+        height: 24px !important;
+        padding: 2px 6px !important;
+        font-size: 13px !important;
+    }
+
+    #tablaFallas tbody td {
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+        vertical-align: middle !important;
+    }
+</style>
 
 <!--  JavaScript para la consulta de reportes de checklist  -->
 <script>
