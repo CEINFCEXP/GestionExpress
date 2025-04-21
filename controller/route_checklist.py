@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
-from starlette.responses import HTMLResponse, RedirectResponse, JSONResponse
+from starlette.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from model.gestion_checklist import GestionChecklist
 from pydantic import BaseModel
 from datetime import datetime, time
 from typing import List, Optional
+import io, json
+import pandas as pd
+
 
 # Crear router
 checklist_router = APIRouter()
@@ -253,9 +256,86 @@ def obtener_detalles_falla_por_placa(placa: str):
     data = gestion.obtener_detalle_falla_vehiculo(placa)
     return JSONResponse(content=data)
 
-
-
-
-
-
 # --- GENERACIÓN REPORTES ---
+@checklist_router.get("/reportes/filtros")
+def obtener_filtros_para_reportes():
+    gestion = GestionChecklist()
+    try:
+        filtros = gestion.obtener_filtros_reportes()
+        return JSONResponse(content=filtros)
+    finally:
+        gestion.cerrar_conexion()
+        
+@checklist_router.get("/reportes/fallas")
+def consultar_reporte_fallas(
+    fecha: Optional[str] = None,
+    placa: Optional[str] = None,
+    tipo_vehiculo: Optional[str] = None,
+    marca: Optional[str] = None,
+    estado: Optional[str] = None,
+    usuario: Optional[str] = None
+):
+    if not fecha:
+        raise HTTPException(status_code=400, detail="La fecha de reporte es obligatoria.")
+
+    gestion = GestionChecklist()
+    try:
+        resultados = gestion.consultar_datos_reporte(
+            fecha=fecha,
+            placa=placa,
+            tipo_vehiculo=tipo_vehiculo,
+            marca=marca,
+            estado=estado,
+            usuario=usuario
+        )
+        return JSONResponse(content=resultados)
+    finally:
+        gestion.cerrar_conexion()
+
+@checklist_router.get("/reportes/fallas/exportar")
+def exportar_reporte_fallas(
+    fecha: str,
+    placa: str = "",
+    tipo_vehiculo: str = "",
+    marca: str = "",
+    estado: str = "",
+    usuario: str = "",
+    formato: str = "xlsx"
+):
+    gestion = GestionChecklist()
+    resultados = gestion.consultar_datos_reporte(
+        fecha=fecha,
+        placa=placa,
+        tipo_vehiculo=tipo_vehiculo,
+        marca=marca,
+        estado=estado,
+        usuario=usuario
+    )
+
+    if not resultados:
+        return JSONResponse(content={"error": "No hay datos para exportar"}, status_code=404)
+
+    df = pd.DataFrame(resultados)
+
+    if formato == "json":
+        json_bytes = json.dumps(resultados, indent=2).encode("utf-8")
+        output = io.BytesIO(json_bytes)
+        return StreamingResponse(output, media_type="application/json", headers={
+            "Content-Disposition": f"attachment; filename=Reporte_Fallas_{fecha}.json"
+        })
+
+    output = io.BytesIO()
+    if formato == "csv":
+        df.to_csv(output, index=False, sep=";", encoding="utf-8-sig")
+        output.seek(0)
+        return StreamingResponse(output, media_type="text/csv", headers={
+            "Content-Disposition": f"attachment; filename=Reporte_Fallas_{fecha}.csv"
+        })
+
+    # Por defecto, Excel
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Fallas')
+    output.seek(0)
+    return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={
+        "Content-Disposition": f"attachment; filename=Reporte_Fallas_{fecha}.xlsx"
+    })

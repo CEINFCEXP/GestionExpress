@@ -94,7 +94,11 @@
                         <label class="form-label fw-bold">
                             <span style="color: red; font-weight: bold;">*</span> Km Odómetro:
                         </label>
-                        <input type="number" class="form-control" id="kmOdometro" placeholder="Ingrese Km" required>
+                        <input type="number" class="form-control" id="kmOdometro"
+                            placeholder="Ingrese Km" required
+                            maxlength="10"
+                            oninput="this.value = this.value.slice(0, 10);"
+                            pattern="\d{1,10}">
                     </div>
     
                     <!-- Observación General -->
@@ -258,9 +262,9 @@
             </div>
 
             <!-- Tabla de Vehículos con Fallas -->
-            <div class="table-responsive mt-3 shadow-sm rounded" style="border: 2px solid #dee2e6;">
-                <table class="table table-hover table-bordered align-middle" id="tablaFallas" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">
-                    <thead style="background-color: #336ff0; color: white;" class="text-center">
+            <div class="table-responsive mt-3 shadow-sm rounded" style="border: 2px solid #dee2e6;  max-height: 70vh; overflow-y: auto;">
+                <table class="table table-hover table-bordered align-middle mb-0" id="tablaFallas" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">
+                    <thead class="text-center sticky-top" style="background-color: #336ff0; color: white; z-index: 1;">
                         <tr>
                             <th style="width: 60px;"><i class="fas fa-cog"></i></th>
                             <th><i class="fas fa-car"></i> Placa</th>
@@ -269,6 +273,7 @@
                             <th><i class="fas fa-stream"></i> Línea</th>
                             <th><i class="fas fa-calendar-alt"></i> Modelo</th>
                             <th><i class="fas fa-exclamation-triangle"></i> Estado</th>
+                            <th><i class="fas fa-link"></i> Vinculación</th>
                         </tr>
                     </thead>
                     <tbody class="text-center">
@@ -278,7 +283,7 @@
             </div>
         </div>
 
-        <!-- Parametización de Vehículos -->
+        <!-- Pestaña Parametización de Vehículos -->
         <div class="tab-pane fade form-section" id="vehiculos" role="tabpanel">
             <div class="row">
                 <!-- Sección Izquierda: Creación de Vehículo -->
@@ -336,11 +341,11 @@
                             <table class="table table-hover table-striped text-center" style="table-layout: fixed; width: 100%; font-size: 12px;">
                                 <thead style="background-color: #0a6ad1; color: white; position: sticky; top: 0; z-index: 1; margin-top: 0; padding: 0">
                                     <tr>
-                                        <th style="width: 60px; min-width: 60px;">Placa</th>
+                                        <th style="width: 65px; min-width: 65px;">Placa</th>
                                         <th style="width: 80px; min-width:80px;">Tipo</th>
                                         <th style="width: 120px; min-width: 120px;">Marca</th>
                                         <th style="width: 120px; min-width: 120px;">Línea</th>
-                                        <th style="width: 80px; min-width: 80px;">Modelo</th>
+                                        <th style="width: 75px; min-width: 75px;">Modelo</th>
                                         <th style="width: 80px; min-width: 80px;">Estado</th>
                                         <th style="width: 150px; min-width: 150px;">Acciones</th>
                                     </tr>                                    
@@ -356,17 +361,85 @@
         </div>
 
         <!-- Pestaña Reportes -->
-        <div class="tab-pane fade form-section" id="reporte" role="tabpanel">
-            <h2 class="text-xl font-semibold fw-bold mb-4" style="font-size:16px; font-family: 'Century Gothic', sans-serif;">Generación de Reportes</h2>
-            <label class="form-label">Seleccionar Rango de Fechas:</label>
-            <div class="d-flex">
-                <input type="date" class="form-control me-2">
-                <input type="date" class="form-control">
-            </div>
-            <div class="mt-4 d-grid gap-2">
-                <button class="btn btn-primary">Generar Reporte</button>
-                <button class="btn btn-secondary">Descargar Excel</button>
-            </div>
+        <div class="tab-pane fade" id="reporte" role="tabpanel">
+            <div class="container-fluid mt-3">
+
+                <!--  SECCIÓN DE FILTROS -->
+                <div class="filtros-reporte rounded p-3 shadow-sm mb-4 bg-white border-start border-4 border-primary">
+                    <h5 class="mb-3" style="font-family: 'Century Gothic'; font-weight: bold; color: #0d6efd;">
+                        🔍 Filtros del Reporte de Fallas
+                    </h5>
+
+                    <div class="row g-2 align-items-end">
+                        <!-- Fecha -->
+                        <div class="col-md-2">
+                            <label class="form-label-sm mb-0">Fecha de Reporte:</label>
+                            <input type="date" id="filtroFecha" class="form-control form-control-sm">
+                        </div>
+
+                        <!-- Placa -->
+                        <div class="col-md-2">
+                            <label class="form-label-sm mb-0">Placa:</label>
+                            <select id="filtroPlaca" class="form-select form-select-sm">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+
+                        <!-- Tipo Vehículo -->
+                        <div class="col-md-2">
+                            <label class="form-label-sm mb-0">Tipo Vehículo:</label>
+                            <select id="filtroTipoVehiculo" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+
+                        <!-- Marca -->
+                        <div class="col-md-2">
+                            <label class="form-label-sm mb-0">Marca:</label>
+                            <select id="filtroMarca" class="form-select form-select-sm">
+                                <option value="">Todas</option>
+                            </select>
+                        </div>
+
+                        <!-- Estado -->
+                        <div class="col-md-1">
+                            <label class="form-label-sm mb-0">Estado:</label>
+                            <select id="filtroEstado" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="Falla">❌ Falla</option>
+                                <option value="OK">✔️ OK</option>
+                            </select>
+                        </div>
+
+                        <!-- Registrado por -->
+                        <div class="col-md-2">
+                            <label class="form-label-sm mb-0">Registrado por:</label>
+                            <select id="filtroUsuario" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+
+                        <!-- Botón consultar  -->
+                        <div class="col-md-1">
+                            <button class="btn btn-primary btn-sm w-100 mt-3" onclick="consultarReporteFallas()">
+                                <i class="fas fa-search me-1"></i> Consultar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!--  SECCIÓN DE RESULTADOS -->
+                <div class="resultados-reporte rounded p-3 shadow-sm bg-light" style="min-height: 450px;">
+                    <!-- <h6 class="mb-2" style="font-family: 'Century Gothic'; color: #333;">📋 Resultados del Reporte</h6> -->
+                    <div id="contenedorResultados">
+                        <!-- Aquí se cargará la tabla después de consultar -->
+                    </div>
+                </div>
+            <div class="text-end mt-2" id="botonesDescarga" style="display: none;">
+                <button class="btn btn-success btn-sm me-1" onclick="descargarReporte('xlsx')">📥 Descargar Excel</button>
+                <button class="btn btn-warning btn-sm me-1" onclick="descargarReporte('csv')">📥 Descargar CSV</button>
+                <button class="btn btn-info btn-sm" onclick="descargarReporte('json')">📥 Descargar JSON</button>
+            </div>                
         </div>
     </div>
 
@@ -427,7 +500,6 @@
                     Detalle de Fallas del Vehículo
                 </h5>
                 <button type="button" class="btn-close btn-close-white" onclick="cerrarModalFalla()" aria-label="Close"></button>
-
             </div>
 
             <div class="modal-body" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">
@@ -444,32 +516,38 @@
                 <!-- Observaciones Generales -->
                 <div class="mb-4">
                     <h6 class="bg-secondary text-white p-2 rounded">📌 Observaciones Generales</h6>
-                    <table class="table table-bordered table-sm">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Fecha Reporte</th>
-                                <th>Observaciones</th>
-                                <th>Registrado Por</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaObservacionesGenerales"></tbody>
-                    </table>
+                    <div class="table-responsive" style="max-height: 180px; overflow-y: auto; border: 1px solid #dee2e6;">
+                        <table class="table table-bordered table-sm mb-0" style="font-size: 13px;">
+                            <thead class="table-light sticky-top" style="top: 0; z-index: 1;">
+                                <tr>
+                                    <th style="width: 20%;">Fecha Reporte</th>
+                                    <th style="width: 55%;">Observaciones</th>
+                                    <th style="width: 25%;">Registrado Por</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaObservacionesGenerales">
+                                <!-- Aquí van las filas dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- Fallas en Documentos -->
                 <div class="mb-4">
                     <h6 class="p-2 rounded text-white" style="background-color: #0078C7;">
-                        📄 Verificación de Documentos
+                        📄 Verificación de Documentos (Último Checklist)
                     </h6>                    
                     <table class="table table-bordered table-sm">
                         <thead class="table-light">
                             <tr>
+                                <th>Historial</th>
                                 <th>Fecha Reporte</th>
                                 <th>Tipo</th>
                                 <th>Observación</th>
                                 <th>Registrado Por</th>
-                                <th>Solucionado</th>
-                                <th>Observación Solución</th>
+                                <th>Estado</th>
+                                <th>Ajuste</th>
+                                <th>Observación Ajuste</th>
                             </tr>
                         </thead>
                         <tbody id="tablaFallasDocumentos"></tbody>
@@ -479,19 +557,21 @@
                 <!-- Fallas en Componentes -->
                 <div>
                     <h6 class="p-2 rounded text-white" style="background-color: #4ea35c;">
-                        🔧 Verificación de Estados del Vehículo
+                        🔧 Verificación de Estados del Vehículo (Último Checklist)
                     </h6>                    
                     <table class="table table-bordered table-sm">
                         <thead class="table-light">
                             <tr>
+                                <th>Historial</th>
                                 <th>Fecha Reporte</th>
                                 <th>Grupo</th>
                                 <th>Posición</th>
                                 <th>Componente</th>
                                 <th>Observación</th>
                                 <th>Registrado Por</th>
-                                <th>Solucionado</th>
-                                <th>Observación Solución</th>
+                                <th>Estado</th>
+                                <th>Ajuste</th>
+                                <th>Observación Ajuste</th>
                             </tr>
                         </thead>
                         <tbody id="tablaFallasComponentes"></tbody>
@@ -501,12 +581,35 @@
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="cerrarModalFalla()">Cerrar</button>
-                <button type="button" class="btn btn-success">Guardar Cambios</button>
+                <button type="button" class="btn btn-success" id="btnGuardarCambiosChecklist" disabled>Guardar Cambios</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Modal de Historial (Dinámico para Documentos o Componentes) -->
+<div class="modal fade" id="modalHistorial" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow" style="font-size: 13px;">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalHistorialLabel">Historial</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- Contenedor con scroll para tabla -->
+            <div class="modal-body p-2" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light sticky-top" id="historialHeader">
+                        <!-- Cabecera dinámica -->
+                    </thead>
+                    <tbody id="tablaHistorialBody">
+                        <!-- Cuerpo dinámico -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- ###################################################################################### -->
 <!-- ###################### INICIO DE LOGICA Y FUNCIONES JAVASCRIPT  ###################### -->
@@ -684,7 +787,7 @@
             await cargarComponentes(vehiculo.placa);
     
             // **Actualizar los datos del checklist si existe**
-            document.getElementById("fechaHoraRegistro").value = checklist.fecha_hora_registro || "";
+            //document.getElementById("fechaHoraRegistro").value = checklist.fecha_hora_registro || "";
             document.getElementById("inicioTurno").value = checklist.inicio_turno || "";
             document.getElementById("finTurno").value = checklist.fin_turno || "";
             document.getElementById("kmOdometro").value = checklist.km_odometro || "";
@@ -703,9 +806,16 @@
                     const observacionInput = row.querySelector("input[type='text']");
             
                     if (radioOk && radioFalla) {
+                        const estadoOriginal = docEncontrado.estado ? "OK" : "Falla";
                         radioOk.checked = docEncontrado.estado ? true : false;
                         radioFalla.checked = !docEncontrado.estado ? true : false;
-                    }
+                    
+                        radioOk.dataset.originalEstado = estadoOriginal;
+                        radioFalla.dataset.originalEstado = estadoOriginal;
+                    
+                        radioOk.dataset.alreadyWarned = "false";
+                        radioFalla.dataset.alreadyWarned = "false";
+                    }                    
             
                     if (observacionInput) {
                         observacionInput.value = docEncontrado.observaciones || "";
@@ -719,12 +829,26 @@
                 const detalleEncontrado = detalles.find(det => det.id_componente == idComponente);
     
                 if (detalleEncontrado) {
-                    const radioBtn = row.querySelector(`input[name="comp_estado_${idComponente}"][value="${detalleEncontrado.estado ? 'OK' : 'Falla'}"]`);
+                    const radioOK = row.querySelector(`input[name="comp_estado_${idComponente}"][value="OK"]`);
+                    const radioFalla = row.querySelector(`input[name="comp_estado_${idComponente}"][value="Falla"]`);
+                
+                    if (radioOK && radioFalla) {
+                        const estadoOriginal = detalleEncontrado.estado ? "OK" : "Falla";
+                        radioOK.checked = detalleEncontrado.estado ? true : false;
+                        radioFalla.checked = !detalleEncontrado.estado ? true : false;
+                    
+                        radioOK.dataset.originalEstado = estadoOriginal;
+                        radioFalla.dataset.originalEstado = estadoOriginal;
+                    
+                        radioOK.dataset.alreadyWarned = "false";
+                        radioFalla.dataset.alreadyWarned = "false";
+                    }                    
+                
                     const observacionInput = row.querySelector("input[type='text']");
-    
-                    if (radioBtn) radioBtn.checked = true;
-                    if (observacionInput) observacionInput.value = detalleEncontrado.observaciones || "";
-                }
+                    if (observacionInput) {
+                        observacionInput.value = detalleEncontrado.observaciones || "";
+                    }
+                }                
             });
 
             activarCambioColorEstado();
@@ -776,6 +900,12 @@
         document.querySelectorAll("#vehiculoAccordion tbody td").forEach(celda => {
             celda.style.backgroundColor = "transparent"; // Restaura el color a su estado original
         });
+
+        // limia estado original de los radio buttons
+        document.querySelectorAll("input[type='radio']").forEach(radio => {
+            delete radio.dataset.originalEstado;
+        });
+        
     }
 
     // Función para obtener los documentos desde la base de datos y cargarlos en la tabla
@@ -980,22 +1110,29 @@
         agregarBotonesFinales();
     }                 
     
-    // Función para incluir colorimetria al cambiar estado de los radio buttons
+    // Función para incluir colorimetria al cambiar estado de los radio buttons y notificar si se intenta cambiar de Falla a OK
     function activarCambioColorEstado() {
         document.querySelectorAll("input[type='radio']").forEach(radio => {
+            const originalEstado = radio.dataset.originalEstado;
+    
+            // Si es el radio "OK" y el estado original era "Falla", lo deshabilitamos
+            if (radio.value === "OK" && originalEstado === "Falla") {
+                radio.disabled = true;
+            }
+    
+            // Color visual del estado
             radio.addEventListener("change", function () {
-                let celdaEstado = this.closest("td"); // Obtener la celda que contiene los radio buttons
-                
+                const celda = this.closest("td");
                 if (this.value === "OK") {
-                    celdaEstado.style.backgroundColor = "#c8e6c9"; // Verde pastel
+                    celda.style.backgroundColor = "#c8e6c9";
                 } else if (this.value === "Falla") {
-                    celdaEstado.style.backgroundColor = "#ffcccb"; // Rojo pastel
+                    celda.style.backgroundColor = "#ffcccb";
                 }
             });
     
-            // Disparar manualmente el evento para aplicar color a los ya seleccionados
+            // Aplicar color de entrada si ya está seleccionado
             if (radio.checked) {
-                radio.dispatchEvent(new Event('change'));
+                radio.dispatchEvent(new Event("change"));
             }
         });
     }    
@@ -1442,6 +1579,11 @@
             // Generar tabla
             filtrados.forEach(item => {
                 const fila = document.createElement("tr");
+                // Si tiene fallas, agregar clase de color rojo claro
+                if (item.estado === "Fallas") {
+                    fila.classList.add("table-danger");
+                }
+            
                 fila.innerHTML = `
                     <td>
                         <button type="button"
@@ -1459,8 +1601,11 @@
                     <td>${item.marca}</td>
                     <td>${item.linea}</td>
                     <td>${item.modelo}</td>
-                    <td class="${item.estado === 'Fallas' ? 'text-danger fw-bold' : 'text-success fw-bold'}">
-                        ${item.estado}
+                    <td class="fw-bold ${item.estado === 'Fallas' ? 'text-danger' : 'text-success'}">
+                        ${item.estado === 'Fallas' ? '⚠️ Fallas' : '✅ Correcto'}
+                    </td>
+                    <td class="fw-bold ${item.vinculacion === 'Activo' ? 'text-success' : 'text-danger'}">
+                        ${item.vinculacion === 'Activo' ? '🟢 Activo' : '🚫 Inactivo'}
                     </td>
                 `;
                 tbody.appendChild(fila);
@@ -1474,19 +1619,28 @@
     async function abrirModalFalla(placa) {
         try {
             const response = await fetch(`/fallas_vehiculo/${placa}`);
-            const data = await response.json();
-
+            if (!response.ok) throw new Error(`Error ${response.status}`);
+    
+            data = await response.json();
             if (data.error) {
                 alert(data.error);
                 return;
             }
 
+            // Rellenar km del último checklist
+            const kmInput = document.getElementById("kmOdometro");
+            if (kmInput && data.checklist?.km_odometro) {
+                kmInput.value = data.checklist.km_odometro;
+            }
+    
+            // Encabezado
             document.getElementById("fallaPlaca").textContent = data.vehiculo.placa;
             document.getElementById("fallaTipoVehiculo").textContent = data.vehiculo.tipo_vehiculo;
             document.getElementById("fallaMarca").textContent = data.vehiculo.marca;
             document.getElementById("fallaLinea").textContent = data.vehiculo.linea;
             document.getElementById("fallaModelo").textContent = data.vehiculo.modelo;
-
+    
+            // Observaciones generales
             document.getElementById("tablaObservacionesGenerales").innerHTML = data.observaciones_generales.map(row => `
                 <tr>
                     <td>${row.fecha_hora_registro}</td>
@@ -1494,39 +1648,111 @@
                     <td>${row.usuario_registro}</td>
                 </tr>
             `).join("");
+    
+            // Documentos
+            const tbodyDocs = document.getElementById("tablaFallasDocumentos");
+            tbodyDocs.innerHTML = "";
 
-            document.getElementById("tablaFallasDocumentos").innerHTML = data.fallas_documentos.map(doc => `
-                <tr>
-                    <td>${doc.fecha_hora_registro}</td>
-                    <td>${doc.tipo_documento}</td>
-                    <td>${doc.observaciones}</td>
-                    <td>${doc.usuario_registro}</td>
-                    <td><input type="checkbox"></td>
-                    <td><input type="text" class="form-control form-control-sm"></td>
-                </tr>
-            `).join("");
+            data.fallas_documentos.forEach(doc => {
+                const entry = doc.historial[0]; // Solo el más reciente
+                if (!entry) return;
 
-            document.getElementById("tablaFallasComponentes").innerHTML = data.fallas_componentes.map(comp => `
-                <tr>
-                    <td>${comp.fecha_hora_registro}</td>
-                    <td>${comp.grupo}</td>
-                    <td>${comp.posicion}</td>
-                    <td>${comp.componente}</td>
-                    <td>${comp.observaciones}</td>
-                    <td>${comp.usuario_registro}</td>
-                    <td><input type="checkbox"></td>
-                    <td><input type="text" class="form-control form-control-sm"></td>
-                </tr>
-            `).join("");
+                const filaClass = doc.estado_actual ? "" : "table-danger";
 
-            const modalFalla = new bootstrap.Modal(document.getElementById("modalFalla"));
-            modalFalla.show();
+                tbodyDocs.innerHTML += `
+                    <tr class="${filaClass}">
+                        <td class="text-center align-middle">
+                            <button onclick="verHistorialDocumento(${doc.id_tipo_documento})" style="border: none; background: none; padding: 0;">
+                                <img src="/static/images/editar.png" alt="Historial" style="width: 25px; height: 25px; cursor: pointer;">
+                            </button>
+                        </td>
+                        <td>${entry.fecha}</td>
+                        <td>${doc.tipo_documento}</td>
+                        <td>${entry.observacion}</td>
+                        <td>${entry.usuario}</td>
+                        <td>${doc.estado_actual ? '✔️ OK' : '❌ Falla'}</td>
+                        <td class="text-center align-middle">
+                            <div class="form-check form-switch d-flex justify-content-center">
+                                <input class="form-check-input ajuste-switch ${doc.estado_actual ? '' : 'switch-falla'}"
+                                    type="checkbox"
+                                    data-id="${doc.id_tipo_documento}" data-tipo="documento"
+                                    ${doc.estado_actual ? 'checked' : ''}>
+                            </div>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm observacion-ajuste"
+                                data-id="${doc.id_tipo_documento}" data-tipo="documento">
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Componentes
+            const tbodyComp = document.getElementById("tablaFallasComponentes");
+            tbodyComp.innerHTML = "";
+
+            data.fallas_componentes.forEach(comp => {
+                const entry = comp.historial[0]; // Solo el más reciente
+                if (!entry) return;
+
+                const filaClass = comp.estado_actual ? "" : "table-danger";
+
+                tbodyComp.innerHTML += `
+                    <tr class="${filaClass}">
+                        <td class="text-center align-middle">
+                            <button onclick="verHistorialComponente(${comp.id_componente})" style="border: none; background: none; padding: 0;">
+                                <img src="/static/images/editar.png" alt="Historial" style="width: 25px; height: 25px; cursor: pointer;">
+                            </button>
+                        </td>
+                        <td>${entry.fecha}</td>
+                        <td>${comp.grupo}</td>
+                        <td>${comp.posicion}</td>
+                        <td>${comp.componente}</td>
+                        <td>${entry.observacion}</td>
+                        <td>${entry.usuario}</td>
+                        <td>${comp.estado_actual ? '✔️ OK' : '❌ Falla'}</td>
+                        <td class="text-center align-middle">
+                            <div class="form-check form-switch d-flex justify-content-center">
+                                <input class="form-check-input ajuste-switch ${comp.estado_actual ? '' : 'switch-falla'}"
+                                    type="checkbox"
+                                    data-id="${comp.id_componente}" data-tipo="componente"
+                                    ${comp.estado_actual ? 'checked' : ''}>
+                            </div>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm observacion-ajuste"
+                                data-id="${comp.id_componente}" data-tipo="componente">
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Activar estilos para switches
+            document.querySelectorAll(".ajuste-switch").forEach(input => {
+                if (!input.checked) {
+                    input.classList.add("switch-falla");
+                } else {
+                    input.classList.remove("switch-falla");
+                }
+                input.addEventListener("change", function () {
+                    if (this.checked) {
+                        this.classList.remove("switch-falla");
+                    } else {
+                        this.classList.add("switch-falla");
+                    }
+                });
+            });
+
+            // Activar validación de cambios en ajustes
+            activarEscuchaCambiosAjustes();
+    
+            new bootstrap.Modal(document.getElementById("modalFalla")).show();
         } catch (error) {
             console.error("❌ Error al abrir modal de falla:", error);
             alert("Ocurrió un error al consultar los detalles del vehículo.");
         }
     }
-
+    
     function cerrarModalFalla() {
         const modal = bootstrap.Modal.getInstance(document.getElementById("modalFalla"));
         if (modal) {
@@ -1612,7 +1838,210 @@
         cargarFallas();
     }
     
+    // Documentos: historial completo
+    function verHistorialDocumento(id) {
+        const doc = data.fallas_documentos.find(d => d.id_tipo_documento === id);
+        if (!doc) return;
+
+        // Cambiar título
+        document.getElementById("modalHistorialLabel").textContent = `Historial - ${doc.tipo_documento}`;
+
+        // Encabezados
+        document.getElementById("historialHeader").innerHTML = `
+            <tr>
+                <th>Fecha Reporte</th>
+                <th>Tipo</th>
+                <th>Observación</th>
+                <th>Registrado Por</th>
+                <th>Estado</th>
+            </tr>
+        `;
+
+        // Cuerpo
+        document.getElementById("tablaHistorialBody").innerHTML = doc.historial.map(h => `
+            <tr>
+                <td>${h.fecha}</td>
+                <td>${doc.tipo_documento}</td>
+                <td>${h.observacion}</td>
+                <td>${h.usuario}</td>
+                <td>${h.estado ? '✔️ OK' : '❌ Falla'}</td>
+            </tr>
+        `).join("");
+
+        new bootstrap.Modal(document.getElementById("modalHistorial")).show();
+    }
+
+    // Componentes: historial completo
+    function verHistorialComponente(id) {
+        const comp = data.fallas_componentes.find(c => c.id_componente === id);
+        if (!comp) return;
+
+        document.getElementById("modalHistorialLabel").textContent = `Historial - ${comp.componente}`;
+
+        document.getElementById("historialHeader").innerHTML = `
+            <tr>
+                <th>Fecha Reporte</th>
+                <th>Grupo</th>
+                <th>Posición</th>
+                <th>Componente</th>
+                <th>Observación</th>
+                <th>Registrado Por</th>
+                <th>Estado</th>
+            </tr>
+        `;
+
+        document.getElementById("tablaHistorialBody").innerHTML = comp.historial.map(h => `
+            <tr>
+                <td>${h.fecha}</td>
+                <td>${comp.grupo}</td>
+                <td>${comp.posicion}</td>
+                <td>${comp.componente}</td>
+                <td>${h.observacion}</td>
+                <td>${h.usuario}</td>
+                <td>${h.estado ? '✔️ OK' : '❌ Falla'}</td>
+            </tr>
+        `).join("");
+
+        new bootstrap.Modal(document.getElementById("modalHistorial")).show();
+    }
+    
+    // Activar boton de guardar cuando exista cambios en ajustes de fallas
+    function activarEscuchaCambiosAjustes() {
+        const btnGuardar = document.getElementById("btnGuardarCambiosChecklist");
+        btnGuardar.disabled = true;
+    
+        const inputs = document.querySelectorAll(".ajuste-switch, .observacion-ajuste");
+        inputs.forEach(input => {
+            input.addEventListener("change", verificarCambiosEnAjustes);
+            input.addEventListener("input", verificarCambiosEnAjustes);
+        });
+    }
+    
+    function verificarCambiosEnAjustes() {
+        const btnGuardar = document.getElementById("btnGuardarCambiosChecklist");
+        let cambio = false;
+    
+        document.querySelectorAll(".ajuste-switch").forEach(switchEl => {
+            const original = !switchEl.classList.contains("switch-falla");
+            if (switchEl.checked !== original) cambio = true;
+        });
+    
+        document.querySelectorAll(".observacion-ajuste").forEach(input => {
+            if (input.value.trim() !== "") cambio = true;
+        });
+    
+        btnGuardar.disabled = !cambio;
+    }    
+
+    function obtenerFechaHoraBogota() {
+        const fechaUTC = new Date();
+        const opcionesFecha = { timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit" };
+        const opcionesHora = { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hour12: false };
+    
+        const fechaBogota = new Intl.DateTimeFormat("es-CO", opcionesFecha).format(fechaUTC);
+        const horaBogota = new Intl.DateTimeFormat("es-CO", opcionesHora).format(fechaUTC);
+    
+        const [dia, mes, anio] = fechaBogota.split("/");
+        const fechaFormateada = `${anio}-${mes}-${dia}`;
+        const horaFormateada = horaBogota.replace(":", ":");
+    
+        return `${fechaFormateada} ${horaFormateada}:00`;
+    }    
+
+    // Guardar cambios en el checklist
+    document.getElementById("btnGuardarCambiosChecklist").addEventListener("click", async function () {
+        const idVehiculo = data.vehiculo.id;
+        const kmOdometro = parseInt(document.getElementById("kmOdometro").value || "0", 10);
+        const usuarioRegistra = "{{ user_session.nombres }} {{ user_session.apellidos }}";
+    
+        const ahora = new Date();
+        const fechaHora = obtenerFechaHoraBogota();
+    
+        let documentos = [];
+        let detalles = [];
+        let cambiosDetectados = false;
+    
+        // Documentos
+        document.querySelectorAll("#tablaFallasDocumentos tr").forEach(row => {
+            const switchEl = row.querySelector("input[type='checkbox']");
+            const observacion = row.querySelector(".observacion-ajuste")?.value?.trim() || "";
+            const id = parseInt(switchEl.dataset.id);
+            const original = !switchEl.classList.contains("switch-falla");
+            const estadoActual = switchEl.checked;
+    
+            if (estadoActual !== original || observacion !== "") cambiosDetectados = true;
+    
+            documentos.push({
+                id_tipo_documento: id,
+                estado: estadoActual,
+                observaciones: observacion
+            });
+        });
+    
+        // Componentes
+        document.querySelectorAll("#tablaFallasComponentes tr").forEach(row => {
+            const switchEl = row.querySelector("input[type='checkbox']");
+            const observacion = row.querySelector(".observacion-ajuste")?.value?.trim() || "";
+            const id = parseInt(switchEl.dataset.id);
+            const original = !switchEl.classList.contains("switch-falla");
+            const estadoActual = switchEl.checked;
+    
+            if (estadoActual !== original || observacion !== "") cambiosDetectados = true;
+    
+            detalles.push({
+                id_componente: id,
+                estado: estadoActual,
+                observaciones: observacion
+            });
+        });
+    
+        if (!cambiosDetectados) {
+            alert("No se han detectado cambios para guardar.");
+            return;
+        }
+    
+        const payload = {
+            registro: {
+                id_vehiculo: idVehiculo,
+                fecha_hora_registro: fechaHora,
+                inicio_turno: "07:00",
+                fin_turno: "17:00",
+                km_odometro: kmOdometro,
+                observaciones_generales: "",
+                usuario_registro: usuarioRegistra
+            },
+            documentos: documentos,
+            detalles: detalles
+        };
+    
+        try {
+            document.getElementById("loadingOverlay").style.display = "block";
+            const res = await fetch("/guardar_checklist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+    
+            const resultado = await res.json();
+            document.getElementById("loadingOverlay").style.display = "none";
+    
+            if (res.ok) {
+                alert("✅ Cambios guardados exitosamente como nuevo checklist.");
+                cerrarModalFalla();
+                location.reload();
+            } else {
+                console.error("❌ Error al guardar:", resultado);
+                alert("❌ Error al guardar: " + (resultado.detail || "Error desconocido"));
+            }
+        } catch (err) {
+            document.getElementById("loadingOverlay").style.display = "none";
+            console.error(err);
+            alert("❌ Ocurrió un error al intentar guardar el checklist.");
+        }
+    });
+    
 </script>
+
 <!-- Estilos personalizados para la tabla fallas-->
 <style>
     #tablaFallas tbody td input,
@@ -1628,11 +2057,226 @@
         padding-bottom: 2px !important;
         vertical-align: middle !important;
     }
+
+    .modal-backdrop.show {
+        opacity: 0.6 !important; 
+        z-index: 1040; /* menor que el modal interno */
+    }  
+    
+    /* CONFIGURACIÓN TOGGEL SWITCH */
+    /* FONDO y BORDE cuando está en Falla (apagado, sin check) */
+    .ajuste-switch.switch-falla {
+        background-color: #f44336 !important; /* Rojo */
+        border-color: #f44336 !important;
+    }
+
+    .ajuste-switch.switch-falla:focus {
+        box-shadow: 0 0 0 0.1rem #f4433644 !important;
+    }
+
+    /* FONDO y BORDE cuando está en OK (encendido, con check) */
+    .ajuste-switch:checked {
+        background-color: #28a745 !important; /* Verde */
+        border-color: #28a745 !important;
+    }
+
+    .ajuste-switch:checked:focus {
+        box-shadow: 0 0 0 0.1rem #28a74544 !important;
+    }
+
+    /* Siempre que sea .ajuste-switch (OK o Falla), círculo blanco */
+    .ajuste-switch::before {
+        background-color: white !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    /* Reforzar si está en Falla y apagado */
+    .ajuste-switch.switch-falla:not(:checked)::before {
+        background-color: white !important;
+    }
+
+    /* Reforzar si está en OK y encendido */
+    .ajuste-switch:checked::before {
+        background-color: white !important;
+    }
+
+    /* Transición suave al mover el switch */
+    .ajuste-switch {
+        transition: background-color 0.3s ease-in-out;
+    }
+
+     /* Ajuste de tamaño del switch */
+    .ajuste-switch {
+        width: 35px;     /* ancho del switch */
+        height: 20px;    /* alto del switch */
+    }
+
+    /* Ajuste del "círculo blanco" interior del switch */
+    .ajuste-switch::before {
+        width: 20px;     /* ancho del círculo */
+        height: 20px;    /* alto del círculo */
+        top: 2px;        /* alineación vertical */
+        left: 2px;       /* alineación horizontal cuando está apagado */
+    }
+
+    .ajuste-switch:checked::before {
+        transform: translateX(25px);  /* distancia que se mueve el círculo al activarse */
+    }
+
+    .encabezado-reporte {
+        background-color: #001F54; /* encabezado pestaña consulta de reportes */
+        color: white;
+        font-weight: bold;
+        text-align: center;
+    }
+
 </style>
 
 <!--  JavaScript para la consulta de reportes de checklist  -->
 <script>
+    // Cargar los filtros al cargar la página
+    document.addEventListener("DOMContentLoaded", async () => {
+        try {
+            const res = await fetch("/reportes/filtros");
+            const data = await res.json();
+    
+            llenarSelect("filtroPlaca", data.placas);
+            llenarSelect("filtroTipoVehiculo", data.tipos);
+            llenarSelect("filtroMarca", data.marcas);
+            llenarSelect("filtroUsuario", data.usuarios);
+        } catch (err) {
+            console.error("Error al cargar filtros:", err);
+        }
+    });
+    
+    function llenarSelect(id, valores) {
+        const select = document.getElementById(id);
+        valores.forEach(v => {
+            const option = document.createElement("option");
+            option.value = v;
+            option.text = v;
+            select.appendChild(option);
+        });
+    }      
 
+    // Cargar reportes al hacer clic en el botón
+    async function consultarReporteFallas() {
+        const fecha = document.getElementById("filtroFecha").value;
+        if (!fecha) {
+            alert("Por favor, selecciona una fecha de reporte.");
+            document.getElementById("filtroFecha").focus();
+            return;
+        }
+    
+        // Solo agrega filtros que tienen valor
+        const params = new URLSearchParams();
+        params.append("fecha", fecha);
+    
+        const placa = document.getElementById("filtroPlaca").value;
+        if (placa) params.append("placa", placa);
+    
+        const tipo = document.getElementById("filtroTipoVehiculo").value;
+        if (tipo) params.append("tipo_vehiculo", tipo);
+    
+        const marca = document.getElementById("filtroMarca").value;
+        if (marca) params.append("marca", marca);
+    
+        const estado = document.getElementById("filtroEstado").value;
+        if (estado) params.append("estado", estado);
+    
+        const usuario = document.getElementById("filtroUsuario").value;
+        if (usuario) params.append("usuario", usuario);
+    
+        const contenedor = document.getElementById("contenedorResultados");
+        contenedor.innerHTML = "<div class='text-muted'>🔄 Consultando resultados...</div>";
+    
+        try {
+            const res = await fetch(`/reportes/fallas?${params.toString()}`);
+            const datos = await res.json();
+    
+            if (datos.length === 0) {
+                contenedor.innerHTML = "<div class='alert alert-warning p-2'>No se encontraron resultados.</div>";
+                return;
+            }
+    
+            let tabla = `<div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                <table class="table table-bordered table-sm" style="font-size: 12px;">
+                <thead class="encabezado-reporte sticky-top">
+                    <tr>
+                        <th>ID Checklist</th><th>Fecha Reporte</th><th>Placa</th><th>Tipo Vehículo</th><th>Marca</th><th>Línea</th>
+                        <th>Modelo</th><th>Inicio Turno</th><th>Fin Turno</th><th>Km Odómetro</th>
+                        <th>Observación General</th><th>Tipo</th><th>Grupo</th><th>Posición</th>
+                        <th>Componente</th><th>Observación</th><th>Registrado por</th><th>Estado</th><th>Fecha Guardado</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+    
+            datos.forEach(row => {
+                tabla += `<tr>
+                    <td>${row.id_checklist}</td>
+                    <td>${row.fecha_reporte}</td>
+                    <td>${row.placa}</td>
+                    <td>${row.tipo_vehiculo}</td>
+                    <td>${row.marca}</td>
+                    <td>${row.linea}</td>
+                    <td>${row.modelo}</td>
+                    <td>${row.inicio_turno}</td>
+                    <td>${row.fin_turno}</td>
+                    <td>${row.km_odometro}</td>
+                    <td>${row.observaciones_generales || ''}</td>
+                    <td>${row.tipo}</td>
+                    <td>${row.grupo || ''}</td>
+                    <td>${row.posicion || ''}</td>
+                    <td>${row.componente || ''}</td>
+                    <td>${row.observaciones || ''}</td>
+                    <td>${row.usuario_registro}</td>
+                    <td>
+                    ${row.estado_item === false
+                        ? '<span class="badge bg-danger">❌ Falla</span>'
+                        : '<span class="badge bg-success">✔️ OK</span>'}
+                    </td>
+                    <td>${row.fecha_guardado}</td>
+                </tr>`;
+            });
+    
+            tabla += "</tbody></table></div>";
+            contenedor.innerHTML = tabla;
+
+            document.getElementById("botonesDescarga").style.display = "block";
+
+        } catch (err) {
+            console.error("Error al consultar:", err);
+            contenedor.innerHTML = "<div class='alert alert-danger p-2'>Error al consultar el reporte.</div>";
+        }
+    }
+
+    function descargarReporte(formato) {
+        const fecha = document.getElementById("filtroFecha").value;
+        if (!fecha) {
+            alert("Primero realiza una consulta con fecha.");
+            return;
+        }
+    
+        const params = new URLSearchParams();
+        params.append("fecha", fecha);
+    
+        const filtros = {
+            placa: "filtroPlaca",
+            tipo_vehiculo: "filtroTipoVehiculo",
+            marca: "filtroMarca",
+            estado: "filtroEstado",
+            usuario: "filtroUsuario"
+        };
+    
+        for (const [key, id] of Object.entries(filtros)) {
+            const val = document.getElementById(id).value;
+            if (val) params.append(key, val);
+        }
+    
+        window.open(`/reportes/fallas/exportar?${params.toString()}&formato=${formato}`, '_blank');
+    }    
+    
 </script>
 
 {% endblock %}
