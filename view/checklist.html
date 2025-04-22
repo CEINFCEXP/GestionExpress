@@ -17,6 +17,9 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="registro-tab" data-bs-toggle="tab" data-bs-target="#registro" type="button" role="tab" style="font-size:14px; font-family: 'Century Gothic', sans-serif;">📋 Registro Checklist</button>
         </li>
+        
+        <!-- Condicional Rol = 6 Solo ve la pestaña Registro (Personal Vía) -->
+        {% if user_session.rol != 6 %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="fallas-tab" data-bs-toggle="tab" data-bs-target="#fallas" type="button" role="tab" style="font-size:14px; font-family: 'Century Gothic', sans-serif;">⚠️ Consolidado de Fallas</button>
         </li>
@@ -26,6 +29,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="reporte-tab" data-bs-toggle="tab" data-bs-target="#reporte" type="button" role="tab" style="font-size:14px; font-family: 'Century Gothic', sans-serif;">📊 Consultas y Reportes</button>
         </li>
+        {% endif %}
     </ul>
     
     <!-- Proceso de carga -->
@@ -214,6 +218,7 @@
             </div>
         </div>
 
+        {% if user_session.rol != 6 %}
         <!-- Pestaña Consolidado de Fallas -->
         <div class="tab-pane fade form-section" id="fallas" role="tabpanel">
             <div class="row mb-3 p-2 border rounded shadow-sm bg-light">
@@ -441,6 +446,7 @@
                 <button class="btn btn-info btn-sm" onclick="descargarReporte('json')">📥 Descargar JSON</button>
             </div>                
         </div>
+        {% endif %}
     </div>
 
 <!-- Modal para editar vehículo -->
@@ -1110,12 +1116,15 @@
         agregarBotonesFinales();
     }                 
     
-    // Función para incluir colorimetria al cambiar estado de los radio buttons y notificar si se intenta cambiar de Falla a OK
+    // Función para incluir colorimetria al cambiar estado de los radio buttons y bloquear si se intenta cambiar de Falla a OK
     function activarCambioColorEstado() {
         document.querySelectorAll("input[type='radio']").forEach(radio => {
+            // Siempre habilita todos los radios antes de aplicar condiciones
+            radio.disabled = false;
+    
             const originalEstado = radio.dataset.originalEstado;
     
-            // Si es el radio "OK" y el estado original era "Falla", lo deshabilitamos
+            // Si es el radio "OK" y el estado original era "Falla", deshabilitar
             if (radio.value === "OK" && originalEstado === "Falla") {
                 radio.disabled = true;
             }
@@ -1130,7 +1139,7 @@
                 }
             });
     
-            // Aplicar color de entrada si ya está seleccionado
+            // Aplicar color si ya está seleccionado
             if (radio.checked) {
                 radio.dispatchEvent(new Event("change"));
             }
