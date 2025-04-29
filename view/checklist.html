@@ -760,6 +760,29 @@
             const data = await response.json();
             
             //console.log(" Respuesta recibida del servidor:", data);
+
+            // LIMPIAR valores anteriores de documentos y componentes
+            document.querySelectorAll("#tbody-documentos input[type='radio']").forEach(radio => {
+                radio.checked = false;
+                delete radio.dataset.originalEstado;
+            });
+            document.querySelectorAll("#tbody-documentos input[type='text']").forEach(input => {
+                input.value = "";
+            });
+            document.querySelectorAll("#tbody-documentos td").forEach(celda => {
+                celda.style.backgroundColor = "transparent";
+            });
+
+            document.querySelectorAll("#vehiculoAccordion tbody input[type='radio']").forEach(radio => {
+                radio.checked = false;
+                delete radio.dataset.originalEstado;
+            });
+            document.querySelectorAll("#vehiculoAccordion tbody input[type='text']").forEach(input => {
+                input.value = "";
+            });
+            document.querySelectorAll("#vehiculoAccordion tbody td").forEach(celda => {
+                celda.style.backgroundColor = "transparent";
+            });
     
             if (data.error) {
                 alert("Vehículo no encontrado.");
@@ -2133,12 +2156,15 @@
         transform: translateX(25px);  /* distancia que se mueve el círculo al activarse */
     }
 
-    .encabezado-reporte {
-        background-color: #001F54; /* encabezado pestaña consulta de reportes */
+    thead th {
+        background-color: #001F54;
         color: white;
-        font-weight: bold;
+        position: sticky;
+        top: 0;
+        z-index: 10;
         text-align: center;
-    }
+        font-weight: bold;
+    }    
 
 </style>
 
@@ -2210,16 +2236,31 @@
             }
     
             let tabla = `<div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
-                <table class="table table-bordered table-sm" style="font-size: 12px;">
-                <thead class="encabezado-reporte sticky-top">
+                <table class="table table-bordered table-sm" style="font-size: 12px; position: relative; table-layout: fixed;">
+                <thead style="position: sticky; top: 0; background-color: #001F54; color: white; font-weight: bold; text-align: center; z-index: 10;">
                     <tr>
-                        <th>ID Checklist</th><th>Fecha Reporte</th><th>Placa</th><th>Tipo Vehículo</th><th>Marca</th><th>Línea</th>
-                        <th>Modelo</th><th>Inicio Turno</th><th>Fin Turno</th><th>Km Odómetro</th>
-                        <th>Observación General</th><th>Tipo</th><th>Grupo</th><th>Posición</th>
-                        <th>Componente</th><th>Observación</th><th>Registrado por</th><th>Estado</th><th>Fecha Guardado</th>
+                        <th>ID Checklist</th>
+                        <th>Fecha Reporte</th>
+                        <th>Placa</th>
+                        <th>Tipo Vehículo</th>
+                        <th>Marca</th>
+                        <th>Línea</th>
+                        <th>Modelo</th>
+                        <th>Inicio Turno</th>
+                        <th>Fin Turno</th>
+                        <th>Km Odómetro</th>
+                        <th>Observación General</th>
+                        <th>Tipo</th>
+                        <th>Grupo</th>
+                        <th>Posición</th>
+                        <th>Componente</th>
+                        <th>Observación</th>
+                        <th>Registrado por</th>
+                        <th>Estado</th>
+                        <th>Fecha Guardado</th>
                     </tr>
                 </thead>
-                <tbody>`;
+                <tbody>`;            
     
             datos.forEach(row => {
                 tabla += `<tr>

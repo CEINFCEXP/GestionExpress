@@ -333,8 +333,13 @@ def exportar_reporte_fallas(
         })
 
     # Por defecto, Excel
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Fallas')
+    try:
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Fallas')
+    except ImportError:
+        # Si no está xlsxwriter, prueba con openpyxl
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Fallas')
     output.seek(0)
     return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={
         "Content-Disposition": f"attachment; filename=Reporte_Fallas_{fecha}.xlsx"
