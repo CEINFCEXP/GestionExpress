@@ -25,6 +25,8 @@ Desarrollado con **FastAPI**, **Jinja2**, **PostgreSQL** y desplegado en **Rende
 ---
 
 ## 📁 Estructura del proyecto (Ejemplo)
+
+```text
 GestionExpress/
 ├── main.py                 # Archivo principal de FastAPI
 ├── controller/             # Lógica de negocio
@@ -43,7 +45,6 @@ GestionExpress/
 1. **Abrir terminal** y posicionarse en el proyecto:
 ```
 cd <nombre del directorio>
-
 ```
 
 **2:** Crear un entorno virtual:
