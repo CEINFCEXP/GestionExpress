@@ -37,6 +37,7 @@ GestionExpress/
 ├── lib/                    # Librerías auxiliares
 ├── requirements.txt        # Dependencias del proyecto
 └── .env                    # Variables de entorno
+```
 
 ---
 
