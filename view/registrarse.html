@@ -1,83 +1,383 @@
 {% extends "components/layout.html" %}
 
-{% block title %}Crear Usuario{% endblock %}
+{% block title %}Gestión de Usuarios{% endblock %}
 
 {% block content %}
-  <div class="container">
-    <div class="row justify-content-center mt-2">
-      <div class="col-md-6">
-        <div class="card shadow">
-          <div class="card-body">
-            <h2 class="card-title text-center mb-4" style="font-family: 'Century Gothic', sans-serif;">Creación de Usuario</h2>
-            <p class="text-center" style="font-size: 20px; color: #0d2a8b;">Centro de Control</p>
-            {% if success_message %}
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-              {{ success_message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endif %}
-            {% if error_message %}
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-              {{ error_message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endif %}
-            <form method="post" action="/registrarse" class="row g-3">
-              <div class="col-md-6">
-                <label for="validationDefaultUsername" class="form-label">Usuario (Cédula)</label>
-                <div class="input-group">
-                  <span class="input-group-text" id="inputGroupPrepend2">@</span>
-                  <input
-                    name="username"
-                    type="text"
-                    class="form-control"
-                    id="validationDefaultUsername"
-                    aria-describedby="inputGroupPrepend2"
-                    required
-                    oninput="this.value = this.value.replace(/[^0-9]/g, '');"
-                  />
-                </div>
-              </div>
-              <div class="col-md-6">
-                <label for="validationDefault01" class="form-label">Nombre(s)</label>
-                <input name="nombres" type="text" class="form-control" id="validationDefault01" required
-                oninput="this.value = this.value.toUpperCase();"
-                />
-              </div>
-              <div class="col-md-6">
-                <label for="validationDefault02" class="form-label">Apellido(s)</label>
-                <input name="apellidos" type="text" class="form-control" id="validationDefault02" required
-                oninput="this.value = this.value.toUpperCase();" 
-                />
-              </div>
-              <div class="col-md-6">
-                <label for="validationDefault04" class="form-label">Cargo</label>
-                <select name="cargo" class="form-select" id="validationDefault04" required>
-                  <option selected disabled value="">Seleccione el Cargo ...</option>
-                  <option value="Analista Centro de Control">Administrador</option>
-                  <option value="Analista Centro de Control">Analista Centro de Control</option>
-                  <option value="Jefe Centro de Control">Jefe Centro de Control</option>
-                  <option value="Jefe Centro de Control">Juridico</option>
-                  <option value="Supervisor Centro de Control">Supervisor Centro de Control</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label for="validationDefault05" class="form-label">Contraseña</label>
-                <input
-                  name="password_user"
-                  type="password"
-                  class="form-control"
-                  id="validationDefault05"
-                  required
-                />
-              </div>
-              <div class="col-12 text-center mt-4">
-                <button class="btn btn-primary btn-lg" type="submit">Guardar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+<div class="container-fluid d-flex flex-column" style="height: 90vh;">
+  <div class="row justify-content-between align-items-center mb-4">
+      <h1 class="col-auto" style="font-size: 22px; font-family: 'Century Gothic', sans-serif;">Gestión de Usuarios</h1>
+      <h1 class="col-auto" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!</h1>
+      <img src="/static/Consorcio.png" alt="Consorcio Icon" class="col-auto" style="max-width: 100px; height: auto;">
   </div>
+
+    <!-- Mostrar notificación de éxito si existe en la cookie -->
+    {% if request.cookies.get('success_message') %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ request.cookies.get('success_message') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Mostrar notificación de error si existe en la cookie -->
+    {% if request.cookies.get('error_message') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ request.cookies.get('error_message') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
+
+    <div class="row flex-grow-1">
+        <!-- Formulario de creación de usuarios -->
+        <div class="col-lg-5 d-flex flex-column" style="height: 80vh;">
+            <div class="card shadow-sm flex-grow-1 d-flex flex-column">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Crear Nuevo Usuario</h4>
+                </div>
+                <div class="card-body flex-grow-1 d-flex flex-column" style="overflow-y: auto; height: 70vh;">
+                    <form id="createUserForm" action="/registrarse" method="post">
+                        <input type="hidden" name="user_id" value="">
+
+                        <div class="row" style="margin-bottom: 0px;">
+                            <!-- Nombre y Apellido en una fila -->
+                            <div class="col-md-6 mb-3">
+                                <label for="nombres" class="form-label">Nombre(s)</label>
+                                <input name="nombres" type="text" class="form-control" id="nombres" required oninput="this.value = this.value.toUpperCase();">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="apellidos" class="form-label">Apellido(s)</label>
+                                <input name="apellidos" type="text" class="form-control" id="apellidos" required oninput="this.value = this.value.toUpperCase();">
+                            </div>
+                        </div>
+
+                        <div class="row" style="margin-bottom: 0px;">
+                            <!-- Usuario (Cédula) y Rol en otra fila -->
+                            <div class="col-md-6 mb-3">
+                                <label for="validationDefaultUsername" class="form-label">Usuario (Cédula)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text" id="inputGroupPrepend2">@</span>
+                                    <input
+                                        name="username"
+                                        type="text"
+                                        class="form-control"
+                                        id="validationDefaultUsername"
+                                        aria-describedby="inputGroupPrepend2"
+                                        required
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '');"
+                                    />
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="rol" class="form-label">Rol Sistema</label>
+                                <select class="form-select" id="rol" name="rol" required>
+                                    <option disabled selected>Seleccione el rol...</option>
+                                    {% for rol in roles %}
+                                        <option value="{{ rol[0] }}">{{ rol[1] }} ({{ rol[0] }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row" style="margin-bottom: 0px;">
+                            <!-- Contraseña y Roles Storage en la misma fila -->
+                            <div class="col-md-6 mb-3">
+                                <label for="password_user" class="form-label">Contraseña</label>
+                                <input type="password" class="form-control" id="password_user" name="password_user" required>
+                            </div>
+                        
+                            <div class="col-md-6 mb-3">
+                                <label for="rol_storage" class="form-label">Rol Storage (Azure)</label>
+                                <select class="form-select" id="rol_storage" name="rol_storage" required>
+                                    <option value="0" selected>No Asignar</option>  <!-- Opción para no asignar rol -->
+                                    {% for rol_storage in roles_storage %}
+                                        <option value="{{ rol_storage[0] }}">{{ rol_storage[1] }} ({{ rol_storage[0] }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>                        
+
+                        <button type="submit" class="btn btn-success w-100">Guardar</button>
+                    </form>
+                    <!-- Aquí comienza el formulario para cargar las licencias Power BI, justo debajo del formulario de creación de usuarios -->
+                    <div style="margin-top: 20px; border-top: 2px solid #bebebe; padding-top: 20px;">
+                        <form id="licencias-form" enctype="multipart/form-data">
+                            <h5 style="font-size: 14px; margin-bottom: 10px;">Solo para Cargar archivo de Licencias Power BI Consorcio Express:</h5>
+                            
+                            <!-- Contenedor flex para el input y el botón -->
+                            <div style="display: flex; align-items: center;">
+                                <input type="file" id="licencias_file" name="file" accept=".xlsx" class="form-control" style="margin-right: 10px; width: 70%; height: 35px;">
+                                <button type="submit" class="btn btn-primary" style="white-space: nowrap; height: 35px;">Cargar Licencias BI</button>
+                            </div>
+                        </form>
+                    </div>
+                    <!-- Contenedor para mostrar notificaciones -->
+                    <div id="notification" style="margin-top: 10px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de usuarios existentes -->
+        <div class="col-lg-7 d-flex flex-column" style="height: 80vh;">
+            <div class="card shadow-sm flex-grow-1 d-flex flex-column">
+                <div class="card-header bg-dark text-white" style="margin-bottom: 0;">
+                    <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Usuarios Existentes</h4>
+                </div>
+                <div class="card-body flex-grow-1 d-flex flex-column" style="overflow-y: auto; height: 70vh; padding-top: 0;">
+                    <table class="table table-hover table-striped" style="table-layout: fixed; width: 100%; font-size: 12px;">
+                        <thead class="table-light" style="position: sticky; top: 0; z-index: 1; margin-top: 0; padding: 0;">
+                            <tr>
+                                <th style="width: 3px;">ID</th>
+                                <th style="width: 12%;">Username</th>
+                                <th style="width: 35px;">Nombre</th>
+                                <th style="width: 35px;">Apellidos</th>
+                                <th style="width: 3px;">Rol</th>
+                                <th style="width: 3px;">Blob</th>
+                                <th style="width: 8px;">Estado</th>
+                                <th style="width: 45px;" class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                          {% for usuario in usuarios %}
+                          <tr>
+                              <td>{{ usuario[0] }}</td> <!-- ID -->
+                              <td>{{ usuario[3] }}</td> <!-- Username -->
+                              <td>{{ usuario[1] }}</td> <!-- Nombres -->
+                              <td>{{ usuario[2] }}</td> <!-- Apellidos -->
+                              <td>{{ usuario[4] }}</td> <!-- Rol Sistema-->
+                              <td>{{ usuario[6] }}</td> <!-- Storage  -->
+                              <td>{{ 'Activo' if usuario[5] == 1 else 'Inactivo' }}</td> <!-- Estado -->
+                              <td class="text-center">
+                                  <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUserModal" data-user-id="{{ usuario[0] }}">
+                                      <i class="fas fa-edit"></i> Editar
+                                  </button>
+                                  <form action="/registrarse/{{ usuario[0] }}/inactivar" method="post" style="display:inline;" onsubmit="return confirm('¿Está seguro de que desea inactivar este usuario?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-ban"></i> Inactivar
+                                    </button>
+                                </form>
+                              </td>
+                          </tr>
+                          {% else %}
+                          <tr>
+                              <td colspan="7" class="text-center">No hay usuarios registrados</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>                                                                                                                                                 
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Modal para editar usuario -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <form id="editUserForm" method="post">
+              <input type="hidden" id="editUserIdHidden" name="user_id" value="">
+
+              <div class="modal-header bg-primary text-white">
+                  <h5 class="modal-title" id="editUserModalLabel">Editar Usuario</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+
+              <div class="modal-body">
+                  <div class="row">
+                      <div class="col-md-6 mb-3">
+                          <label for="editUserIdDisplay" class="form-label">ID</label>
+                          <input type="text" class="form-control" id="editUserIdDisplay" name="user_id" disabled>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                          <label for="editUserUsername" class="form-label">Username (N° Cedula)</label>
+                          <input type="text" class="form-control" id="editUserUsername" name="username" required oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                      </div>
+                  </div>
+
+                  <div class="row">
+                      <div class="col-md-6 mb-3">
+                          <label for="editUserName" class="form-label">Nombre</label>
+                          <input type="text" class="form-control" id="editUserName" name="nombres" required oninput="this.value = this.value.toUpperCase();">
+                      </div>
+                      <div class="col-md-6 mb-3">
+                          <label for="editUserApellido" class="form-label">Apellido</label>
+                          <input type="text" class="form-control" id="editUserApellido" name="apellidos" required oninput="this.value = this.value.toUpperCase();">
+                      </div>
+                  </div>
+
+                  <div class="row">
+                      <div class="col-md-6 mb-3">
+                          <label for="editUserRol" class="form-label">Rol</label>
+                          <select class="form-select" id="editUserRol" name="rol" required>
+                              {% for rol in roles %}
+                                  <option value="{{ rol[0] }}">{{ rol[1] }} ({{ rol[0] }})</option>
+                              {% endfor %}
+                          </select>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                          <label for="editUserEstado" class="form-label">Estado</label>
+                          <select class="form-select" id="editUserEstado" name="estado" required>
+                              <option value="1">Activo</option>
+                              <option value="0">Inactivo</option>
+                          </select>
+                      </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="editUserPassword" class="form-label">Contraseña (opcional)</label>
+                        <input type="password" class="form-control" id="editUserPassword" name="password_user">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="editUserRolStorage" class="form-label">Rol Storage (Azure)</label>
+                        <select class="form-select" id="editUserRolStorage" name="rol_storage" required>
+                            <option value="0">No Asignar</option>  <!-- Opción por defecto -->
+                            {% for rol_storage in roles_storage %}
+                                <option value="{{ rol_storage[0] }}">{{ rol_storage[1] }} ({{ rol_storage[0] }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                  <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+              </div>
+          </form>
+      </div>
+  </div>
+</div>
+<!-- FUNCIONES PARA QUE EL MODAL TRAIGA LOS DATOS DE LA TABLA USUARIOS -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const editUserModal = document.getElementById('editUserModal');
+
+    if (!editUserModal) {
+        console.error("No se encontró el modal con el ID 'editUserModal'.");
+        return;
+    }
+
+    editUserModal.addEventListener('show.bs.modal', function(event) {
+        // console.log("El modal se ha abierto correctamente");
+
+        const button = event.relatedTarget;  // Botón que activó el modal
+        const userId = button.getAttribute('data-user-id');  // Obtener el ID del usuario
+        // console.log("ID del usuario capturado:", userId);
+
+        if (!userId) {
+            console.error("No se ha capturado ningún ID de usuario.");
+            return;
+        }
+
+        // Restablecer los valores del modal antes de cargar nuevos datos
+        document.getElementById('editUserIdDisplay').value = '';
+        document.getElementById('editUserName').value = '';
+        document.getElementById('editUserApellido').value = '';
+        document.getElementById('editUserUsername').value = '';
+        document.getElementById('editUserRol').value = '';
+        document.getElementById('editUserEstado').value = '';
+        document.getElementById('editUserPassword').value = '';
+        document.getElementById('editUserRolStorage').value = '0';
+
+        // Solicitar datos del usuario seleccionado
+        fetch(`/registrarse/${userId}/datos`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al obtener los datos del usuario');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // console.log("Datos recibidos del backend:", data);
+
+                // Rellenar los campos del modal con los datos del usuario
+                document.getElementById('editUserIdDisplay').value = data.id;
+                document.getElementById('editUserName').value = data.nombres;
+                document.getElementById('editUserApellido').value = data.apellidos;
+                document.getElementById('editUserUsername').value = data.username;
+                document.getElementById('editUserRol').value = data.rol;
+                document.getElementById('editUserEstado').value = data.estado;
+                document.getElementById('editUserRolStorage').value = data.rol_storage || '0'; 
+
+                // No mostrar la contraseña, solo permitir cambiarla
+                document.getElementById('editUserPassword').value = '';
+
+                // Actualizar la acción del formulario para que apunte a la URL correcta
+                document.getElementById('editUserForm').action = `/registrarse/${userId}/editar`;
+            })
+            .catch(error => {
+                console.error('Error al obtener los datos del usuario:', error);
+                alert('No se pudo cargar la información del usuario.');
+            });
+    });
+});
+</script>
+
+<script>
+    // Capturar la respuesta del formulario y mostrar la notificación
+    document.getElementById('licencias-form').addEventListener('submit', async function (e) {
+        e.preventDefault();  // Evitar la recarga de la página
+        
+        const formData = new FormData(this);
+        
+        // Realizar la solicitud
+        const response = await fetch('/cargar_licencias', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        // Mostrar notificación según el resultado
+        const notification = document.getElementById('notification');
+        if (result.message) {
+            notification.innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    ${result.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+        } else if (result.error) {
+            notification.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    ${result.error}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+        }
+        
+        // Cerrar automáticamente la notificación después de 3 segundos
+        setTimeout(() => {
+            const alertElement = document.querySelector('.alert');
+            if (alertElement) {
+                alertElement.classList.remove('show');
+                alertElement.classList.add('fade');
+                setTimeout(() => {
+                    alertElement.remove();  // Remover el elemento del DOM
+                    window.location.reload();  // Recargar la página
+                }, 300);  
+            }
+        }, 3000);  // Espera 3 segundos antes de cerrar la notificación y recargar
+    });
+</script>
+
+<script>
+    document.getElementById('createUserForm').addEventListener('submit', async function (e) {
+        e.preventDefault();  // Evitar el comportamiento por defecto de envío de formulario
+        
+        const formData = new FormData(this);  // Crear un objeto FormData con los datos del formulario
+        
+        // Enviar la solicitud usando fetch
+        const response = await fetch('/registrarse', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            // Recargar la página si la respuesta es exitosa para mostrar los datos actualizados
+            window.location.href = window.location.href;  // Esto asegura que se recargue la página completa
+        } else {
+            // Manejar los errores si la solicitud falla
+            alert('Hubo un error al crear el usuario. Inténtelo de nuevo.');
+        }
+    });
+</script>
+
 {% endblock %}

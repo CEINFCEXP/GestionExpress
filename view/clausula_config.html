@@ -1,0 +1,959 @@
+{% block content %}
+
+<!-- clausula_config.html -->
+<div class="row mb-3" style="background-color: #f1f3fc; padding: 8px; border-radius: 5px;">
+     <!-- Primera fila -->
+    <div class="row" style="margin-bottom: 0;">
+        <!-- ID Clausula -->
+        <div class="col-md-1" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_id_clausula" style="font-size: 12px;">ID</label>
+            <input type="text" id="{{ modal }}_id_clausula" name="id_clausula" class="form-control" style="font-size: 12px; height: 30px;" readonly>
+        </div>
+        <!-- Control -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_control" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Control</label>
+            <select id="{{ modal }}_control" name="control" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
+                <option value="" selected>Seleccionar...</option>
+                <option value="CONTRATO">CONTRATO</option>
+                <option value="MANUAL">MANUAL</option>    
+            </select>
+        </div>
+        <!-- Cláusula -->
+        <div class="col-md-3" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_clausula" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Cláusula</label>
+            <input type="text" id="{{ modal }}_clausula" name="clausula" class="form-control" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
+        </div>
+        <!-- Etapa -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_etapa" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Etapa</label>
+            <select id="{{ modal }}_etapa" name="etapa" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
+                <option value="" selected>Seleccionar...</option>
+                {% for etapa in etapas %}
+                <option value="{{ etapa[0] }}">{{ etapa[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Contrato -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_contrato" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Contrato</label>
+            <select id="{{ modal }}_contrato" name="contrato" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
+                <option value="" selected>Seleccionar...</option>
+                {% for contrato in contratos %}
+                <option value="{{ contrato[0] }}">{{ contrato[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Tipo -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_tipo" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Tipo</label>
+            <select id="{{ modal }}_tipo" name="tipo" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
+                <option value="" selected>Seleccionar...</option>
+                {% for tipo in tipos_clausula %}
+                <option value="{{ tipo[0] }}">{{ tipo[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Segunda fila -->
+    <div class="row">
+        <!-- Tema -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_tema" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Tema</label>
+            <input type="text" id="{{ modal }}_tema" name="tema" class="form-control" style="font-size: 12px; height: 30px;" required oninput="this.value = this.value.toUpperCase()" {% if not es_editable %} disabled {% endif %}>
+        </div>
+        <!-- Subtema -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_subtema" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Subtema</label>
+            <input type="text" id="{{ modal }}_subtema" name="subtema" class="form-control" style="font-size: 12px; height: 30px;" required oninput="this.value = this.value.toUpperCase()" {% if not es_editable %} disabled {% endif %}>
+        </div>
+        <!-- Descripción -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_descripcion" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Descripción de la Cláusula</label>
+            <textarea id="{{ modal }}_descripcion" name="descripcion" class="form-control" style="font-size: 12px; height: 30px;"required {% if not es_editable %} disabled {% endif %}></textarea>
+        </div>
+    </div>
+
+    <!-- Tercera fila -->
+    <div class="row">
+        <!-- Modificaciones -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_modificaciones" style="font-size: 12px;">Modificaciones</label>
+            <textarea id="{{ modal }}_modificaciones" name="modificaciones" class="form-control" style="font-size: 12px; height: 30px;" {% if not es_editable %} disabled {% endif %}></textarea>
+        </div>
+        <!-- Norma Relacionada -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_norma_relacionada" style="font-size: 12px;">Norma Relacionada</label>
+            <textarea id="{{ modal }}_norma_relacionada" name="norma" class="form-control" style="font-size: 12px; height: 30px;" {% if not es_editable %} disabled {% endif %}></textarea>
+        </div>
+        <!-- Consecuencias -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_consecuencias" style="font-size: 12px;">Consecuencias Incumplimiento</label>
+            <textarea id="{{ modal }}_consecuencias" name="consecuencia" class="form-control" style="font-size: 12px; height: 30px;" {% if not es_editable %} disabled {% endif %}></textarea>
+        </div>
+    </div>
+
+    <!-- Cuarta fila -->
+    <div class="row align-items-center">
+        <!-- Proceso Responsable -->
+        <div class="col-md-3" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_proceso_responsable" style="font-size: 12px;">Proceso Responsable</label>
+            <div class="input-group">
+                <select id="{{ modal }}_proceso_responsable" name="proceso" class="form-select" style="font-size: 12px; height: 30px;" required onchange="actualizarSubprocesos('{{ modal }}', this.value)" {% if not es_editable %} disabled {% endif %}>
+                    <option value="" selected>Seleccionar...</option>
+                    {% for proceso in procesos %}
+                    <option value="{{ proceso[0] }}">{{ proceso[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <!-- Subroceso Responsable -->
+        <div class="col-md-3" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_subproceso_responsable" style="font-size: 12px;">Subproceso Responsable</label>
+            <div class="input-group">
+                <select id="{{ modal }}_subproceso_responsable" name="subproceso" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
+                    <option value="" selected>Seleccionar...</option>
+                    <!-- Subprocesos cargados dinámicamente -->
+                </select>
+            </div>
+        </div>
+        <!-- Botón para agregar el proceso y subproceso al contenedor -->
+        {% if es_editable %}
+        <div class="col-md-1" style="padding-bottom: 3px;">
+            <button type="button" class="btn btn-primary" style="font-size: 12px; height: 25px; width: 70px; text-align: center; line-height: 05px;" onclick="agregarProcesoSubproceso('{{ modal }}')">Agregar</button>
+        </div>
+        {% endif %}
+
+        <!-- Contenedor Procesos Responsables Agregados -->
+        <div class="col-md-5 ms-auto g-0" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_contenedor_procesos_subprocesos" style="font-size: 12px;" ><span style="color: red; font-weight: bold;">*</span> Procesos Responsables Agregados</label>
+            <div id="{{ modal }}_contenedor_procesos_subprocesos" data-es-editable="{{ 'true' if es_editable else 'false' }}" style="border: 1px solid #ccc; border-radius: 5px; padding: 15px; max-height: 200px; overflow-y: auto; background-color: #f8f9fa; margin-top: 0;">
+                <!-- Aquí se renderizan dinámicamente los procesos y subprocesos agregados -->
+            </div>
+        </div>
+    </div>
+    <!-- Mantener título para visibilidad -->
+    <h5 id="{{ modal }}_titulo_procesos_responsables" style="font-size: 1px; display: none; position: absolute; visibility: hidden; height: 0; margin: 0; padding: 0;">Procesos Responsables Agregados</h5>
+        
+    <!-- Quinta fila -->
+    <div class="row align-items-center">
+        <!-- Frecuencia Acreditación -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_frecuencia_acreditacion" style="font-size: 12px;" ><span style="color: red; font-weight: bold;">*</span> Frecuencia Acreditación</label>
+            <select id="{{ modal }}_frecuencia_acreditacion" name="frecuencia" class="form-select" style="font-size: 12px; height: 30px;" required onchange="actualizarPeriodoControl('{{ modal }}')" {% if not es_editable %} disabled {% endif %}>
+                <option value="" selected>Seleccionar...</option>
+                {% for frecuencia in frecuencias %}
+                <option value="{{ frecuencia[0] }}">{{ frecuencia[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Campo Periodo Control Max -->
+        <div class="col-md-3" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_periodo_control" style="font-size: 12px;" ><span style="color: red; font-weight: bold;">*</span> Periodo Control Max.</label>
+            <div id="{{ modal }}_periodo_control_container">
+                <input type="text" id="{{ modal }}_periodo_control" name="periodo_control" class="form-control" placeholder="Seleccionar periodo" readonly required {% if not es_editable %} disabled {% endif %} style="font-size: 12px;">
+            </div>
+        </div>
+        <!-- Inicio Cumplimiento -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_inicio_cumplimiento" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Inicio Cumplimiento</label>
+            <input type="date" id="{{ modal }}_inicio_cumplimiento" name="inicio_cumplimiento" class="form-control" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
+        </div>
+        <!-- Fin Cumplimiento -->
+        <div class="col-md-2" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_fin_cumplimiento" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Fin Cumplimiento</label>
+            <input type="date" id="{{ modal }}_fin_cumplimiento" name="fin_cumplimiento" class="form-control" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
+        </div>
+        <!-- Responsable de la Entrega -->
+        <div class="col-md-3" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_responsable_entrega" style="font-size: 12px;"><span style="color: red; font-weight: bold;">*</span> Responsable de la Entrega</label>
+            <select id="{{ modal }}_responsable_entrega" name="responsable_entrega" class="form-select" style="font-size: 12px; height: 30px;" required {% if not es_editable %} disabled {% endif %}>
+                <option value="" selected>Seleccionar...</option>
+                {% for responsable in responsables %}
+                <option value="{{ responsable[0] }}">{{ responsable[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Sexta fila -->
+    <div class="row align-items-center">
+        <!-- Ruta de Soportes -->
+        <div class="col-md-4" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_ruta_soportes" style="font-size: 12px;">Soportes en: (Azure Blob Sotrage - Centro de Información)</label>
+            <input type="text" id="{{ modal }}_ruta_soportes" name="ruta_soporte" class="form-control" style="font-size: 12px;"readonly>
+        </div>
+    
+        <!-- Observaciones de la Cláusula -->
+        <div class="col-md-6" style="padding-bottom: 3px;">
+            <label for="{{ modal }}_observaciones_clausula" style="font-size: 12px;">Observaciones de la Cláusula</label>
+            <textarea id="{{ modal }}_observaciones_clausula" name="observacion" class="form-control" style="font-size: 12px; height: 30px;" {% if not es_editable %} disabled {% endif %}></textarea>
+        </div>
+        <!-- Botón para abrir el modal de responsables en copia -->
+        <div class="col-md-2" style="padding-bottom: 3px;" id="{{ modal }}_btn_correo">
+            <label for="{{ modal }}_correos_clausula" style="font-size: 12px;">Admin Correos</label>
+            <button class="btn btn-secondary" onclick="abrirModalCorreos('{{ modal }}')" 
+                style="font-size: 12px; height: 30px; width: 90px; text-align: center; line-height: 05px;">
+                CC Correos
+            </button>
+        </div>         
+    </div>
+</div>
+
+<!-- Modal para gestionar responsables en copia (Notificaciones de Correo)-->
+<div class="modal fade" id="{{ modal }}_modalCopiaCorreos" tabindex="-1" aria-labelledby="{{ modal }}_modalCopiaCorreosLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="{{ modal }}_modalCopiaCorreosLabel" style="font-size: 16px; text-align: center; margin-bottom: 10px;">Administrador de Correos para la Notificación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="container">
+                    <!-- Selección de responsables -->
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label for="{{ modal }}_responsables_copia" class="form-label">Seleccione responsables en (Notificaciones)</label>
+                            <select id="{{ modal }}_responsables_copia" class="form-select" style="font-size: 12px; height: 30px;">
+                                <option value="" selected>Seleccionar...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button id="{{ modal }}_btnAgregarResponsable" class="btn btn-primary" onclick="agregarResponsable('{{ modal }}')" style="font-size: 12px; height: 30px; width: 70px; text-align: center; line-height: 05px;">Agregar</button>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de responsables -->
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc; border-radius: 5px;">
+                        <table class="table table-bordered table-striped" style="font-size: 12px;">
+                            <thead class="table-responsive" style="background-color: #120b6e; color: #ffffff; position: sticky; top: 0; z-index: 2; font-family: 'Century Gothic', Arial, sans-serif;">
+                                <tr>
+                                    <th>Responsable</th>
+                                    <th>Correo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="{{ modal }}_tablaCopiaCorreos">
+                                <!-- Responsables dinámicos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cerrarModalCorreos('{{ modal }}')">Cerrar</button>
+                <button id="{{ modal }}_guardarCopiaCorreos" type="button" class="btn btn-primary" onclick="guardarResponsables('{{ modal }}')">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PERMITE SELECCIONAR SUBPROCESO A PARTIR DEL PROCESO SELECCIONADO -->
+<script>
+    function actualizarSubprocesos(modal, proceso) {
+        const subprocesoSelect = document.getElementById(`${modal}_subproceso_responsable`);
+        
+        // Limpiar las opciones de subprocesos
+        subprocesoSelect.innerHTML = '<option selected>Seleccionar...</option>';
+
+        if (!proceso) {
+            return; // Si no se selecciona un proceso, no hace nada
+        }
+
+        // Hacer una petición para obtener los subprocesos
+        fetch(`/obtener_subprocesos/${proceso}`)
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(subproceso => {
+                    const option = document.createElement('option');
+                    option.value = subproceso[0];
+                    option.textContent = subproceso[0];
+                    subprocesoSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error al cargar subprocesos:', error));
+    }
+</script>
+
+<!-- FUNCIONALIDAD PARA AGREGAR Y ELIMINAR procesos/subprocesos -->
+<script>
+    //const procesosSubprocesosAgregados = {};
+
+    function actualizarSubprocesos(modal, proceso) {
+        const subprocesoSelect = document.getElementById(`${modal}_subproceso_responsable`);
+        subprocesoSelect.innerHTML = '<option selected>Seleccionar...</option>';
+
+        if (!proceso) return;
+
+        fetch(`/obtener_subprocesos/${proceso}`)
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(subproceso => {
+                    const option = document.createElement('option');
+                    option.value = subproceso[0];
+                    option.textContent = subproceso[0];
+                    subprocesoSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error al cargar subprocesos:', error));
+    }
+
+    function agregarProcesoSubproceso(modal) {
+        const procesoSelect = document.getElementById(`${modal}_proceso_responsable`);
+        const subprocesoSelect = document.getElementById(`${modal}_subproceso_responsable`);
+        const proceso = procesoSelect.options[procesoSelect.selectedIndex].text;
+        const subproceso = subprocesoSelect.options[subprocesoSelect.selectedIndex].text;
+
+        if (proceso === 'Seleccionar...' || subproceso === 'Seleccionar...') {
+            alert('Por favor, seleccione un proceso y un subproceso.');
+            return;
+        }
+
+        fetch(`/obtener_id_proceso?proceso=${encodeURIComponent(proceso)}&subproceso=${encodeURIComponent(subproceso)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const idProceso = data.id_proceso;
+                    //console.log(`ID de proceso capturado: ${idProceso}`);
+                    const claveUnica = `${idProceso}-${subproceso}`;
+
+                    if (!procesosSubprocesosAgregados[modal]) {
+                        procesosSubprocesosAgregados[modal] = new Set();
+                    }
+
+                    if (procesosSubprocesosAgregados[modal].has(claveUnica)) {
+                        alert('Ya ha agregado este proceso y subproceso.');
+                        return;
+                    }
+
+                    // Mostrar el título cuando se agregue el primer proceso/subproceso
+                    const titulo = document.getElementById(`${modal}_titulo_procesos_responsables`);
+                    titulo.style.display = 'block'; // Mostrar el título
+
+                    procesosSubprocesosAgregados[modal].add(claveUnica);
+                    //console.log("procesosSubprocesosAgregados después de agregar:", procesosSubprocesosAgregados);
+
+                    const contenedor = document.getElementById(`${modal}_contenedor_procesos_subprocesos`);
+                    const div = document.createElement('div');
+                    div.classList.add('row');
+                    div.style.marginBottom = '0';
+                    div.innerHTML = `
+                        <div class="row g-0">
+                            <div class="col-md-2">
+                                <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${idProceso}" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${proceso}" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${subproceso}" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-danger" style="font-size: 12px; height: 25px; width: 70px; text-align: center; line-height: 05px;" onclick="eliminarProcesoSubproceso(this, '${claveUnica}', '${modal}')">Eliminar</button>
+                            </div>
+                        </div>
+                    `;
+                    contenedor.appendChild(div);
+                } else {
+                    alert('Error al obtener el id_proceso: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error al obtener id_proceso:', error));
+    }
+
+    function eliminarProcesoSubproceso(boton, claveUnica, modal) {
+        if (procesosSubprocesosAgregados[modal]) {
+            procesosSubprocesosAgregados[modal].delete(claveUnica);
+            //console.log("procesosSubprocesosAgregados después de eliminar:", procesosSubprocesosAgregados);
+        }
+
+        const row = boton.parentElement.parentElement;
+        row.remove();
+
+        const contenedor = document.getElementById(`${modal}_contenedor_procesos_subprocesos`);
+        if (contenedor.children.length === 0) {
+            const titulo = document.getElementById(`${modal}_titulo_procesos_responsables`);
+            titulo.style.display = 'none';
+        }
+    }
+
+    // PERMITE EL REGISTRO Y GUARDADO DE UNA CLAUSULA NUEVA
+    document.getElementById('form_crear_clausula').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        // Si el formulario ya se ha enviado, no ejecutar el resto del código
+        if (this.hasAttribute('data-submitted')) return;
+        this.setAttribute('data-submitted', 'true');
+
+        // Llamar a la función de validación para frecuencia ANUAL
+        if (!procesarPeriodoControlAnual('crear')) {
+            return; // Si falta día o mes, cancelar el envío
+        }
+        
+        const formData = new FormData(this);
+        const modalId = 'crear';  // Aseguramos que coincida con la clave usada en procesosSubprocesosAgregados
+    
+        //console.log("Contenido de procesosSubprocesosAgregados al enviar:", procesosSubprocesosAgregados);
+        //console.log("Contenido de procesosSubprocesosAgregados[modalId] al enviar:", procesosSubprocesosAgregados[modalId]);
+        
+        // Convertir procesosSubprocesosAgregados[modalId] a un array de objetos { id_proceso }
+        const procesosSubprocesosArray = Array.from(procesosSubprocesosAgregados[modalId] || []).map(claveUnica => {
+            const [idProceso] = claveUnica.split('-');
+            return { id_proceso: idProceso };
+        });
+    
+        if (procesosSubprocesosArray.length === 0) {
+            alert("Por favor, agregue al menos un proceso y subproceso.");
+            return;
+        }
+    
+        formData.append("procesos_subprocesos", JSON.stringify(procesosSubprocesosArray));
+    
+        // Eliminar valores para el backend
+        formData.delete("id_clausula");
+        formData.delete("proceso");
+        formData.delete("subproceso");
+    
+        // Mostrar datos de formData antes de enviar
+        //console.log("Datos de la cláusula que se enviarán:");
+        //for (let pair of formData.entries()) {
+            //console.log(`${pair[0]}: ${pair[1]}`);
+        //}
+    
+        try {
+            const response = await fetch('/clausulas/nueva', {
+                method: 'POST',
+                body: formData
+            });
+    
+            if (!response.ok) throw new Error(`Error en la respuesta del servidor: ${response.status}`);
+    
+            const result = await response.json();
+            if (result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('modalCrearClausula')).hide();
+                showGlobalMessage(result.message, 'success');
+                setTimeout(() => location.reload(), 2000); // Recargar página tras 2 segundos
+            } else {
+                showError(result.message || 'Error al crear la cláusula');
+            }
+        } catch (error) {
+            //console.error("Error en el envío:", error);
+            showError(`Ocurrió un error inesperado: ${error.message}`);
+        }
+    });
+    
+    function showError(message) {
+        const messageDiv = document.getElementById('message');
+        if (messageDiv) {
+            messageDiv.style.display = 'block';
+            messageDiv.classList.add('alert-danger');
+            messageDiv.innerText = message;
+        } else {
+            console.error('Error:', message);
+        }
+    }    
+
+</script>
+
+<!-- VALIDA QUE LA FECHA FIN NO SEA INFERIOR A LA FECHA INICIO -->
+<script>
+    document.getElementById('fin_cumplimiento').addEventListener('input', function () {
+        const fechaInicio = document.getElementById('inicio_cumplimiento').value;
+        const fechaFin = document.getElementById('fin_cumplimiento').value;
+        
+        if (new Date(fechaFin) < new Date(fechaInicio)) {
+            this.setCustomValidity('La fecha de fin debe ser igual o posterior a la fecha de inicio.');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+</script>
+
+<!-- ACTUALIZACIÓN DE PERIODO_CONTROL SEGUN LA FRECUENCIA -->
+<script>
+    function actualizarPeriodoControl(modal) {
+        const frecuencia = document.getElementById(`${modal}_frecuencia_acreditacion`).value;
+        const periodoControlContainer = document.getElementById(`${modal}_periodo_control_container`);
+        const esEditable = !document.getElementById(`${modal}_frecuencia_acreditacion`).disabled; // Verificar si el campo es editable
+        
+        // Limpiar el contenido actual
+        periodoControlContainer.innerHTML = '';
+
+        if (frecuencia === 'PERSONALIZADO') {
+            // Permitir seleccionar una fecha fija
+            periodoControlContainer.innerHTML = '<input type="date" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" style="font-size: 12px;" required ' + 
+            (esEditable ? '' : 'disabled') + '>';
+        } else if (frecuencia === 'DIARIO') {
+            // Automáticamente establecer "DIARIO" como el valor
+            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="DIARIO" style="font-size: 12px;" readonly required ' + 
+            (esEditable ? '' : 'disabled') + '>';
+        } else if (frecuencia === 'QUINCENAL') {
+            // Seleccionar el día de la semana
+            periodoControlContainer.innerHTML = `
+                <select id="${modal}_periodo_control" name="periodo_control" class="form-select" style="font-size: 12px;" required ${esEditable ? '' : 'disabled'}>
+                    <option value="LUNES">Lunes</option>
+                    <option value="MARTES">Martes</option>
+                    <option value="MIERCOLES">Miércoles</option>
+                    <option value="JUEVES">Jueves</option>
+                    <option value="VIERNES">Viernes</option>
+                    <option value="SABADO">Sábado</option>
+                    <option value="DOMINGO">Domingo</option>
+                </select>
+            `;
+        } else if (['MENSUAL', 'BIMESTRAL', 'TRIMESTRAL', 'SEMESTRAL'].includes(frecuencia)) {
+            // Seleccionar el día del mes
+            periodoControlContainer.innerHTML = '<input type="number" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" style="font-size: 12px;"" placeholder="Día del mes" min="1" max="31" required ' + 
+            (esEditable ? '' : 'disabled') + '>';
+        } else if (frecuencia === 'ANUAL') {
+            // Seleccionar día y mes
+            periodoControlContainer.innerHTML = `
+                <input type="number" id="${modal}_periodo_control_dia" name="periodo_control_dia" class="form-control" placeholder="Día" min="1" max="31" style="font-size: 12px; width: 49%; display: inline-block;" required ${esEditable ? '' : 'disabled'}>
+                <input type="number" id="${modal}_periodo_control_mes" name="periodo_control_mes" class="form-control" placeholder="Mes" min="1" max="12" style="font-size: 12px; width: 49%; display: inline-block;" required ${esEditable ? '' : 'disabled'}>
+            `;
+        } else if (frecuencia === 'NO APLICA') {
+            // Automáticamente establecer "NO APLICA" como el valor
+            periodoControlContainer.innerHTML = '<input type="text" id="'+ modal + '_periodo_control" name="periodo_control" class="form-control" value="NO APLICA" style="font-size: 12px;" readonly required ' + 
+            (esEditable ? '' : 'disabled') + '>';
+        }
+    }
+
+    // Función auxiliar para combinar día y mes si la frecuencia es ANUAL
+    function procesarPeriodoControlAnual(modal) {
+        const frecuencia = document.getElementById(`${modal}_frecuencia_acreditacion`).value;
+
+        if (frecuencia === 'ANUAL') {
+            const dia = document.getElementById(`${modal}_periodo_control_dia`).value;
+            const mes = document.getElementById(`${modal}_periodo_control_mes`).value;
+
+            if (dia && mes) {
+                // Combinar el día y mes en el formato "DD-MM"
+                const periodoControl = `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}`;
+                
+                let hiddenInput = document.getElementById('hidden_periodo_control');
+            
+                if (!hiddenInput) {
+                    hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.id = 'hidden_periodo_control';
+                    hiddenInput.name = 'periodo_control';
+                    document.getElementById('form_crear_clausula').appendChild(hiddenInput);
+                }
+
+                hiddenInput.value = periodoControl;  // Asignar el valor combinado al campo oculto
+                return true;
+            } else {
+                alert('Por favor, seleccione tanto el día como el mes.');
+                return false; // Indicar que falta algún valor
+            }
+        }
+        return true; // No es ANUAL, continuar sin problemas
+    }
+</script>
+
+<!-- OPCION "Ver" CARGA TODOS LOS DETALLES DE LA CLAUSULA EN EL MODAL (GESTIONAR). -->
+<script>
+    function abrirModalGestion(button) {
+        const id = button.getAttribute("data-id");
+
+        // Limpiar procesosSubprocesosAgregados para el modal de gestión
+        if (procesosSubprocesosAgregados['gestionar']) {
+            procesosSubprocesosAgregados['gestionar'].clear();
+        } else {
+            procesosSubprocesosAgregados['gestionar'] = new Set();
+        }
+
+        // Llamada AJAX para obtener los datos de la cláusula
+        fetch(`/clausula/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                // Cargar los datos de la cláusula en el formulario
+                document.getElementById('gestionar_id_clausula').value = data.id;
+                document.getElementById('gestionar_control').value = data.control;
+                document.getElementById('gestionar_etapa').value = data.etapa;
+                document.getElementById('gestionar_clausula').value = data.clausula;
+                document.getElementById('gestionar_contrato').value = data.contrato_concesion;
+                document.getElementById('gestionar_tema').value = data.tema;
+                document.getElementById('gestionar_subtema').value = data.subtema;
+                document.getElementById('gestionar_descripcion').value = data.descripcion_clausula;
+                document.getElementById('gestionar_tipo').value = data.tipo_clausula;
+                document.getElementById('gestionar_modificaciones').value = data.modificacion;
+                document.getElementById('gestionar_norma_relacionada').value = data.norma_relacionada;
+                document.getElementById('gestionar_consecuencias').value = data.consecuencia;
+                document.getElementById('gestionar_frecuencia_acreditacion').value = data.frecuencia;
+                document.getElementById('gestionar_inicio_cumplimiento').value = data.inicio_cumplimiento;
+                document.getElementById('gestionar_fin_cumplimiento').value = data.fin_cumplimiento;
+                document.getElementById('gestionar_observaciones_clausula').value = data.observacion;
+                document.getElementById('gestionar_responsable_entrega').value = data.responsable_entrega;
+                document.getElementById('gestionar_ruta_soportes').value = data.ruta_soporte;
+
+                // Actualizar el periodo control según la frecuencia
+                actualizarPeriodoControl('gestionar');
+
+                // Cargar el valor de periodo_control dependiendo de la frecuencia
+                const frecuencia = data.frecuencia;
+                if (frecuencia === 'ANUAL') {
+                    const [dia, mes] = (data.periodo_control || '').split('-');
+                    if (dia && mes) {
+                        document.getElementById('gestionar_periodo_control_dia').value = dia;
+                        document.getElementById('gestionar_periodo_control_mes').value = mes;
+                    }
+                } else if (['MENSUAL', 'BIMESTRAL', 'TRIMESTRAL', 'SEMESTRAL'].includes(frecuencia)) {
+                    document.getElementById('gestionar_periodo_control').value = data.periodo_control; // Día del mes
+                } else if (frecuencia === 'QUINCENAL') {
+                    document.getElementById('gestionar_periodo_control').value = data.periodo_control; // Día de la semana
+                } else if (frecuencia === 'PERSONALIZADO') {
+                    document.getElementById('gestionar_periodo_control').value = data.periodo_control; // Fecha específica
+                } else if (frecuencia === 'DIARIO' || frecuencia === 'NO APLICA') {
+                    document.getElementById('gestionar_periodo_control').value = data.periodo_control;
+                }
+
+                // Cargar filas dinámicas en la tabla de gestión
+                cargarFilasGestion(data.id);
+
+                // Cargar los procesos y subprocesos asociados
+                const contenedorProcesos = document.getElementById('gestionar_contenedor_procesos_subprocesos');
+                contenedorProcesos.innerHTML = ''; // Limpiar contenedor
+
+                const esEditable = contenedorProcesos.getAttribute('data-es-editable') === 'true'; // Verificar permisos
+
+                if (data.procesos_subprocesos.length > 0) {
+                    document.getElementById('gestionar_titulo_procesos_responsables').style.display = 'block';
+                    data.procesos_subprocesos.forEach(item => {
+                        const idProceso = item.id_proceso || "N/A";
+                        const proceso = item.proceso;
+                        const subproceso = item.subproceso;
+                        const claveUnica = `${idProceso}-${subproceso}`;
+
+                        if (!procesosSubprocesosAgregados['gestionar']) {
+                            procesosSubprocesosAgregados['gestionar'] = new Set();
+                        }
+
+                        if (procesosSubprocesosAgregados['gestionar'].has(claveUnica)) return;
+                        procesosSubprocesosAgregados['gestionar'].add(claveUnica);
+
+                        const div = document.createElement('div');
+                        div.classList.add('row');
+                        div.style.marginBottom = '0';
+                        div.innerHTML = `
+                            <div class="row g-0">
+                                <div class="col-md-2">
+                                    <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${idProceso}" readonly>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${proceso}" readonly>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" style="font-size: 10px; height: 25px; width: 100%;" value="${subproceso}" readonly>
+                                </div>
+                                ${esEditable ? `
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-danger" style="font-size: 12px; height: 25px; width: 70px; text-align: center; line-height: 05px;" 
+                                        onclick="eliminarProcesoSubproceso(this, '${claveUnica}', 'gestionar')">Eliminar</button>
+                                </div>` : ''}
+                            </div>
+                        `;
+                        contenedorProcesos.appendChild(div);
+                    });
+                } else {
+                    document.getElementById('gestionar_titulo_procesos_responsables').style.display = 'none';
+                }
+
+            })
+            .catch(error => console.error('Error al cargar la cláusula:', error));
+    }
+
+    // Confirmación al cerrar el modal
+    function confirmarCierreModal() {
+        if (confirm("¿Está seguro de que desea cerrar la ventana? Los cambios no guardados se perderán.")) {
+            const modalElement = document.getElementById('modalGestion');
+            const modalGestion = bootstrap.Modal.getInstance(modalElement);
+            modalGestion.hide(); // Usamos hide en lugar de dispose para que cierre correctamente
+        }
+    }
+</script>
+
+<!-- OPCION "Guardar" ACTUALIZA LA CLAUSULA EN EL MODAL (GESTIONAR). -->
+<script>
+    async function guardarClausula() {
+        const idClausula = document.getElementById("gestionar_id_clausula").value;
+    
+        // 1. Recopilar datos de la sección izquierda
+        const formData = new FormData();
+        formData.append("control", document.getElementById("gestionar_control").value);
+        formData.append("etapa", document.getElementById("gestionar_etapa").value);
+        formData.append("clausula", document.getElementById("gestionar_clausula").value);
+        formData.append("contrato_concesion", document.getElementById("gestionar_contrato").value);
+        formData.append("tema", document.getElementById("gestionar_tema").value);
+        formData.append("subtema", document.getElementById("gestionar_subtema").value);
+        formData.append("descripcion", document.getElementById("gestionar_descripcion").value);
+        formData.append("tipo_clausula", document.getElementById("gestionar_tipo").value);
+        formData.append("modificacion", document.getElementById("gestionar_modificaciones").value);
+        formData.append("norma_relacionada", document.getElementById("gestionar_norma_relacionada").value);
+        formData.append("consecuencia", document.getElementById("gestionar_consecuencias").value);
+        formData.append("frecuencia", document.getElementById("gestionar_frecuencia_acreditacion").value);
+        formData.append("inicio_cumplimiento", document.getElementById("gestionar_inicio_cumplimiento").value);
+        formData.append("fin_cumplimiento", document.getElementById("gestionar_fin_cumplimiento").value);
+        formData.append("observacion", document.getElementById("gestionar_observaciones_clausula").value);
+
+        // Manejo del periodo_control según la frecuencia
+        const frecuencia = document.getElementById("gestionar_frecuencia_acreditacion").value;
+        if (frecuencia === "ANUAL") {
+            const dia = document.getElementById("gestionar_periodo_control_dia").value;
+            const mes = document.getElementById("gestionar_periodo_control_mes").value;
+
+            if (dia && mes) {
+                // Combinar día y mes en formato "DD-MM"
+                formData.append("periodo_control", `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}`);
+            } else {
+                alert("Por favor, seleccione tanto el día como el mes para el periodo de control.");
+                return; // Cancelar el envío si falta algún valor
+            }
+        } else {
+            // Para las demás frecuencias, usar el valor directo
+            formData.append("periodo_control", document.getElementById("gestionar_periodo_control").value);
+        }
+
+        formData.append("responsable_entrega", document.getElementById("gestionar_responsable_entrega").value);
+        formData.append("ruta_soporte", document.getElementById("gestionar_ruta_soportes").value);
+    
+        // Procesos/Subprocesos
+        const procesos = [];
+        document.querySelectorAll("#gestionar_contenedor_procesos_subprocesos .row").forEach(row => {
+            const input = row.querySelector("input"); // Intentar obtener el input
+            if (input && input.value) { // Asegurarse de que existe y tiene un valor
+                procesos.push({ id_proceso: input.value });
+            }
+        });
+        formData.append("procesos_subprocesos", JSON.stringify(procesos));
+    
+        try {
+            // Llamada al backend // Guardar sección izquierda
+            const response = await fetch(`/clausula/${idClausula}/actualizar`, {
+                method: "POST",
+                body: formData,
+            });
+    
+            if (!response.ok) {
+                const result = await response.json();
+                console.error("Error al guardar la cláusula:", result);
+                alert("Error al actualizar la cláusula.");
+                return;
+            }
+    
+            console.log("Cláusula actualizada correctamente.");
+    
+            // Guardar sección derecha (filas gestionadas)
+            await guardarGestionClausula(idClausula);
+    
+            // Consolidar alerta única
+            alert("Cláusula y filas gestionadas actualizadas correctamente.");
+            location.reload();
+        } catch (error) {
+            console.error("Error al guardar la cláusula o filas gestionadas:", error);
+            alert("Ocurrió un error inesperado. Por favor, inténtelo de nuevo.");
+        }
+    }
+</script>
+
+<!-- ADMINISTRADOR DE RESPONSABLES POR CLAUSULA PARA LA COPIA DE NOTIFICACIONES POR CORREO -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Ocultar el botón "CC Correos" en el modal de creación
+        if (document.getElementById("crear_id_clausula")) {
+            const btnCorreoCrear = document.getElementById("crear_btn_correo");
+            if (btnCorreoCrear) {
+                btnCorreoCrear.style.display = "none";
+            }
+        }
+    });
+
+    // Función para abrir el modal de correos
+    async function abrirModalCorreos(modal) {
+        try {
+            const modalCopiaCorreos = document.getElementById(`${modal}_modalCopiaCorreos`);
+            if (!modalCopiaCorreos) {
+                console.warn(`⚠️ No se encontró el modal con ID: ${modal}_modalCopiaCorreos`);
+                return;
+            }
+    
+            // Obtener el ID de la cláusula
+            const idClausulaInput = document.getElementById(`${modal}_id_clausula`);
+            const idClausula = idClausulaInput ? idClausulaInput.value : null;
+    
+            // Limpiar y cargar datos antes de mostrar el modal
+            limpiarModalCorreos(modal);
+            await cargarResponsables(modal);
+    
+            if (idClausula) {
+                // **Verificar que idClausula sea válido antes de llamar la función**
+                if (idClausula.trim() !== "") {
+                    await cargarResponsablesGuardados(modal, idClausula);
+                }
+            }
+    
+            // **Evitar el error de getAttribute() asegurando que el modal existe antes de mostrar**
+            if (modalCopiaCorreos) {
+                const modalInstance = new bootstrap.Modal(modalCopiaCorreos, {
+                    backdrop: "static",
+                    keyboard: false,
+                });
+                modalInstance.show();
+            } else {
+                console.warn("⚠️ No se puede mostrar el modal porque no existe en el DOM.");
+            }
+        } catch (error) {
+            console.warn("⚠️ Advertencia al abrir el modal de copia de correos (no crítico):", error.message);
+        }
+    }    
+
+    // Función para limpiar el contenido del modal
+    function limpiarModalCorreos(modal) {
+        const select = document.getElementById(`${modal}_responsables_copia`);
+        const table = document.getElementById(`${modal}_tablaCopiaCorreos`);
+
+        if (select) {
+            select.innerHTML = '<option value="" selected>Seleccionar...</option>';
+        }
+        if (table) {
+            table.innerHTML = "";
+        }
+    }
+
+    // Función para cargar responsables desde el backend
+    async function cargarResponsables(modal) {
+        try {
+            const select = document.getElementById(`${modal}_responsables_copia`);
+            if (!select) return;
+
+            select.innerHTML = '<option value="" selected>Seleccionar...</option>';
+
+            const response = await fetch('/obtener_responsables');
+            if (!response.ok) throw new Error(`Error ${response.status}`);
+
+            const data = await response.json();
+            const responsables = data.responsables || [];
+
+            responsables.forEach(responsable => {
+                const option = document.createElement('option');
+                option.value = responsable.id_responsable;
+                option.textContent = responsable.responsable;
+                option.setAttribute('data-correo', responsable.correo);
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Error al cargar responsables:", error);
+        }
+    }
+
+    // Función para cargar responsables guardados de la cláusula
+    async function cargarResponsablesGuardados(modal, idClausula) {
+        try {
+            if (!idClausula || idClausula.trim() === "") {
+                console.warn("⚠️ No hay ID de cláusula, omitiendo carga de responsables guardados.");
+                return;
+            }
+    
+            const response = await fetch(`/clausula/${idClausula}/copia`);
+            if (!response.ok) throw new Error(`Error ${response.status}`);
+    
+            const responsables = await response.json();
+            const table = document.getElementById(`${modal}_tablaCopiaCorreos`);
+            if (!table) {
+                console.warn("⚠️ No se encontró la tabla de responsables.");
+                return;
+            }
+    
+            table.innerHTML = "";
+    
+            responsables.forEach(responsable => {
+                // Validación extra para evitar errores
+                if (!responsable || !responsable.id_responsable) return;
+    
+                const row = document.createElement('tr');
+                row.setAttribute('data-id-responsable', responsable.id_responsable);
+                row.innerHTML = `
+                    <td>${responsable.responsable}</td>
+                    <td>${responsable.correo}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="eliminarResponsable(this, '${modal}')" 
+                            style="font-size: 12px; height: 22px; width: 70px; text-align: center; line-height: 05px;">
+                            Eliminar
+                        </button>
+                    </td>
+                `;
+                table.appendChild(row);
+            });
+        } catch (error) {
+            console.warn("⚠️ Advertencia al cargar responsables guardados:", error.message);
+        }
+    }    
+
+    // Función para agregar un responsable a la tabla
+    function agregarResponsable(modal) {
+        const select = document.getElementById(`${modal}_responsables_copia`);
+        const selectedOption = select.options[select.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            alert("Seleccione un responsable válido.");
+            return;
+        }
+
+        const responsableNombre = selectedOption.textContent;
+        const responsableCorreo = selectedOption.getAttribute('data-correo');
+        const responsableId = selectedOption.value;
+
+        const table = document.getElementById(`${modal}_tablaCopiaCorreos`);
+        if ([...table.rows].some(row => row.getAttribute('data-id-responsable') === responsableId)) {
+            alert("Este responsable ya está agregado.");
+            return;
+        }
+
+        const row = document.createElement('tr');
+        row.setAttribute('data-id-responsable', responsableId);
+        row.innerHTML = `
+            <td>${responsableNombre}</td>
+            <td>${responsableCorreo}</td>
+            <td>
+                <button class="btn btn-danger btn-sm" onclick="eliminarResponsable(this, '${modal}')" 
+                    style="font-size: 12px; height: 22px; width: 70px; text-align: center; line-height: 05px;">
+                    Eliminar
+                </button>
+            </td>
+        `;
+        table.appendChild(row);
+        select.value = '';
+    }
+
+    // Función para eliminar un responsable sin restricciones
+    function eliminarResponsable(button, modal) {
+        button.closest('tr').remove();
+    }
+
+    // Función para guardar responsables en el backend
+    async function guardarResponsables(modal) {
+        try {
+            const table = document.getElementById(`${modal}_tablaCopiaCorreos`);
+            const idClausula = document.getElementById(`${modal}_id_clausula`)?.value;
+
+            const responsables = [...table.querySelectorAll("tr")].map(row => ({
+                id_responsable: row.getAttribute('data-id-responsable'),
+                responsable: row.querySelector('td:first-child').textContent,
+                correo: row.querySelector('td:nth-child(2)').textContent
+            }));
+
+            await fetch(`/clausula/${idClausula}/copia`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ responsables_copia: responsables }),
+            });
+
+            alert("Responsables guardados correctamente.");
+            bootstrap.Modal.getInstance(document.getElementById(`${modal}_modalCopiaCorreos`)).hide();
+        } catch (error) {
+            alert("Error al guardar los responsables.");
+            console.error("Error al guardar responsables:", error);
+        }
+    }
+</script>
+
+{% endblock %}

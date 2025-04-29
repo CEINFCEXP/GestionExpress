@@ -1,0 +1,518 @@
+{% extends "components/layout.html" %}
+
+{% block title %}Dashboard Power BI{% endblock %}
+
+{% block content %}
+
+<button id="show-menu" type="button" class="btn btn-primary">
+    <img src="/static/images/power.png" alt="Power BI Logo" style="width: 30px; margin-right: 5px;" font-family: 'Century Gothic', Arial, sans-serif;>
+    <br> Menú <br> Power BI
+</button>
+
+    <!-- Botón que abre el modal -->
+    <div style="position: absolute; bottom: 20px; right: 20px;">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#credencialesModal">
+            <img src="/static/images/candado.png" alt="Power BI Logo" style="width: 30px; margin-right: 10px;">
+            Licencia
+        </button>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="credencialesModal" tabindex="-1" aria-labelledby="credencialesModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="credencialesModalLabel">Credenciales de Power BI</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <h5 style="text-align: center; margin-bottom: 20px; font-weight: bold;">Dashboard Power BI</h5>
+                    
+                    {% if error_message %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error_message }}
+                    </div>
+                    {% else %}
+                    
+                    <p style="text-align: justify;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}! Debido a restricciones de seguridad, no es posible mostrar Power BI directamente en la página. Puedes abrir Power BI en una nueva pestaña en <strong>Modo Incógnito</strong> y copiar las credenciales proporcionadas a continuación.</p>
+                    
+                    <!-- Mostrar credenciales de Power BI -->
+                    <div class="mb-3">
+                        <label for="licencia_bi" class="form-label"><strong>Licencia (Correo)</strong></label>
+                        <input type="text" class="form-control" id="licencia_bi" value="{{ licencia_bi }}" readonly style="background-color: #e9ecef;">
+                    </div>
+                    <div class="mb-3">
+                        <label for="contraseña_licencia" class="form-label"><strong>Contraseña</strong></label>
+                        <input type="text" class="form-control" id="contraseña_licencia" value="{{ contraseña_licencia }}" readonly style="background-color: #e9ecef;">
+                    </div>
+                    <a href="https://app.powerbi.com/groups/me/apps?experience=power-bi" target="_blank" class="btn btn-primary w-100">Abrir Power BI en Nueva Pestaña</a>
+
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div id="menu">
+    <!-- Botón de Inicio Actualiza la Página (estilo del botón de cerrar) -->
+    <button onclick="location.reload()"
+            style="
+                background-color: transparent; /* Fondo transparente */
+                border: none; /* Sin borde */
+                color: black; /* Color del texto */
+                font-size: 20px; /* Tamaño del icono */
+                cursor: pointer; /* Cursor de mano al pasar */
+                margin-left: 170px; /* Espaciado desde el borde izquierdo */
+                transition: transform 0.2s; /* Suaviza el efecto de escala */
+            ">
+        <img src="/static/images/iniciopowerbi.png" 
+            alt="Inicio" 
+            style="
+                width: 30px; 
+                height: 30px; 
+                vertical-align: middle; /* Alinea la imagen con el texto */
+                transition: transform 0.2s;
+            ">
+    </button>
+
+    <style>
+        /* Efecto de escala al pasar el ratón */
+        button:hover img {
+            transform: scale(1.1); /* Aumenta el tamaño al pasar el ratón */
+        }
+    </style>
+
+    <!-- Botón Ocultar Menú (dentro del menú) -->
+    <button id="hide-menu" 
+            style="
+                font-family: 'Century Gothic', Arial, sans-serif; 
+                display: block; /* Hace que el botón sea un bloque */
+                margin: 10px auto; /* Centra horizontalmente usando márgenes automáticos */
+                text-align: center; /* Asegura que el contenido interno esté centrado */
+            ">
+        Áreas de Trabajo e Informes de Power BI <strong>☰ Cerrar</strong>
+    </button>
+    
+     <!-- Iteración dinámica para mostrar grupos e informes -->
+    {% for workspace, reports in report_data.items() %}
+        <div class="workspace-container">
+            <h3><strong>{{ workspace }}</strong></h3>
+            <ul class="reports-list">
+                {% for report in reports %}
+                    <li class="report-item">
+                        <a href="#" class="report-link" data-report-id="{{ report.report_id }}" data-report-name="{{ report.ItemName }}">
+                            {{ report.ItemName }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
+</div>
+
+<div id="content">
+    <!-- Mensaje de carga -->
+    <div id="loading-message" style="display: none;">
+        Estamos Cargando el Dashboard: <br>
+        <span id="report-name">Nombre del Reporte</span> <br> ...Por favor espere...
+        <img id="loadingbi-gif" src="/static/images/cargandobi.gif" alt="Cargando..." style="display: block; margin: 0 auto;" width="150" height="150" class="mb-3"/>
+    </div>
+
+    <!-- Mensaje de error -->
+    <div id="error-message" style="display: none; text-align: center; color: red; font-size: 18px;">
+        No Existe enlace al Informe.
+    </div>
+
+    <!-- Informe inicial -->
+    <iframe id="default-report-frame" title="PBI - ESTRUCTURA APP POWER BI CEXP" width="100%" height="100%" src="https://app.powerbi.com/view?r=eyJrIjoiZGY0MmE2N2MtZjkzZi00MGViLWE4NzYtNTM4NjRkN2Q4NzE2IiwidCI6ImYyM2E3Yzg0LTNkMTItNDA4Mi1hNTcyLTEzNzgxNTcxYTRlNyIsImMiOjR9" frameborder="0" allowfullscreen="true" style="display: block;"></iframe>
+
+    <!-- Informe seleccionado -->
+    <iframe id="report-frame" sandbox="allow-same-origin allow-scripts allow-popups" allowfullscreen style="display: none;"></iframe>
+</div>
+
+<style>
+    /* Estilos personalizados */
+    #menu {  /* Estilo para el panel lateral */
+        height: 90%; /* El panel lateral ocupa el 100% de la altura de la ventana */
+        width: 5; /* Inicia con un ancho de 0, es decir, oculto */
+        position: fixed; /* Fija el panel en su posición relativa a la ventana */
+        z-index: 100; /* Asegura que el panel esté por encima de otros elementos */
+        top: 45px; /* Fija el panel en la parte superior de la ventana */
+        left: 5px; /* Fija el panel en la parte izquierda de la ventana */
+        border-right: 5px solid #16A038; /* Agrega una línea de separación entre el panel y el contenido */        
+        background-color: #a2f9b571; /* Color de fondo oscuro */
+        overflow-x: hidden; /* Oculta el contenido que exceda el ancho */
+        transition: 0.15s; /* Suaviza la transición de apertura y cierre en 0.15 segundos */
+        padding-top: 10px; /* Añade un espacio superior dentro del panel para separar del borde */
+        font-family: 'Century Gothic', Arial, sans-serif;
+    }
+
+    #menu { /* Estilo para el panel lateral */
+        width: 0%; /* Fija el ancho del panel */
+        float: left; /* Fija el panel en la parte izquierda de la ventana */
+        background-color: #f9f9f9; /* Color de fondo del panel */
+        padding: 0px; /* Elimina el espacio interno del panel */
+        border-right: 5px solid #16A038; /* Agrega una línea de separación entre el panel y el contenido */
+        font-family: 'Century Gothic', Arial, sans-serif;
+    }
+
+    #menu h3 { /* Estilo para los títulos de los grupos del menú */
+        display: block; /* Mostrar el título del grupo */
+        font-size: 12px; /* Tamaño de fuente del título */
+        margin-left:  5px; /* Añade espacio entre el contenido del grupo y el siguiente */
+        margin-bottom: 7px; /* Añade espacio entre el título y el contenido */
+        padding: 3px; /* Elimina el espacio interno del panel */
+        font-family: 'Century Gothic', Arial, sans-serif;
+        border: none; /* Elimina el borde del botón */
+        border-radius: 5px; /* Bordes redondeados */
+        cursor: pointer; /* Cambia el cursor a un puntero para indicar clic */
+        box-shadow: 0 4px 6px rgba(6, 0, 0, 0.475); /* Sombra para destacar el botón */
+    }
+
+    #menu h3 {
+        cursor: pointer;
+        position: relative;
+        padding-left: 5px; /* Espacio para la flecha */
+        transition: color 0.3s ease; /* Transición suave del color */
+    }
+ 
+    #menu h3:hover {
+        color: white; /* Color del texto al pasar el cursor */
+        background-color: #16A038; /* Fondo al pasar el cursor */
+    }
+
+    #menu ul { /* Estilo para el contenido del menú los grupos de informes */
+        list-style-type: none; /* Elimina la marca de lista */
+        margin-left:  20px; /* Añade espacio entre el contenido del grupo y el siguiente */
+        padding-left: 20px;  /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        margin-top: 0px; /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        padding-top: 10px;  /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        margin-bottom: 10px; /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        padding-bottom: 0px;  /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        padding: 0px;  /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        font-family: 'Century Gothic', Arial, sans-serif; /* Usa la fuente de estilo "Century Gothic" */
+        font-size: 12px; /* Tamaño de fuente del título */
+    }
+
+    #menu li { /* Estilo para los elementos del menú */
+        margin-bottom: 0px; /* Elimina el espacio entre los elementos del menú y el siguiente */
+        padding: 0px; /* Elimina el espacio interno del panel */
+        font-family: 'Century Gothic', Arial, sans-serif;
+    }
+
+    #menu li a { /* Estilo para el enlace del grupo */
+        display: block; /* Mostrar el enlace del grupo */
+        padding: 2px; /* Añade espacio interno al enlace */
+        border: 2px solid white; /* Agrega una línea de separación entre los enlaces */
+        border-radius: 0px; /* Agrega un borde redondeado al enlace */
+        text-decoration: none; /* Elimina el subrayado del enlace */
+        color: #000000; /* Color del texto del enlace */
+        background-color: #a2f9b571; /* Color de fondo del enlace */
+        transition: background-color 0.15s, color 0.15s; /* Suaviza la transición del color del enlace */
+    }
+
+    #menu li a:hover { /* Estilo para el enlace al pasar el ratón */
+        background-color: #16A038; /* Color de fondo del enlace al pasar el ratón */
+    }
+
+    #menu li a.active { /* Estilo para el enlace activo */
+        font-weight: bold; /* Hace que el texto del enlace sea negrita */
+        color: white; /* Color del texto del enlace */
+        background-color: #16A038; /* Color de fondo del enlace */
+        border-color: #16A038; /* Agrega un borde a la línea de separación del enlace */
+    }
+
+    #content { /* Estilo para el contenido */
+        width: 100%; /* Fija el ancho del contenido */
+        margin-left: 0px; /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        padding-left: 0px;  /* Elimina el espacio entre el contenido del grupo y el siguiente */
+        float: left; /* Fija el contenido en la parte derecha de la ventana */  
+        padding: 0px; /* Elimina el espacio interno del contenido */
+    }
+
+    #default-report-frame,
+    #report-frame { /* Estilo para el iframe */
+        width: 100%; /* Fija el ancho del iframe */
+        height: 90vh; /* Fija el alto del iframe */
+        border: none; /* Elimina el borde del iframe */
+    }
+
+    #loading-message { /* Estilo para el mensaje de carga */
+        text-align: center; /* Alinea el texto centrado */
+        font-size: 36px; /* Tamaño de fuente del texto */
+        font-weight: bold; /* Hace que el texto sea negrita */
+        color: #25397A; /* Color del texto */
+        margin-bottom: 100px; /* Añade espacio entre el texto y el siguiente */
+    }
+
+.menu-hidden #content { /* Estilo para el contenido cuando el menú está oculto */
+    width: 100%;  /* Esto hace que el contenido ocupe todo el ancho cuando el menú está oculto */
+}
+
+/* Estilo para los botones de Mostrar/Ocultar Menú */
+/* Estilo para el botón Mostrar Menú */
+#show-menu {
+    position: fixed; /* Fija el botón en la pantalla */
+    top: 50px; /* Espaciado desde la parte superior */
+    left: 0px; /* Espaciado desde la parte izquierda */
+    z-index: 100; /* Asegura que el botón esté por encima de otros elementos */
+    padding: 5px 10px;
+    background-color: #D9D9D9; /* Color de fondo */
+    color: #000000; /* Color del texto */
+    font-weight: bold; /* Texto en negrilla por defecto */
+    border: none; /* Sin borde */
+    border-radius: 5px; /* Bordes redondeados */
+    cursor: pointer; /* Cambia el cursor al pasar por encima */
+    font-size: 14px; /* Tamaño de fuente */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.888); /* Sombra para destacar el botón */
+    display: none; /* Oculto por defecto, se muestra cuando el menú está oculto */
+}
+
+#hide-menu {
+    display: none;  /* Por defecto, ambos botones estarán ocultos */
+    margin-bottom: 10px; /* Elimina el espacio entre los botones */
+    padding: 5px 10px; /* Añade espacio interno al botón */
+    background-color: #D9D9D9; /* Color de fondo del botón */
+    color: #000000; /* Color del texto del botón */
+    font-weight: bold; /* Texto en negrilla por defecto */
+    border: none; /* Elimina el borde del botón */
+    border-radius: 5px; /* Bordes redondeados */
+    cursor: pointer; /* Cambia el cursor a un puntero para indicar clic */
+    font-size: 14px; /* Tamaño de fuente del botón */
+    box-shadow: 0 4px 6px rgba(6, 0, 0, 0.475); /* Sombra para destacar el botón */
+    margin-left: 2px; /* Añade espacio a la izquierda del botón */
+    top: 1; /* Fija el botón en la parte superior */
+    right: 1px; /* Lo aleja del borde derecho del panel */
+}
+
+#show-menu:hover,
+#hide-menu:hover,
+#show-menu:focus,
+#hide-menu:focus {
+    background-color: #25397A; /* Cambia el color del botón al pasar el ratón */
+    color: white; /* Cambia el color del texto a blanco */
+}
+
+#show-menu,
+#hide-menu {
+    color: black; /* Color de texto negro cuando no está seleccionado */
+    font-weight: bold; /* Texto en negrilla por defecto */
+}
+
+body:not(.menu-hidden) #show-menu{
+    display: block; /* Muestra el botón cuando el menú está oculto */
+}
+
+body.not.menu-hidden #hide-menu {
+    display: none; /* Oculta el botón cuando el menú está visible */
+}
+
+#menu a img {
+    transition: transform 0.2s; /* Efecto de transición al pasar el ratón */
+}
+
+#menu a img:hover {
+    transform: scale(1.1); /* Aumenta el tamaño al pasar el ratón */
+}
+
+/* Oculta la lista de informes por defecto */
+.reports-list {
+    display: block;
+}
+
+.hidden {
+    display: none;
+}
+</style>
+
+ <!-- FUNCIONES PARA LA VISUALIZACIÓN DE REPORTES BI EN EL MENU Y PANTALLA -->
+ <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Obtener elementos necesarios
+        const principalImage = document.getElementById('principalbi-png');
+        const reportLinks = document.querySelectorAll("#menu a");
+        const defaultReportFrame = document.getElementById("default-report-frame");
+        const reportFrame = document.getElementById("report-frame");
+        const loadingMessage = document.getElementById("loading-message");
+        const reportNameSpan = document.getElementById("report-name");
+        const showMenuButton = document.getElementById("show-menu");
+        const hideMenuButton = document.getElementById("hide-menu");
+        const menu = document.getElementById("menu");
+
+        // Obtener todos los contenedores de áreas de trabajo
+        const workspaceContainers = document.querySelectorAll('.workspace-container');
+
+        // Agregar evento de clic a cada área de trabajo
+        workspaceContainers.forEach(container => {
+            const header = container.querySelector('h3'); // Área de trabajo (título)
+            const reportsList = container.querySelector('.reports-list'); // Lista de informes
+            
+            // Agregar una flecha al título
+            header.innerHTML = `▼ ${header.textContent}`;
+
+            // Ocultar la lista de informes al cargar
+            reportsList.classList.add('hidden');
+
+            header.addEventListener('click', () => {
+                // Alternar la clase para mostrar u ocultar los informes
+                reportsList.classList.toggle('hidden');
+
+                // Alternar la flecha
+                if (reportsList.classList.contains('hidden')) {
+                    header.innerHTML = `▼ ${header.textContent.slice(2)}`; // Flecha hacia abajo
+                } else {
+                    header.innerHTML = `▲ ${header.textContent.slice(2)}`; // Flecha hacia arriba
+                }
+            });
+        });
+
+        // Crear contenedor de error dinámico
+        const errorContainer = document.createElement("div");
+        errorContainer.id = "error-container";
+        errorContainer.style.display = "none";
+        errorContainer.style.textAlign = "center";
+        errorContainer.style.marginTop = "20px";
+
+        // Crear texto del mensaje de error
+        const errorText = document.createElement("div");
+        errorText.style.color = "blue"; // Color para advertencia
+        errorText.style.fontSize = "28px";
+        errorText.style.marginBottom = "10px";
+        errorText.textContent = "El informe aún no está disponible. Consulte con el área encargada.";
+
+        // Crear la imagen de error
+        const errorImage = document.createElement("img");
+        errorImage.src = "/static/images/en_construccion.gif";
+        errorImage.alt = "En Construcción";
+        errorImage.style.width = "400px";
+        errorImage.style.margin = "0 auto";
+        errorImage.style.display = "block"; // Para centrar la imagen
+
+        // Agregar texto e imagen al contenedor de error
+        errorContainer.appendChild(errorText);
+        errorContainer.appendChild(errorImage);
+
+        // Agregar el contenedor de error al DOM
+        document.getElementById("content").appendChild(errorContainer);
+
+        if (!menu || !showMenuButton || !hideMenuButton) {
+            console.error("Faltan elementos esenciales para el funcionamiento del menú.");
+            return;
+        }
+
+        // Función para mostrar el mensaje de error
+        function showError(reportName) {
+            loadingMessage.style.display = "none";
+            reportFrame.style.display = "none";
+            defaultReportFrame.style.display = "none";
+            errorContainer.style.display = "block"; // Mostrar el contenedor de error
+            reportNameSpan.textContent = reportName; // Mostrar el nombre del reporte como "No disponible"
+        }
+
+        // Función para ocultar el mensaje de error
+        function hideError() {
+            errorContainer.style.display = "none"; // Ocultar el contenedor de error
+        }
+
+        // Función para obtener la URL segura de un informe
+        async function fetchReportUrl(reportId) {
+            try {
+                const response = await fetch(`/api/get_report_url?report_id=${encodeURIComponent(reportId)}`);
+                const data = await response.json();
+
+                if (response.ok && data.url && data.url.trim() !== "" && data.url !== "NaN") {
+                    return data.url;
+                } else {
+                    console.warn("No existe enlace para el informe seleccionado.");
+                    return null;
+                }
+            } catch (error) {
+                console.error("Error al obtener la URL del informe:", error);
+                return null;
+            }
+        }
+
+        // Función para cargar un informe
+        async function loadReport(link) {
+            const reportId = link.getAttribute("data-report-id");
+            const reportName = link.getAttribute("data-report-name") || "Informe desconocido";
+
+            if (!reportId) {
+                console.warn("ID del informe no definido.");
+                showError(reportName);
+                return;
+            }
+
+            const reportUrl = await fetchReportUrl(reportId);
+
+            if (!reportUrl) {
+                showError(reportName);
+                return;
+            }
+
+            // Ocultar el mensaje de error
+            hideError();
+
+            // Ocultar el informe predeterminado y otros estados
+            defaultReportFrame.style.display = "none";
+            reportLinks.forEach(link => link.classList.remove("active"));
+            link.classList.add("active");
+
+            if (principalImage) {
+                principalImage.style.display = "none";
+            }
+
+            loadingMessage.style.display = "block";
+            reportNameSpan.textContent = reportName;
+
+            // Cargar el informe seleccionado
+            reportFrame.style.display = "none";
+            reportFrame.src = reportUrl;
+            reportFrame.onload = () => {
+                loadingMessage.style.display = "none";
+                reportFrame.style.display = "block";
+            };
+        }
+
+        // Asignar evento a los enlaces de informes
+        reportLinks.forEach(link => {
+            link.addEventListener("click", function (event) {
+                event.preventDefault();
+                loadReport(this);
+                hideMenu(); // Cerrar el menú al seleccionar un informe
+            });
+        });
+
+        // Función para mostrar el menú
+        function showMenu() {
+            menu.style.display = "block";
+            menu.style.width = "400px";
+            showMenuButton.style.display = "none";
+            hideMenuButton.style.display = "block";
+        }
+
+        // Función para ocultar el menú
+        function hideMenu() {
+            menu.style.display = "none";
+            menu.style.width = "0";
+            hideMenuButton.style.display = "none";
+            showMenuButton.style.display = "block";
+        }
+
+        // Agregar eventos a los botones de mostrar/ocultar menú
+        showMenuButton.addEventListener("click", showMenu);
+        hideMenuButton.addEventListener("click", hideMenu);
+
+        // Cerrar el menú al hacer clic fuera de él
+        document.addEventListener("click", function (event) {
+            if (!menu.contains(event.target) && event.target !== showMenuButton) {
+                hideMenu();
+            }
+        });
+
+        // Inicializar estado del menú
+        hideMenu(); // Asegurarse de que el menú esté oculto al cargar
+    });
+</script>
+
+{% endblock %}

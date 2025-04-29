@@ -1,23 +1,24 @@
 import psycopg2
 from psycopg2 import pool
 from datetime import datetime, date
-import openpyxl
 from io import StringIO, BytesIO
-import csv
-import json
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from typing import List
+import openpyxl
+import csv
+import json
+import os
 
 class Reporte_Asignaciones:
-    def __init__(self, db_path="postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress"):
-        self.db_path = db_path
+    def __init__(self):
+        self.db_path = os.getenv("DATABASE_PATH")
 
     def obtener_asignaciones(self, fecha_inicio, fecha_fin, cedula=None, nombre=None, turno=None, concesion=None, control=None, ruta=None, linea=None, cop=None, registrado_por=None, nombre_supervisor_enlace=None):
-        print(f"Filtros recibidos: {fecha_inicio}, {fecha_fin}, {cedula}, {nombre}, {turno}, {concesion}, {control}, {ruta}, {linea}, {cop}, {registrado_por}, {nombre_supervisor_enlace}")
+        #print(f"Filtros recibidos: {fecha_inicio}, {fecha_fin}, {cedula}, {nombre}, {turno}, {concesion}, {control}, {ruta}, {linea}, {cop}, {registrado_por}, {nombre_supervisor_enlace}")
         query = """
             SELECT fecha, cedula, nombre, turno, h_inicio, h_fin, concesion, control, ruta, linea, cop, observaciones, registrado_por, fecha_hora_registro, cedula_enlace, nombre_supervisor_enlace
             FROM asignaciones

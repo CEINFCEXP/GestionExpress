@@ -1,0 +1,170 @@
+{% extends "components/layout.html" %}
+
+{% block title %}Gestión de Roles Storage{% endblock %}
+
+{% block content %}
+<div class="container-fluid d-flex flex-column" style="height: 90vh;">
+    <div class="row justify-content-between align-items-center mb-4">
+        <h1 class="col-auto" style="font-size: 22px; font-family: 'Century Gothic', sans-serif;">Gestión de Roles para el Blob Storage - Azure</h1>
+        <h1 class="col-auto" style="font-size: 14px; font-family: 'Century Gothic', sans-serif;">¡Hola, {{ user_session.nombres }} {{ user_session.apellidos }}!</h1>
+        <img src="/static/Consorcio.png" alt="Consorcio Icon" class="col-auto" style="max-width: 100px; height: auto;">
+    </div>
+
+    {% if success_message %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ success_message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
+
+    {% if error_message %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ error_message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
+
+    <div class="row flex-grow-1">
+        <!-- Formulario de creación de roles_storage -->
+        <div class="col-lg-5 d-flex flex-column" style="height: 80vh;">
+            <div class="card shadow-sm flex-grow-1 d-flex flex-column">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Crear Nuevo Rol Storage Azure</h4>
+                </div>
+                <div class="card-body flex-grow-1 d-flex flex-column" style="overflow-y: auto; height: 70vh;">
+                    <form id="createRoleStorageForm" action="/roles_storage" method="post">
+                        <input type="hidden" name="role_storage_id" value="">
+                        <div class="mb-3">
+                            <label for="roleStorageName" class="form-label">Nombre del Rol Storage</label>
+                            <input type="text" class="form-control" id="roleStorageName" name="role_storage_name" placeholder="Ingrese el nombre del rol storage" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="containers" class="form-label">Contenedores a Asignar</label>
+                            <select multiple class="form-select" id="containers" name="containers" style="height: 35vh;" required>
+                                {% for container in containers %}
+                                    <option value="{{ container }}">{{ container }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">Mantenga presionado Ctrl o Cmd para seleccionar varios contenedores.</small>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Guardar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de roles_storage existentes -->
+        <div class="col-lg-7 d-flex flex-column" style="height: 80vh;">
+            <div class="card shadow-sm flex-grow-1 d-flex flex-column">
+                <div class="card-header bg-dark text-white" style="margin-bottom: 0;">
+                    <h4 class="mb-0" style="font-size: 18px; font-family: 'Century Gothic', sans-serif; color: #ffffff;font-weight: bold;">Roles Storage Existentes</h4>
+                </div>
+                <div class="card-body flex-grow-1 d-flex flex-column" style="overflow-y: auto; height: 70vh; padding-top: 0;">
+                    <table class="table table-hover table-striped" style="font-size: 12px; table-layout: fixed; width: 100%;">
+                        <thead class="table-light" style="position: sticky; top: 0; z-index: 1; margin-top: 0; padding: 0;">
+                            <tr>
+                                <th style="width: 5px;" >ID</th>
+                                <th style="width: 30px;" >Nombre</th>
+                                <th style="width: 65px;" >Contenedores Asignados</th>
+                                <th style="width: 30px;" class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for role in roles_storage %}
+                                <tr>
+                                    <td>{{ role[0] }}</td>
+                                    <td>{{ role[1] }}</td>
+                                    <td>{{ role[2] }}</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editRoleStorageModal" data-role-id="{{ role[0] }}">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </button>
+                                        <form action="/roles_storage/{{ role[0] }}/eliminar" method="post" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash-alt"></i> Eliminar
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+<!-- Modal para editar rol_storage -->
+<div class="modal fade" id="editRoleStorageModal" tabindex="-1" aria-labelledby="editRoleStorageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editRoleStorageForm" method="post">
+                <input type="hidden" id="editRoleStorageIdHidden" name="role_storage_id" value="">
+
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="editRoleStorageModalLabel">Editar Rol Storage</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Mostrar el ID del rol_storage -->
+                    <div class="mb-3">
+                        <label for="editRoleStorageId" class="form-label">ID del Rol Storage</label>
+                        <input type="text" class="form-control" id="editRoleStorageId" disabled>
+                    </div>
+
+                    <!-- Nombre del rol_storage -->
+                    <div class="mb-3">
+                        <label for="editRoleStorageName" class="form-label">Nombre del Rol Storage</label>
+                        <input type="text" class="form-control" id="editRoleStorageName" name="role_storage_name" required>
+                    </div>
+
+                    <!-- Contenedores para el rol_storage -->
+                    <div class="mb-3">
+                        <label for="editContainers" class="form-label">Contenedores a Asignar</label>
+                        <select multiple class="form-select" id="editContainers" name="containers" required>
+                            {% for container in containers %}
+                                <option value="{{ container }}">{{ container }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Función para abrir el modal de edición y cargar los datos del rol seleccionado
+    document.getElementById('editRoleStorageModal').addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const roleId = button.getAttribute('data-role-id');
+        
+        // Restablecer los valores del modal antes de cargar nuevos datos
+        document.getElementById('editRoleStorageId').value = '';
+        document.getElementById('editRoleStorageName').value = '';
+        const editContainers = document.getElementById('editContainers');
+        Array.from(editContainers.options).forEach(option => option.selected = false);
+
+        // Solicitar datos del rol_storage seleccionado
+        fetch(`/roles_storage/${roleId}/datos`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('editRoleStorageId').value = data.id_rol_storage;
+                document.getElementById('editRoleStorageName').value = data.nombre_rol_storage;
+
+                // Seleccionar los contenedores asignados
+                Array.from(editContainers.options).forEach(option => {
+                    option.selected = data.contenedores_asignados.includes(option.value);
+                });
+
+                // Actualizamos el formulario para que apunte a la ruta correcta de edición
+                document.getElementById('editRoleStorageForm').action = `/roles_storage/${roleId}/editar`;
+            });
+    });
+</script>
+{% endblock %}

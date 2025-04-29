@@ -3,34 +3,202 @@
 {% block title %}Inicio de Sesión{% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="row justify-content-center mt-5">
+<style>
+  html, body {
+    height: 100%;
+    overflow: hidden;  /* Elimina la barra de desplazamiento vertical */
+    margin: 0;
+    padding: 0;
+  }  
+
+  body {
+    background-color: #ecf0f1;
+    font-family: 'Century Gothic', sans-serif;
+  }
+
+  .fade-in {
+    animation: fadeInUp 1s ease-out;
+  }
+
+  .container.vh-100 {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+  
+  .row.justify-content-center {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }  
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .login-container {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+    border: 1px solid #bdc3c7;
+    transition: all 0.3s ease;
+  }
+
+  .login-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 1px; 
+  }
+
+  .slogan-text {
+    font-size: 14px;
+    color: #254b9c; /* azul corporativo moderno */
+    font-style: italic;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    margin-top: 0px;
+    margin-bottom: 0;
+  }  
+
+  .login-logo {
+    max-width: 140px;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 2px 5px rgba(44, 62, 80, 0.4));
+    transition: transform 0.3s ease;
+    border: 2px solid #bdc3c7;     /* Borde gris claro */
+    border-radius: 10px;           /* Bordes redondeados */
+    padding: 5px;                  /* Espacio interior para que no pegue el borde directo */
+    background-color: white;       /* Fondo blanco para evitar contraste con fondo transparente */
+  }
+  
+
+  .login-logo:hover {
+    transform: scale(1.04);
+  }
+
+  .form-label {
+    font-weight: bold;
+    color: #2c3e50;
+    text-shadow: 0.5px 0.5px #bdc3c7;
+  }
+
+  .form-control {
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    padding-left: 35px;
+    background-position: 10px center;
+    background-repeat: no-repeat;
+    background-size: 18px 18px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+  }
+
+  #username {
+    background-image: url("data:image/svg+xml,%3Csvg fill='gray' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3Zm5-6a3 3 0 100-6 3 3 0 000 6Z'/%3E%3C/svg%3E");
+  }
+
+  #password {
+    background-image: url("data:image/svg+xml,%3Csvg fill='gray' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1a4 4 0 00-4 4v2H3.5A1.5 1.5 0 002 8.5v5A1.5 1.5 0 003.5 15h9a1.5 1.5 0 001.5-1.5v-5A1.5 1.5 0 0012.5 7H12V5a4 4 0 00-4-4Zm-3 4a3 3 0 016 0v2H5V5Zm2.5 5.5a.5.5 0 011 0v1a.5.5 0 01-1 0v-1Z'/%3E%3C/svg%3E");
+  }
+
+  .form-control:focus {
+    border-color: #2c3e50;
+    box-shadow: 0 0 5px rgba(44, 62, 80, 0.5);
+  }
+
+  .btn-login {
+    background-color: #2c3e50;
+    color: rgb(255, 255, 255);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 0;
+    font-weight: bold;
+    font-size: 15px;
+    box-shadow: 0 5px 15px rgba(44, 62, 80, 0.3);
+    transition: all 0.3s ease-in-out;
+  }
+
+  .btn-login:hover {
+    background-color: #09253f;
+    color: #ffffff; /* Blanco al pasar el cursor */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .btn-login:focus {
+    outline: none;
+    background-color: #09253f;
+    color: #dfe6e9;  /* Color diferente al blanco cuando tabulas */
+    box-shadow: 0 0 0 4px rgba(44, 62, 80, 0.4);
+  }
+
+  .footer-text {
+    font-size: 12px;
+    color: #6c757d;
+    text-align: right;
+    margin-top: 10px;
+    font-style: italic;
+  }
+
+  .footer-logo .mini-logo {
+    max-width: 80px;
+    height: auto;
+    opacity: none;
+    transition: opacity 0.3s ease;
+  }
+  
+  .footer-logo .mini-logo:hover {
+    opacity: 0.8;
+  }  
+
+  .alert {
+    border-radius: 10px;
+    font-size: 14px;
+  }
+</style>
+
+<div class="container vh-100 d-flex align-items-center">
+  <div class="row justify-content-center w-100">
     <div class="col-md-6">
-      <div class="card shadow">
-        <div class="card-body">
-          <h2 class="card-title text-center mb-4" style="font-family: 'Century Gothic', sans-serif;">Bienvenido a: </h2>
-          {% if error_message %}
-          <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ error_message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      <div class="login-container fade-in">
+        <div class="text-center">
+          <img src="/static/images/gestion_express.png" alt="Consorcio Icon" class="login-logo">
+          <h2 class="login-title mb-1">Bienvenido a Gestión Express</h2>
+          <p class="slogan-text">Datos que Impulsan el Futuro</p>
+        </div>
+
+        {% if error_message %}
+        <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+          {{ error_message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/">
+          <div class="mb-3 mt-4">
+            <label for="username" class="form-label">Usuario</label>
+            <input name="username" type="text" class="form-control" id="username" required oninput="this.value = this.value.replace(/[^0-9]/g, '');">
           </div>
-          {% endif %}
+          <div class="mb-3">
+            <label for="password" class="form-label">Contraseña</label>
+            <input name="password_user" type="password" class="form-control" id="password" required>
+          </div>
           <div class="text-center">
-            <img src="/static/Consorcio.png" alt="Consorcio Icon" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+            <button type="submit" class="btn btn-login w-100">Entrar</button>
           </div>
-          <form method="post" action="/">
-            <div class="mb-3">
-              <label for="username" class="form-label">Usuario</label>
-              <input name="username" type="text" class="form-control" id="username" required>
-            </div>
-            <div class="mb-3">
-              <label for="password" class="form-label">Contraseña</label>
-              <input name="password_user" type="password" class="form-control" id="password" required>
-            </div>
-            <div class="text-center">
-              <button type="submit" class="btn btn-primary">Entrar</button>
-            </div>
-          </form>
+        </form>
+
+        <div class="footer-text">by Centro de Información</div>
+        <div class="footer-logo text-end mt-2">
+          <img src="/static/Consorcio.png" alt="Logo Consorcio Express" class="mini-logo">
         </div>
       </div>
     </div>

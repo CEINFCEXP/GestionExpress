@@ -1,11 +1,17 @@
+from fastapi import HTTPException
 import psycopg2
 from psycopg2 import OperationalError
 from threading import Lock
 from datetime import datetime, time
+from bs4 import BeautifulSoup
+import pandas as pd
 import pytz
-from fastapi import HTTPException
+from dotenv import load_dotenv
+import os
 
-DATABASE_PATH = "postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress" 
+# Cargar las variables de entorno desde .env
+load_dotenv()
+DATABASE_PATH = os.getenv("DATABASE_PATH") # Base de Datos POSTGRESQL en Azure (Cuenta: sergio.hincapie@ucentral.edu.co)
 # Establecer la zona horaria de Colombia
 colombia_tz = pytz.timezone('America/Bogota')
 
@@ -13,50 +19,215 @@ class HandleDB:
     _instance = None
     _lock = Lock()
 
-    def __new__(cls): # Implementación del patrón Singleton para asegurar una única instancia de la clase HandleDB
+    def __new__(cls):  # Implementación del patrón Singleton para asegurar una única instancia de la clase HandleDB
         with cls._lock:
             if not cls._instance:
                 cls._instance = super().__new__(cls)
-                cls._instance._con = psycopg2.connect(DATABASE_PATH)
+                cls._instance._con = cls._create_connection()  # Usar el método estático para crear la conexión
                 cls._instance._cur = cls._instance._con.cursor()
             return cls._instance
+        
+    @staticmethod
+    def _create_connection():
+        return psycopg2.connect(DATABASE_PATH)  # Reemplaza con la cadena de conexión a tu base de datos PostgreSQL
 
-    def get_all(self): # Método para obtener todos los registros de usuarios
+    def _check_connection(self):
+        if self._con.closed:  # Verifica si la conexión está cerrada
+            self._con = self._create_connection()  # Reabre la conexión
+            self._cur = self._con.cursor()  # Reasigna el cursor
+
+    def get_all(self):  # Método para obtener todos los registros de usuarios
         with self._lock:
+            self._check_connection()  # Verifica la conexión antes de usarla
             self._cur.execute("SELECT * FROM usuarios")
             return self._cur.fetchall()
 
-    def get_only(self, username): 
+    def get_only(self, username):
         with self._lock:
+            self._check_connection()  # Verifica la conexión antes de usarla
             cur = self._con.cursor()  # Crear un nuevo cursor
             try:
                 cur.execute("SELECT * FROM usuarios WHERE username = %s", (username,))
                 result = cur.fetchone()
+            except Exception as e:
+                self._con.rollback()  # Si ocurre un error, hacemos rollback de la transacción
+                raise e  # Opcionalmente, lanzar el error para depuración
             finally:
-                cur.close()  # Asegurarse de cerrar el cursor después de su uso
+                cur.close()  # Asegúrate de cerrar el cursor después de su uso
             return result
-                
-    def insert(self, data_user): # Método para insertar un nuevo usuario en la base de datos
+
+    def insert(self, data_user):  # Método para insertar un nuevo usuario en la base de datos
         with self._lock:
+            self._check_connection()  # Verifica la conexión antes de usarla
             self._cur.execute("""
-                INSERT INTO usuarios (nombres, apellidos, username, cargo, password_user)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO usuarios (nombres, apellidos, username, rol, rol_storage, password_user, estado)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 data_user["nombres"],
                 data_user["apellidos"],
                 data_user["username"],
-                data_user["cargo"],
-                data_user["password_user"]
+                data_user["rol"],
+                data_user["rol_storage"],
+                data_user["password_user"],
+                1 # Siempre se insertará como 'activo' con estado 1
             ))
             self._con.commit()
 
-    def __del__(self): # Método para cerrar la conexión con la base de datos al finalizar el uso
+    def insert_role(self, role_data):  # Método para insertar un nuevo rol en la tabla 'roles'
         with self._lock:
-            self._con.close()
+            self._check_connection()  # Verifica la conexión antes de usarla
+            self._cur.execute("""
+                INSERT INTO roles (nombre_rol, pantallas_asignadas)
+                VALUES (%s, %s)
+            """, (
+                role_data["nombre_rol"],
+                role_data["pantallas_asignadas"]
+            ))
+            self._con.commit()
+
+    def get_all_roles(self):
+        try:
+            with self._lock:
+                self._check_connection()
+                self._cur.execute("SELECT id_rol, nombre_rol, pantallas_asignadas FROM roles ORDER BY id_rol ASC")
+                return self._cur.fetchall()
+        except psycopg2.OperationalError as e:
+            self._con.rollback()  # Si ocurre un error, realiza un rollback
+            print(f"Error de conexión: {str(e)}")
+            raise e  # Opcionalmente, relanzar el error o intentar reconectar
+
+    def get_pantallas_from_layout(self, layout_path):
+        with open(layout_path, 'r', encoding='utf-8') as f:
+            layout_html = f.read()
+        soup = BeautifulSoup(layout_html, 'html.parser')
+        pantallas = [link.text.strip() for link in soup.select(".sidebar .nav-link")]
+        return pantallas
+        
+    def get_role_by_id(self, role_id):
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("SELECT id_rol, nombre_rol, pantallas_asignadas FROM roles WHERE id_rol = %s", (role_id,))
+            rol_data = self._cur.fetchone()
+            if rol_data and rol_data[2]:  # Validar que `pantallas_asignadas` no esté vacío
+                return rol_data
+            else:
+                return None
+
+    def update_role(self, role_id, role_name, permissions):
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("""
+                UPDATE roles SET nombre_rol = %s, pantallas_asignadas = %s WHERE id_rol = %s
+            """, (role_name, permissions, role_id))
+            self._con.commit()
+
+    def delete_role(self, role_id):
+        with self._lock:
+            self._check_connection()
+            try:
+                self._cur.execute("DELETE FROM roles WHERE id_rol = %s", (role_id,))
+                self._con.commit()  # Realiza commit para confirmar la transacción
+            except Exception as e:
+                self._con.rollback()  # Realiza rollback en caso de error
+                raise e
+
+    def get_pantallas_by_role(self, role_id):
+        """Consulta las pantallas asignadas a un rol en la base de datos."""
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("SELECT pantallas_asignadas FROM roles WHERE id_rol = %s", (role_id,))
+            result = self._cur.fetchone()
+            if result:
+                return result[0].split(',')  # Convertimos la cadena a lista
+            return []
+        
+    def get_all_users(self):
+        with self._lock:
+            self._check_connection()
+            # Asegurémonos de obtener todos los campos
+            self._cur.execute("SELECT id, nombres, apellidos, username, rol, estado, rol_storage FROM usuarios ORDER BY id ASC")
+            usuarios = self._cur.fetchall()
+            # print("Usuarios obtenidos de la base de datos:", usuarios)  # Debugging
+            return usuarios
+      
+    def get_user_by_id(self, user_id):
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("SELECT id, nombres, apellidos, username, rol, estado, rol_storage FROM usuarios WHERE id = %s", (user_id,))
+            usuario = self._cur.fetchone()
+            if usuario:
+                return {
+                    "id": usuario[0],
+                    "nombres": usuario[1],
+                    "apellidos": usuario[2],
+                    "username": usuario[3],
+                    "rol": usuario[4],
+                    "estado": usuario[5],
+                    "rol_storage": usuario[6]
+                }
+            return None
+           
+    def update_user(self, user_id, data):
+        with self._lock:
+            self._check_connection()
+
+            # Comienza a construir la consulta SQL
+            query = """
+                UPDATE usuarios SET nombres = %s, apellidos = %s, username = %s, rol = %s, estado = %s, rol_storage = %s
+            """
+            params = [data['nombres'], data['apellidos'], data['username'], data['rol'], data['estado'], data['rol_storage']]
+
+            # Solo agrega la contraseña si está presente en los datos
+            if "password_user" in data and data["password_user"]:
+                query += ", password_user = %s"
+                params.append(data["password_user"])
+            
+            # Finaliza la consulta SQL
+            query += " WHERE id = %s"
+            params.append(user_id)
+
+            self._cur.execute(query, params)
+            self._con.commit()
+                
+    def inactivate_user(self, user_id):
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("""
+                UPDATE usuarios SET estado = 0 WHERE id = %s
+            """, (user_id,))
+            self._con.commit()  
+    
+    # Conexión Licencias Power BI
+    def fetch_one(self, query, values=None):
+        with self._lock:
+            self._check_connection()  # Verificar la conexión
+            try:
+                self._cur.execute(query, values)  # Ejecutar la consulta con parámetros
+                return self._cur.fetchone()  # Obtener un solo resultado
+            except Exception as e:
+                self._con.rollback()  # Hacer rollback si hay un error
+                raise e  # Lanzar el error
+
+    def fetch_all(self, query, params=None):
+        with self._lock:
+            self._check_connection()
+            try:
+                if params:
+                    self._cur.execute(query, params)
+                else:
+                    self._cur.execute(query)
+                return self._cur.fetchall()
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error fetching data: {str(e)}")
+
+    def __del__(self):  # Método para cerrar la conexión con la base de datos al finalizar el uso
+        with self._lock:
+            if not self._con.closed:
+                self._con.close()
 
 class Cargue_Controles:
     def __init__(self):
-        self.database_path = "postgresql://gestionexpress:G3st10n3xpr3ss@serverdbcexp.postgres.database.azure.com:5432/gestionexpress"
+        self.database_path = os.getenv("DATABASE_PATH")
         self.conn = psycopg2.connect(self.database_path)
         self.cursor = self.conn.cursor()
         
@@ -282,3 +453,131 @@ class Cargue_Asignaciones:
 
         finally:
             conn.close()  # Cerrar la conexión
+            
+class CargueLicenciasBI:
+    def __init__(self, db_conn):
+        self.conn = db_conn
+        self.cursor = self.conn.cursor()
+
+    def cargar_licencias_excel(self, file_path):
+        try:
+            # Leer el archivo Excel
+            df = pd.read_excel(file_path)
+
+            # Validar si las columnas necesarias están presentes
+            if not set(['cedula', 'nombre', 'correo_corporativo', 'grupo', 'licencia_bi', 'contraseña_licencia']).issubset(df.columns):
+                raise ValueError("El archivo Excel debe contener las columnas: 'cedula', 'nombre', 'correo_corporativo', 'grupo', 'licencia_bi' y 'contraseña_licencia'.")
+
+            # Insertar o actualizar los datos en la tabla licencias_bi
+            for _, row in df.iterrows():
+                self.cursor.execute('''
+                    INSERT INTO licencias_bi (cedula, nombre, correo_corporativo, grupo, licencia_bi, contraseña_licencia)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (cedula) DO UPDATE
+                    SET nombre = EXCLUDED.nombre, correo_corporativo = EXCLUDED.correo_corporativo,
+                        grupo = EXCLUDED.grupo, licencia_bi = EXCLUDED.licencia_bi, contraseña_licencia = EXCLUDED.contraseña_licencia
+                ''', (
+                    row['cedula'], row['nombre'], row['correo_corporativo'], row['grupo'],
+                    row['licencia_bi'], row['contraseña_licencia']
+                ))
+
+            # Hacer commit a la base de datos
+            self.conn.commit()
+            return {"message": "Licencias cargadas exitosamente."}
+
+        except Exception as e:
+            self.conn.rollback()
+            raise HTTPException(status_code=400, detail=f"Error al cargar el archivo Excel: {str(e)}")
+
+class Cargue_Roles_Blob_Storage:
+    _instance = None
+    _lock = Lock()  # Para manejar la concurrencia en la base de datos
+
+    def __new__(cls):
+        with cls._lock:
+            if not cls._instance:
+                cls._instance = super().__new__(cls)
+                cls._instance._con = cls._create_connection()  # Crear la conexión a la base de datos
+                cls._instance._cur = cls._instance._con.cursor()
+            return cls._instance
+
+    @staticmethod # Método para crear la conexión a la base de datos
+    def _create_connection():
+        return psycopg2.connect(DATABASE_PATH)
+
+    def _check_connection(self): # Verifica si la conexión está activa
+        if not hasattr(self, '_con') or self._con.closed:  # Asegura que la conexión existe y está abierta
+            self._con = self._create_connection()
+            self._cur = self._con.cursor()
+
+    def insert_roles_storage(self, role_data):
+        with self._lock:
+            self._check_connection()
+            try:
+                self._cur.execute("""
+                    INSERT INTO roles_storage (nombre_rol_storage, contenedores_asignados)
+                    VALUES (%s, %s)
+                """, (
+                    role_data["nombre_rol_storage"],
+                    ','.join(role_data["contenedores_asignados"])  # Convertimos la lista a una cadena
+                ))
+                self._con.commit()
+            except Exception as e:
+                self._con.rollback()  # Si hay un error, hacemos rollback
+                raise e
+
+    def get_all_roles_storage(self): # Método para obtener todos los roles de storage en la tabla roles_storage
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("SELECT id_rol_storage, nombre_rol_storage, contenedores_asignados FROM roles_storage ORDER BY id_rol_storage ASC")
+            return self._cur.fetchall()
+
+    def get_role_storage_by_id(self, role_storage_id): # Método para obtener un rol específico por ID
+        with self._lock:
+            self._check_connection()
+            self._cur.execute("SELECT id_rol_storage, nombre_rol_storage, contenedores_asignados FROM roles_storage WHERE id_rol_storage = %s", (role_storage_id,))
+            role_data = self._cur.fetchone()
+            if role_data:
+                return {
+                    "id_rol_storage": role_data[0],
+                    "nombre_rol_storage": role_data[1],
+                    "contenedores_asignados": role_data[2].split(',')  # Convertimos la cadena a lista
+                }
+            return None
+
+    def update_role_storage(self, role_storage_id, role_name, contenedores_asignados): # Método para actualizar un rol en la tabla roles_storage
+        with self._lock:
+            self._check_connection()
+            try:
+                self._cur.execute("""
+                    UPDATE roles_storage
+                    SET nombre_rol_storage = %s, contenedores_asignados = %s
+                    WHERE id_rol_storage = %s
+                """, (role_name, ','.join(contenedores_asignados), role_storage_id))
+                self._con.commit()
+            except Exception as e:
+                self._con.rollback()  # Si hay un error, hacemos rollback
+                raise e
+
+    def delete_role_storage(self, role_storage_id): # Método para eliminar un rol de storage por ID
+        with self._lock:
+            self._check_connection()
+            try:
+                self._cur.execute("DELETE FROM roles_storage WHERE id_rol_storage = %s", (role_storage_id,))
+                self._con.commit()
+            except Exception as e:
+                self._con.rollback()
+                raise e
+            
+    # Obtener Contenedores Blob Storage por Usuario (Rol de Usuario)
+    def get_contenedores_por_rol(self, role_storage_id):
+        self._check_connection()
+        self._cur.execute("SELECT contenedores_asignados FROM roles_storage WHERE id_rol_storage = %s", (role_storage_id,))
+        result = self._cur.fetchone()
+
+        if result and result[0]:
+            contenedores_asignados = result[0].split(',')
+            #print(f"Contenedores asignados para el rol {role_storage_id}: {contenedores_asignados}")
+        else:
+            contenedores_asignados = []
+        return contenedores_asignados  

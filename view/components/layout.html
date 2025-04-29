@@ -117,28 +117,60 @@
 
     <a class="nav-link" href="/inicio">Inicio</a>
 
+    <!-- Obtenemos las pantallas permitidas -->
+    {% set pantallas_permitidas = user_session.pantallas_asignadas %}
+    
     <!-- Grupo "Centro de Control" -->
+    {% if 'Asignaciones' in pantallas_permitidas or 'Reportes' in pantallas_permitidas %}
     <div class="group">
       <div class="group-title">Centro de Control</div>
+      {% if 'Asignaciones' in pantallas_permitidas %}
       <a class="nav-link" href="/asignacion">Asignaciones</a>
-      <a class="nav-link" href="/dashboard">Reportes</a>
+      {% endif %}
+      {% if 'Checklist' in pantallas_permitidas %}
+      <a class="nav-link" href="/checklist">Checklist</a>
+      {% endif %}
     </div>
+    {% endif %}
 
-    <!-- Grupo "Júridico" -->
+    <!-- Grupo "Centro de Información" -->
+    {% if 'Blob Storage' in pantallas_permitidas or 'Dashboard Power BI' in pantallas_permitidas %}
     <div class="group">
-      <div class="group-title">Júridico</div>
+      <div class="group-title">Centro de Información y Power BI</div>
+      {% if 'Blob Storage' in pantallas_permitidas %}
+      <a class="nav-link" href="/containers">Blob Storage</a>
+      {% endif %}
+      {% if 'Dashboard Power BI' in pantallas_permitidas %}
+      <a class="nav-link" href="/powerbi">Dashboard Power BI</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Grupo "Jurídico" -->
+    {% if 'Control Clausulas' in pantallas_permitidas %}
+    <div class="group">
+      <div class="group-title">Jurídico</div>
       <a class="nav-link" href="/juridico">Control Clausulas</a>
     </div>
+    {% endif %}
 
     <!-- Grupo "Configuración" -->
+    {% if 'Crear Usuario' in pantallas_permitidas or 'Gestión de Roles' in pantallas_permitidas or 'Roles Blob Storage' in pantallas_permitidas %}
     <div class="group">
       <div class="group-title">Configuración</div>
+      {% if 'Crear Usuario' in pantallas_permitidas %}
       <a class="nav-link" href="/registrarse">Crear Usuario</a>
+      {% endif %}
+      {% if 'Gestión de Roles' in pantallas_permitidas %}
       <a class="nav-link" href="/roles">Gestión de Roles</a>
+      {% endif %}
+      {% if 'Roles Blob Storage' in pantallas_permitidas %}
+      <a class="nav-link" href="/roles_storage">Roles Blob Storage</a>
+      {% endif %}
     </div>
+    {% endif %}
     
   </div>
-
   {% endif %}
 
   <div id="main">
@@ -167,7 +199,7 @@
       }
     });
   </script>
-
+  
     <!-- FUNCIÓN PARA CERRAR SESÓN POR TIEMPO DE INACTIVIDAD -->
   <script>
     let inactivityTime = function () {
@@ -195,7 +227,69 @@
     inactivityTime();
   </script>
 
+  <!-- FUNCIÓN DINAMICA PARA LAS PANTALLAS PERMITIDAS POR ROL DEL USUARIO" -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Mapeo entre el nombre de la pantalla y su ruta real
+      const pantallasRutas = {
+        "Asignaciones": "/asignacion",
+        "Checklist": "/checklist",
+        "Blob Storage": "/containers",
+        "Dashboard Power BI": "/powerbi" ,
+        "Control Clausulas": "/juridico",
+        "Crear Usuario": "/registrarse",
+        "Gestión de Roles": "/roles",
+        "Roles Blob Storage": "/roles_storage"
+      };
+  
+      fetch("/pantallas_permitidas")
+        .then(response => response.json())
+        .then(data => {
+          if (data.pantallas) {
+            const pantallas = data.pantallas;
+            
+            const gruposPantallas = {
+              "Centro de Control": ["Asignaciones", "Checklist"],
+              "Centro Información": ["Blob Storage", "Dashboard Power BI"],
+              "Jurídico": ["Control Clausulas"],
+              "Configuración": ["Crear Usuario", "Gestión de Roles", "Roles Blob Storage"]
+            };
+            
+            Object.keys(gruposPantallas).forEach(grupo => {
+              const groupTitle = document.createElement('div');
+              groupTitle.className = 'group-title';
+              groupTitle.textContent = grupo;
+              
+              const groupContainer = document.createElement('div');
+              groupContainer.className = 'group';
+              
+              groupContainer.appendChild(groupTitle);
+              
+              gruposPantallas[grupo].forEach(pantalla => {
+                if (pantallas.includes(pantalla)) {
+                  const navLink = document.createElement('a');
+                  
+                  // Verificamos si el nombre de la pantalla tiene una ruta mapeada
+                  const ruta = pantallasRutas[pantalla] || `/${pantalla.toLowerCase().replace(/ /g, "_")}`;
+                  
+                  navLink.href = ruta;  // Usamos la ruta mapeada o una generada por defecto
+                  navLink.className = "nav-link";
+                  navLink.textContent = pantalla;
+                  groupContainer.appendChild(navLink);
+                }
+              });
+              
+              if (groupContainer.children.length > 1) {
+                document.getElementById('mySidebar').appendChild(groupContainer);
+              }
+            });
+          } else {
+            console.error("No se encontraron pantallas permitidas");
+          }
+        })
+        .catch(error => console.error("Error al obtener las pantallas permitidas:", error));
+    });
+  </script>
+  
 </body>
 </html>
-
-
