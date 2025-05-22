@@ -1,67 +1,53 @@
-from langchain_huggingface import HuggingFaceEndpoint
+import google.generativeai as genai
 from langchain.prompts import PromptTemplate
 from datetime import datetime
 from dotenv import load_dotenv
-import os
-import re
+import os, re
 
 load_dotenv()  # Carga variables desde .env
 
-# Carga el token de Hugging Face desde la variable de entorno
-api_token_ia = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+# Carga el token de IA LLM Generativa desde la variable de entorno
+api_token_ia = os.getenv("IA_API_KEY")
 # Si no se encuentra en el entorno, intenta cargarlo desde el archivo .env
 if not api_token_ia:
-    raise ValueError("❌ ERROR: No se encontró la variable HUGGINGFACEHUB_API_TOKEN en el entorno ni en .env")
+    raise ValueError("❌ ERROR: No se encontró la variable IA_API_KEY en el entorno ni en .env")
 
-# Establece el token de Hugging Face en la variable de entorno
-os.environ["HUGGINGFACEHUB_API_TOKEN"] = api_token_ia
+# Establece el token de IA LLM en la variable de entorno
+os.environ["IA_API_KEY"] = api_token_ia
+genai.configure(api_key=api_token_ia)
 
 class AgenteIA:
     def __init__(self, nombre_usuario: str):
         self.nombre_usuario = nombre_usuario.strip().title()
 
-        self.llm = HuggingFaceEndpoint(
-            repo_id="meta-llama/Meta-Llama-3-8B-Instruct",
-            task="text-generation",
-            temperature=0.7,
-            max_new_tokens=512
-        )
+        # Inicializa modelo IA Generativa
+        self.model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+        self.chat = self.model.start_chat()  # Sesión de conversación
 
+        # Solo se guarda el prompt como plantilla (no en pipeline con chat)
         self.prompt = PromptTemplate(
             input_variables=["input", "nombre"],
-            template="""<|system|>
-Eres Bot-CEXP, un asistente especializado en temas de transporte de pasajeros en Colombia.
-Responde de forma clara, estructurada y profesional. Siempre trata al usuario por su nombre ({nombre}).
-Puedes ayudar con:
-- Normativa del transporte público o empresarial 🚌
-- Rutas, horarios y operación de transporte masivo 🕒
-- Legislación vigente del Ministerio de Transporte 📜
-- Seguridad vial y atención al cliente 🦺
-- Documentación técnica, manuales y formatos 🗂️
-<|end|>
-<|user|>{input}<|end|>
-<|assistant|>
-"""
+            template="""Eres Bot-CEXP, asistente experto en transporte de pasajeros en Colombia. 
+                        Responde profesionalmente al usuario llamado {nombre}.
+                        <|user|>{input}<|end|><|assistant|>"""
         )
-        
-
-        self.chain = self.prompt | self.llm
-        self.historial_archivo = f"historial_chat_{self.nombre_usuario.lower().replace(' ', '_')}.txt"
-
-        with open(self.historial_archivo, "a", encoding="utf-8") as f:
-            f.write(f"\n=============================\n🗓️ Inicio de sesión: {datetime.now()}\n👤 Usuario: {self.nombre_usuario}\n=============================\n")
 
     def responder(self, pregunta: str) -> str:
         try:
-            respuesta = self.chain.invoke({
-                "input": pregunta,
-                "nombre": self.nombre_usuario
-            })
-            respuesta_limpia = re.split(r"\n(Pregunta del usuario|Escribe tu respuesta|Puedes utilizar emojis|Respuesta del asistente):", respuesta)[0].strip()
+            # Generar prompt fusionado
+            prompt_text = self.prompt.format(input=pregunta, nombre=self.nombre_usuario)
 
-            with open(self.historial_archivo, "a", encoding="utf-8") as f:
-                f.write(f"\n👤 {self.nombre_usuario}: {pregunta}\n🤖 Bot-CEXP: {respuesta_limpia}\n")
+            # Enviar mensaje al modelo
+            response = self.chat.send_message(prompt_text, generation_config={"max_output_tokens": 256, "temperature": 0.7, "top_p": 0.9})
 
+            respuesta_limpia = re.split(
+                r"\n(Pregunta del usuario|Escribe tu respuesta|Puedes utilizar emojis|Respuesta del asistente):",
+                response.text)[0].strip()
+            
             return respuesta_limpia
+        
         except Exception as e:
-            return f"⚠️ Error al generar respuesta: {str(e)}"
+            mensaje_error = str(e)
+            if "429" in mensaje_error or "quota" in mensaje_error.lower() or "rate" in mensaje_error.lower():
+                return f"😓 {self.nombre_usuario}, en estos momentos me encuentro fuera de servicio por límite de uso. Por favor intenta más tarde. 🤐"
+            return f"⚠️ Error al generar respuesta: {mensaje_error}"

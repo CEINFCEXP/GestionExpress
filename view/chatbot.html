@@ -124,6 +124,9 @@
                     alt="Enviar" width="18" height="18" style="margin-right: 6px;">
                 Enviar
             </button>
+        <button id="endButton" style="background-color: #d9534f; color: white; padding: 10px 16px; border: none; border-radius: 10px; margin-left: 8px; cursor: pointer;">
+            Finalizar Chat
+        </button>
         </div>
     </div>
 
@@ -185,6 +188,27 @@
             chatContainer.appendChild(mensaje);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
+
+        // Historial de Chat
+        document.getElementById('endButton').addEventListener('click', function () {
+            const confirmacion = confirm("¿Deseas finalizar y descargar la conversación?");
+            if (!confirmacion) return;
+
+            // Descargar historial desde el servidor
+            window.location.href = '/descargar_historial';
+
+            // Opcional: limpiar chat visual
+            setTimeout(() => {
+                chatContainer.innerHTML = `
+                    <div class="message bot-message">
+                        <img src="/static/images/robot-de-chat.gif" class="avatar" alt="Bot">
+                        <div>
+                            <strong>Bot-CEXP:</strong> ¡Gracias por conversar! Chat finalizado. 👋
+                        </div>
+                    </div>`;
+            }, 1000);
+        });
+
     </script>
 </body>
 </html>
